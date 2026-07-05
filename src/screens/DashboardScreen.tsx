@@ -647,81 +647,120 @@ export const DashboardScreen: React.FC = () => {
   };
 
   // ME PROFILE SCREEN LAYOUT
+  // ME PROFILE SCREEN LAYOUT
   const renderMeScreen = () => {
     return (
-      <ScrollView className="flex-1 bg-[#F8FAFC]" contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        className="flex-1 bg-white" 
+        contentContainerStyle={{ paddingBottom: 120 }}
+      >
         {/* USER PROFILE HEADER */}
-        <TouchableOpacity 
-          onPress={() => navigateTo('PROFILE')}
-          className="flex-row items-center justify-between px-5 pt-6 pb-6 bg-white border-b border-slate-100"
-        >
+        <View className="flex-row items-center justify-between px-6 pt-8 pb-6 bg-white">
           <View className="flex-row items-center">
-            <Image 
-              source={{ uri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150' }} 
-              className="w-16 h-16 rounded-full bg-slate-200 border-2 border-[#E0F7F6]"
-            />
+            {/* Avatar cap */}
+            <View className="w-14 h-14 rounded-full bg-[#E0F7F6] items-center justify-center border border-[#B2DFDB] relative">
+              <MaterialCommunityIcons name="school" size={26} color="#00B6A6" />
+            </View>
+            
             <View className="ml-4">
-              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(18) }} className="text-slate-800 font-bold">
-                Ram
-              </Text>
-              <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(12) }} className="text-slate-450 mt-0.5">
-                Class: {selectedClass} | Student ID: 26394
+              <View className="flex-row items-center">
+                <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(19) }} className="text-slate-800 font-bold">
+                  Ram
+                </Text>
+                {/* Red dot */}
+                <View className="w-2 h-2 rounded-full bg-[#FF5E00] ml-1.5" />
+              </View>
+              <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(13) }} className="text-slate-400 mt-1">
+                Class 1
               </Text>
             </View>
           </View>
-          <Feather name="chevron-right" size={20} color="#94A3B8" />
-        </TouchableOpacity>
 
-        {/* WIDGETS BOXES GRID */}
-        <View className="p-5 flex-row justify-between">
-          {/* Box 1: Orders */}
+          {/* Top Right Rocket Badge */}
           <TouchableOpacity 
-            onPress={() => navigateTo('BOOSTER_DETAILS')} 
-            style={styles.meWidgetCard}
-            className="w-[47%] bg-white rounded-2xl p-4.5 items-center justify-center relative"
+            onPress={() => showToast("Oda Rocket launcher...")}
+            className="w-10 h-10 rounded-full border border-slate-100 bg-[#F8FAFC] items-center justify-center shadow-sm"
           >
-            <View className="absolute top-2 right-2 bg-red-500 rounded-full w-5 h-5 items-center justify-center">
-              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(10) }} className="text-white font-bold">1</Text>
-            </View>
-            <MaterialCommunityIcons name="wallet-giftcard" size={26} color="#FF6600" />
-            <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13) }} className="text-slate-800 font-bold mt-2">
-              My Orders
-            </Text>
-          </TouchableOpacity>
-
-          {/* Box 2: Report */}
-          <TouchableOpacity 
-            onPress={() => navigateTo('REPORT_PERIOD_SELECT')} 
-            style={styles.meWidgetCard}
-            className="w-[47%] bg-white rounded-2xl p-4.5 items-center justify-center"
-          >
-            <MaterialCommunityIcons name="file-chart" size={26} color="#00B6A6" />
-            <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13) }} className="text-slate-800 font-bold mt-2">
-              Study Report
-            </Text>
+            <Ionicons name="rocket-outline" size={18} color="#94A3B8" />
           </TouchableOpacity>
         </View>
 
-        {/* MENU OPTIONS LIST */}
-        <View className="mx-5 bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+        {/* TWO GRID BOXES */}
+        <View className="px-5 flex-row justify-between mb-6">
+          {/* Oda Mall */}
+          <TouchableOpacity 
+            onPress={() => showToast("Oda Mall clicked")}
+            className="w-[48%] bg-white border border-slate-100 rounded-2xl p-4 flex-row items-center shadow-sm"
+          >
+            <View className="w-10 h-10 rounded-full bg-[#FFFDF0] items-center justify-center border border-[#FEF3C7] mr-3">
+              <MaterialCommunityIcons name="coin" size={20} color="#FBBF24" />
+            </View>
+            <View>
+              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13.5) }} className="text-slate-800 font-bold">
+                Oda Mall
+              </Text>
+              <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(11) }} className="text-slate-400 mt-0.5">
+                0 in total
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* Coupons */}
+          <TouchableOpacity 
+            onPress={() => showToast("Coupons clicked")}
+            className="w-[48%] bg-white border border-slate-100 rounded-2xl p-4 flex-row items-center shadow-sm"
+          >
+            <View className="w-10 h-10 rounded-full bg-[#FFF7ED] items-center justify-center border border-[#FFE3D3] mr-3">
+              <MaterialCommunityIcons name="ticket-percent" size={20} color="#F97316" />
+            </View>
+            <View>
+              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13.5) }} className="text-slate-800 font-bold">
+                Coupons
+              </Text>
+              <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(11) }} className="text-slate-400 mt-0.5">
+                0 available
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* LIST OPTIONS */}
+        <View className="px-6">
           {[
-            { label: 'Help & Feedback', icon: 'help-circle-outline' },
-            { label: 'Settings', icon: 'cog-outline' }
-          ].map((item, idx) => (
-            <TouchableOpacity 
-              key={idx}
-              onPress={() => showToast(item.label)}
-              className="flex-row items-center justify-between px-5 py-4 border-b border-slate-50 last:border-0 active:bg-slate-50"
-            >
-              <View className="flex-row items-center">
-                <MaterialCommunityIcons name={item.icon as any} size={20} color="#64748B" className="mr-3" />
-                <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(13.5) }} className="text-slate-700 font-medium">
-                  {item.label}
-                </Text>
-              </View>
-              <Feather name="chevron-right" size={16} color="#94A3B8" />
-            </TouchableOpacity>
-          ))}
+            { label: 'My Orders', icon: 'file-text', type: 'Feather', onPress: () => navigateTo('BOOSTER_DETAILS') },
+            { label: 'FAQs', icon: 'help-circle-outline', type: 'Ionicons', onPress: () => showToast("Opening FAQs...") },
+            { label: 'Share App', icon: 'share', type: 'Feather', onPress: () => showToast("Link Copied!") },
+            { label: 'About Oda Class', icon: 'book-open', type: 'Feather', onPress: () => navigateTo('WHY_ODA') },
+            { label: 'Add Widgets to Home Screen', icon: 'grid', type: 'Feather', hasBadge: true, onPress: () => showToast("Add widget settings...") },
+            { label: 'Rate Us', icon: 'star', type: 'Feather', onPress: () => showToast("Rate us on Play Store!") },
+            { label: 'Network Diagnosis', icon: 'tool', type: 'Feather', onPress: () => showToast("Checking network status...") }
+          ].map((item, idx) => {
+            let IconComponent: any = Feather;
+            if (item.type === 'Ionicons') IconComponent = Ionicons;
+            if (item.type === 'MaterialCommunityIcons') IconComponent = MaterialCommunityIcons;
+
+            return (
+              <TouchableOpacity 
+                key={idx}
+                onPress={item.onPress}
+                className="flex-row items-center justify-between py-4.5 border-b border-slate-100/60 active:bg-slate-50"
+              >
+                <View className="flex-row items-center">
+                  <IconComponent name={item.icon} size={18} color="#64748B" className="mr-4" />
+                  <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(14) }} className="text-slate-700 font-medium">
+                    {item.label}
+                  </Text>
+                </View>
+                <View className="flex-row items-center">
+                  {item.hasBadge && (
+                    <View className="w-2 h-2 rounded-full bg-[#FF5E00] mr-2" />
+                  )}
+                  <Feather name="chevron-right" size={16} color="#CCCCCC" />
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </ScrollView>
     );
