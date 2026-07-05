@@ -57,7 +57,7 @@ export const BoosterDetailsScreen: React.FC = () => {
 
       <ScrollView 
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 160 }}
+        contentContainerStyle={{ paddingBottom: 100 }}
         className="flex-1 bg-slate-50"
       >
         {/* HERO SECTION BANNER */}
@@ -659,7 +659,7 @@ export const BoosterSelectClassScreen: React.FC = () => {
       )}
 
       {/* STICKY BOTTOM FEES & CHECKOUT */}
-      <View style={[styles.bottomStickyBar, { bottom: 65 }]} className="absolute left-0 right-0 py-4.5 px-5 z-40 bg-[#FFF7ED] flex-row items-center justify-between border-t border-orange-100">
+      <View style={styles.bottomStickyBar} className="absolute bottom-0 left-0 right-0 py-4.5 px-5 z-40 bg-[#FFF7ED] flex-row items-center justify-between border-t border-orange-100">
         <View>
           <View className="flex-row items-baseline">
             <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(22) }} className="text-[#FF5E00] font-bold">

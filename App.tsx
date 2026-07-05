@@ -64,8 +64,6 @@ const RootApp: React.FC = () => {
     'CLASS_DETAILS',
     'COURSE_DETAILS',
     'MATERIALS_MODULES',
-    'BOOSTER_DETAILS',
-    'MASTER_PROGRAM',
     'WHY_ODA',
     'PROFILE',
     'REPORT_PERIOD_SELECT'

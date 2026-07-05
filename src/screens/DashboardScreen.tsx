@@ -826,27 +826,29 @@ export const DashboardScreen: React.FC = () => {
       </Modal>
 
       {/* FLOATING ACTION ENROLL BADGE */}
-      <TouchableOpacity 
-        onPress={() => navigateTo('BOOSTER_DETAILS')}
-        style={styles.floatingBadge}
-        className="absolute bottom-[82] right-4 bg-white py-1.5 px-3 rounded-full flex-row items-center shadow-md border border-orange-500/20 active:scale-[0.96] z-40"
-      >
-        <Ionicons name="time-outline" size={18} color="#FF6600" className="mr-1" />
-        <View>
-          <Text 
-            style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(8.5) }}
-            className="text-[#7C2D12] font-bold leading-tight"
-          >
-            Concept Booster Course
-          </Text>
-          <Text 
-            style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(10.5) }}
-            className="text-[#FF6600] font-bold uppercase tracking-wider leading-none"
-          >
-            ENROLL
-          </Text>
-        </View>
-      </TouchableOpacity>
+      {activeTab === 'Home' && (
+        <TouchableOpacity 
+          onPress={() => navigateTo('BOOSTER_DETAILS')}
+          style={styles.floatingBadge}
+          className="absolute bottom-[82] right-4 bg-white py-1.5 px-3 rounded-full flex-row items-center shadow-md border border-orange-500/20 active:scale-[0.96] z-40"
+        >
+          <Ionicons name="time-outline" size={18} color="#FF6600" className="mr-1" />
+          <View>
+            <Text 
+              style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(8.5) }}
+              className="text-[#7C2D12] font-bold leading-tight"
+            >
+              Concept Booster Course
+            </Text>
+            <Text 
+              style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(10.5) }}
+              className="text-[#FF6600] font-bold uppercase tracking-wider leading-none"
+            >
+              ENROLL
+            </Text>
+          </View>
+        </TouchableOpacity>
+      )}
 
       {/* POP-UP OVERLAY (1-WEEK BOOSTER PLAN - FULLY RESPONSIVE) */}
       <Modal

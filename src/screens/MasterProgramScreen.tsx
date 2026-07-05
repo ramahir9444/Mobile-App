@@ -122,7 +122,7 @@ export const MasterProgramScreen: React.FC = () => {
         onScroll={handleScroll}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 160 }}
+        contentContainerStyle={{ paddingBottom: 100 }}
         className="flex-1 bg-slate-50"
       >
         {/* SECTION 1: COURSE SECTION */}
@@ -965,7 +965,7 @@ export const MasterProgramScreen: React.FC = () => {
       )}
 
       {/* STICKY BOTTOM ACTION BAR */}
-      <View style={[styles.bottomStickyBar, { bottom: 65 }]} className="absolute left-0 right-0 py-4 px-5 z-40 bg-[#FF5E00] items-center justify-center">
+      <View style={styles.bottomStickyBar} className="absolute bottom-0 left-0 right-0 py-4 px-5 z-40 bg-[#FF5E00] items-center justify-center">
         <TouchableOpacity 
           onPress={() => navigateTo('ORDER_LOADING')}
           className="w-full items-center justify-center active:scale-[0.98]"
