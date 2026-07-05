@@ -657,7 +657,10 @@ export const DashboardScreen: React.FC = () => {
       >
         {/* USER PROFILE HEADER */}
         <View className="flex-row items-center justify-between px-6 pt-8 pb-6 bg-white">
-          <View className="flex-row items-center">
+          <TouchableOpacity 
+            onPress={() => navigateTo('PROFILE')}
+            className="flex-row items-center flex-1 active:opacity-80"
+          >
             {/* Avatar cap */}
             <View className="w-14 h-14 rounded-full bg-[#E0F7F6] items-center justify-center border border-[#B2DFDB] relative">
               <MaterialCommunityIcons name="school" size={26} color="#00B6A6" />
@@ -675,7 +678,7 @@ export const DashboardScreen: React.FC = () => {
                 Class 1
               </Text>
             </View>
-          </View>
+          </TouchableOpacity>
 
           {/* Top Right Rocket Badge */}
           <TouchableOpacity 
