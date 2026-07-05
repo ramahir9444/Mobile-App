@@ -652,29 +652,29 @@ export const DashboardScreen: React.FC = () => {
     return (
       <ScrollView 
         showsVerticalScrollIndicator={false}
-        className="flex-1 bg-white" 
+        className="flex-1 bg-[#FCFCFC]" 
         contentContainerStyle={{ paddingBottom: 120 }}
       >
         {/* USER PROFILE HEADER */}
-        <View className="flex-row items-center justify-between px-6 pt-8 pb-6 bg-white">
+        <View className="flex-row items-center justify-between px-6 pt-10 pb-4 bg-[#FCFCFC]">
           <TouchableOpacity 
             onPress={() => navigateTo('PROFILE')}
             className="flex-row items-center flex-1 active:opacity-80"
           >
             {/* Avatar cap */}
-            <View className="w-14 h-14 rounded-full bg-[#E0F7F6] items-center justify-center border border-[#B2DFDB] relative">
-              <MaterialCommunityIcons name="school" size={26} color="#00B6A6" />
+            <View className="w-15 h-15 rounded-full bg-[#E0F7F6] items-center justify-center border border-[#B2DFDB] relative">
+              <MaterialCommunityIcons name="school" size={30} color="#00B6A6" />
             </View>
             
             <View className="ml-4">
               <View className="flex-row items-center">
-                <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(19) }} className="text-slate-800 font-bold">
+                <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(22) }} className="text-slate-800 font-bold">
                   Ram
                 </Text>
                 {/* Red dot */}
-                <View className="w-2 h-2 rounded-full bg-[#FF5E00] ml-1.5" />
+                <View className="w-2.5 h-2.5 rounded-full bg-[#FF5E00] ml-1.5 self-center mt-1" />
               </View>
-              <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(13) }} className="text-slate-400 mt-1">
+              <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(13.5) }} className="text-slate-400 mt-1">
                 Class 1
               </Text>
             </View>
@@ -683,24 +683,38 @@ export const DashboardScreen: React.FC = () => {
           {/* Top Right Rocket Badge */}
           <TouchableOpacity 
             onPress={() => showToast("Oda Rocket launcher...")}
-            className="w-10 h-10 rounded-full border border-slate-100 bg-[#F8FAFC] items-center justify-center shadow-sm"
+            style={{
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.05,
+              shadowRadius: 2,
+              elevation: 1,
+            }}
+            className="w-10 h-10 rounded-full border border-slate-100 bg-white items-center justify-center"
           >
             <Ionicons name="rocket-outline" size={18} color="#94A3B8" />
           </TouchableOpacity>
         </View>
 
-        {/* TWO GRID BOXES */}
-        <View className="px-5 flex-row justify-between mb-6">
+        {/* TWO GRID BOXES (ON GREY BACKGROUND) */}
+        <View className="px-5 py-4 flex-row justify-between bg-[#F4F6F9]">
           {/* Oda Mall */}
           <TouchableOpacity 
             onPress={() => showToast("Oda Mall clicked")}
-            className="w-[48%] bg-white border border-slate-100 rounded-2xl p-4 flex-row items-center shadow-sm"
+            style={{
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.04,
+              shadowRadius: 3,
+              elevation: 2,
+            }}
+            className="w-[48%] bg-white rounded-2xl p-4 flex-row items-center border border-slate-100/50"
           >
-            <View className="w-10 h-10 rounded-full bg-[#FFFDF0] items-center justify-center border border-[#FEF3C7] mr-3">
-              <MaterialCommunityIcons name="coin" size={20} color="#FBBF24" />
+            <View className="w-10 h-10 rounded-full bg-[#FFE885] items-center justify-center mr-3 border border-[#FCD34D]/60">
+              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: 8.5 }} className="text-[#A15C0F] font-bold uppercase">oda</Text>
             </View>
             <View>
-              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13.5) }} className="text-slate-800 font-bold">
+              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(14) }} className="text-slate-850 font-bold">
                 Oda Mall
               </Text>
               <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(11) }} className="text-slate-400 mt-0.5">
@@ -712,13 +726,20 @@ export const DashboardScreen: React.FC = () => {
           {/* Coupons */}
           <TouchableOpacity 
             onPress={() => showToast("Coupons clicked")}
-            className="w-[48%] bg-white border border-slate-100 rounded-2xl p-4 flex-row items-center shadow-sm"
+            style={{
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.04,
+              shadowRadius: 3,
+              elevation: 2,
+            }}
+            className="w-[48%] bg-white rounded-2xl p-4 flex-row items-center border border-slate-100/50"
           >
-            <View className="w-10 h-10 rounded-full bg-[#FFF7ED] items-center justify-center border border-[#FFE3D3] mr-3">
-              <MaterialCommunityIcons name="ticket-percent" size={20} color="#F97316" />
+            <View className="w-10 h-10 rounded-full bg-[#FFF7ED] items-center justify-center mr-3 border border-[#FFE3D3]/60">
+              <MaterialCommunityIcons name="wallet" size={20} color="#F97316" />
             </View>
             <View>
-              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13.5) }} className="text-slate-800 font-bold">
+              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(14) }} className="text-slate-850 font-bold">
                 Coupons
               </Text>
               <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(11) }} className="text-slate-400 mt-0.5">
@@ -728,16 +749,16 @@ export const DashboardScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
-        {/* LIST OPTIONS */}
-        <View className="px-6">
+        {/* LIST OPTIONS (ON SOLID WHITE BACKGROUND) */}
+        <View className="bg-white px-6 pt-2 flex-1">
           {[
-            { label: 'My Orders', icon: 'file-text', type: 'Feather', onPress: () => navigateTo('BOOSTER_DETAILS') },
-            { label: 'FAQs', icon: 'help-circle-outline', type: 'Ionicons', onPress: () => showToast("Opening FAQs...") },
-            { label: 'Share App', icon: 'share', type: 'Feather', onPress: () => showToast("Link Copied!") },
-            { label: 'About Oda Class', icon: 'book-open', type: 'Feather', onPress: () => navigateTo('WHY_ODA') },
-            { label: 'Add Widgets to Home Screen', icon: 'grid', type: 'Feather', hasBadge: true, onPress: () => showToast("Add widget settings...") },
-            { label: 'Rate Us', icon: 'star', type: 'Feather', onPress: () => showToast("Rate us on Play Store!") },
-            { label: 'Network Diagnosis', icon: 'tool', type: 'Feather', onPress: () => showToast("Checking network status...") }
+            { label: 'My Orders', icon: 'file-text', type: 'Feather', onPress: () => navigateTo('MY_ORDERS') },
+            { label: 'FAQs', icon: 'help-circle', type: 'Feather', onPress: () => navigateTo('FAQ') },
+            { label: 'Share App', icon: 'share', type: 'Feather', onPress: () => showToast('Link Copied!') },
+            { label: 'About Oda Class', icon: 'book-open', type: 'Feather', onPress: () => navigateTo('ABOUT_ODA') },
+            { label: 'Add Widgets to Home Screen', icon: 'grid', type: 'Feather', hasBadge: true, onPress: () => showToast('Add widget settings...') },
+            { label: 'Rate Us', icon: 'star', type: 'Feather', onPress: () => showToast('Rate us on Play Store!') },
+            { label: 'Network Diagnosis', icon: 'tool', type: 'Feather', onPress: () => showToast('Checking network status...') }
           ].map((item, idx) => {
             let IconComponent: any = Feather;
             if (item.type === 'Ionicons') IconComponent = Ionicons;
@@ -747,17 +768,17 @@ export const DashboardScreen: React.FC = () => {
               <TouchableOpacity 
                 key={idx}
                 onPress={item.onPress}
-                className="flex-row items-center justify-between py-4.5 border-b border-slate-100/60 active:bg-slate-50"
+                className="flex-row items-center justify-between py-4 border-b border-slate-100/60 active:bg-slate-50"
               >
                 <View className="flex-row items-center">
-                  <IconComponent name={item.icon} size={18} color="#64748B" className="mr-4" />
-                  <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(14) }} className="text-slate-700 font-medium">
+                  <IconComponent name={item.icon} size={20} color="#64748B" className="mr-4" />
+                  <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(14.5) }} className="text-slate-700 font-medium">
                     {item.label}
                   </Text>
                 </View>
                 <View className="flex-row items-center">
                   {item.hasBadge && (
-                    <View className="w-2 h-2 rounded-full bg-[#FF5E00] mr-2" />
+                    <View className="w-2.5 h-2.5 rounded-full bg-[#FF5E00] mr-2" />
                   )}
                   <Feather name="chevron-right" size={16} color="#CCCCCC" />
                 </View>

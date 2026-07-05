@@ -48,6 +48,11 @@ import {
   HomeworkQuizScreen, 
   HomeworkReportScreen 
 } from './src/screens/ClassDetailsScreen';
+import {
+  FaqScreen,
+  MyOrdersScreen,
+  AboutOdaClassScreen,
+} from './src/screens/MeScreens';
 
 const { width } = Dimensions.get('window');
 
@@ -116,6 +121,12 @@ const RootApp: React.FC = () => {
         return <HomeworkQuizScreen />;
       case 'HOMEWORK_REPORT':
         return <HomeworkReportScreen />;
+      case 'FAQ':
+        return <FaqScreen />;
+      case 'MY_ORDERS':
+        return <MyOrdersScreen />;
+      case 'ABOUT_ODA':
+        return <AboutOdaClassScreen />;
       default:
         return <SplashScreen />;
     }
