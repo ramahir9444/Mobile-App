@@ -55,7 +55,7 @@ export const ProfileScreen: React.FC = () => {
 
       <ScrollView 
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 40 }}
+        contentContainerStyle={{ paddingBottom: 110 }}
         className="flex-1 bg-white"
       >
         {/* LIST OF PROFILE DETAILS */}
