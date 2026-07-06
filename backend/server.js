@@ -12,6 +12,7 @@ const { connectDB }       = require('./db/mongo');
 const { initCollections } = require('./db/initCollections');
 const authRoutes          = require('./routes/auth');
 const studentRoutes       = require('./routes/students');
+const orderRoutes         = require('./routes/orders');
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -22,7 +23,9 @@ app.use(cors({
   origin: '*',                     // restrict to your domain in production
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
 }));
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '10mb' }));
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ── Routes ───────────────────────────────────────────────────────
 app.get('/health', (req, res) => {
@@ -36,6 +39,7 @@ app.get('/health', (req, res) => {
 
 app.use('/api/auth',     authRoutes);
 app.use('/api/students', studentRoutes);
+app.use('/api/orders',   orderRoutes);
 
 // ── 404 Handler ──────────────────────────────────────────────────
 app.use((req, res) => {

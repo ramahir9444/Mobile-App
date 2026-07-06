@@ -15,6 +15,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, MaterialCommunityIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
 import { useApp } from '../context/AppContext';
+import { createOrder } from '../services/api';
+
 
 const { width } = Dimensions.get('window');
 
@@ -516,8 +518,23 @@ export const BoosterSelectClassScreen: React.FC = () => {
     showToast(`Selected ${clsName}`);
   };
 
-  const triggerBoosterPayment = () => {
+  const triggerBoosterPayment = async () => {
     setIsProcessing(true);
+    try {
+      if (authPhone) {
+        await createOrder({
+          studentPhone: authPhone,
+          courseTitle: `Concept Booster Course – 5X Efficient Learning Methods by IITians`,
+          classInfo: `${selectedClass} | 6 Jul – 11 Jul`,
+          amount: '9',
+          couponDiscount: '20',
+          status: 'paid',
+        });
+      }
+    } catch (err) {
+      console.error('Failed to save order to database:', err);
+    }
+
     setTimeout(() => {
       setIsProcessing(false);
       setPaySuccess(true);

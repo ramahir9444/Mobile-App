@@ -14,7 +14,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { useApp } from '../context/AppContext';
+import { createOrder } from '../services/api';
+
 
 const { width, height } = Dimensions.get('window');
 
@@ -135,7 +139,7 @@ export const OrderLoadingScreen: React.FC = () => {
 // 2. ORDER PAYMENT SCREEN (Waiting for Payment)
 // ==========================================
 export const OrderPaymentScreen: React.FC = () => {
-  const { navigateTo, goBack, selectedClass, setIsEnrolled } = useApp();
+  const { navigateTo, goBack, selectedClass, setIsEnrolled, authPhone } = useApp();
   const [timeLeft, setTimeLeft] = useState<number>(600); // 10 minutes in seconds
   const [paySheetVisible, setPaySheetVisible] = useState<boolean>(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState<boolean>(false);
@@ -179,8 +183,25 @@ export const OrderPaymentScreen: React.FC = () => {
     setPaySheetVisible(true);
   };
 
-  const triggerPaymentProcess = (gateway: string) => {
+  const triggerPaymentProcess = async (gateway: string) => {
     setIsProcessingPayment(true);
+    try {
+      const savedPhone = await AsyncStorage.getItem('@user_phone');
+      const phone = savedPhone || authPhone;
+      if (phone) {
+        await createOrder({
+          studentPhone: phone,
+          courseTitle: `LIVE Interactive Full Syllabus Course for ${selectedClass} (2026-27)`,
+          classInfo: `${selectedClass} | 15 Jun, 2026 - 6 Mar, 2027`,
+          amount: '31999',
+          couponDiscount: '0',
+          status: 'paid',
+        });
+      }
+    } catch (err) {
+      console.error('Failed to save order to database:', err);
+    }
+
     setTimeout(() => {
       setIsProcessingPayment(false);
       setPaymentFinished(true);

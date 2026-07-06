@@ -76,6 +76,13 @@ export async function updateStudent(
   return apiCall('PUT', `/api/students/${id}`, updates);
 }
 
+export async function uploadAvatar(
+  id: string,
+  base64: string
+): Promise<{ success: boolean; avatarUrl: string; data: StudentProfile }> {
+  return apiCall('POST', `/api/students/${id}/upload-avatar`, { base64 });
+}
+
 // ─── ORDERS ──────────────────────────────────────────────────────
 export interface OrderItem {
   _id: string;
@@ -90,6 +97,12 @@ export interface OrderItem {
 
 export async function getOrdersByPhone(phone: string): Promise<{ success: boolean; data: OrderItem[] }> {
   return apiCall('GET', `/api/orders/${phone}`);
+}
+
+export async function createOrder(
+  order: Omit<OrderItem, '_id' | 'createdAt'>
+): Promise<{ success: boolean; data: OrderItem }> {
+  return apiCall('POST', '/api/orders', order);
 }
 
 // ─── HEALTH ──────────────────────────────────────────────────────

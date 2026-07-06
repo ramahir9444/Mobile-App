@@ -33,4 +33,46 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+// POST /api/students/:id/upload-avatar — receive base64 photo, save to file system, return real URL
+router.post('/:id/upload-avatar', async (req, res) => {
+  try {
+    const { base64 } = req.body;
+    if (!base64) {
+      return res.status(400).json({ success: false, error: 'base64 image data required' });
+    }
+
+    const fs = require('fs');
+    const path = require('path');
+    const uploadsDir = path.join(__dirname, '../uploads');
+    
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    const studentId = req.params.id;
+    const filename = `${studentId}-avatar-${Date.now()}.png`; // cache busting filename
+    const filePath = path.join(uploadsDir, filename);
+
+    // Decode and save base64 buffer to disk
+    const buffer = Buffer.from(base64, 'base64');
+    fs.writeFileSync(filePath, buffer);
+
+    const host = req.headers.host || 'localhost:3001';
+    const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
+    const avatarUrl = `${isHttps ? 'https' : 'http'}://${host}/uploads/${filename}`;
+
+    const db = getDB();
+    const result = await db.collection('students').findOneAndUpdate(
+      { _id: new ObjectId(studentId) },
+      { $set: { profilePhoto: avatarUrl, updatedAt: new Date() } },
+      { returnDocument: 'after' }
+    );
+
+    if (!result) return res.status(404).json({ success: false, error: 'Student not found' });
+    res.json({ success: true, avatarUrl, data: result });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 module.exports = router;

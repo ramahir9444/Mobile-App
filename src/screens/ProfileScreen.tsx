@@ -19,7 +19,7 @@ import { Feather, MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { Theme } from '../constants/theme';
 import { useApp } from '../context/AppContext';
-import { updateStudent } from '../services/api';
+import { updateStudent, uploadAvatar } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -152,20 +152,31 @@ export const ProfileScreen: React.FC = () => {
         mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.85,
+        quality: 0.75,
+        base64: true,
       });
       if (!result.canceled && result.assets?.[0]) {
+        const base64Data = result.assets[0].base64;
         const photoUri = result.assets[0].uri;
-        setProfilePhoto(photoUri);
-        updateUser({ avatar: photoUri });
-        if (user._id) {
+        
+        setProfilePhoto(photoUri); // fallback display immediately
+
+        if (user._id && base64Data) {
           try {
-            await updateStudent(user._id, { profilePhoto: photoUri });
+            const res = await uploadAvatar(user._id, base64Data);
+            if (res.success && res.avatarUrl) {
+              setProfilePhoto(res.avatarUrl);
+              updateUser({ avatar: res.avatarUrl });
+              showToast('Profile photo saved permanently!');
+            }
           } catch (err) {
-            console.error('Failed to sync profile photo to backend:', err);
+            console.error('Failed to upload avatar:', err);
+            showToast('Failed to upload avatar');
           }
+        } else {
+          updateUser({ avatar: photoUri });
+          showToast('Profile photo updated!');
         }
-        showToast('Profile photo updated!');
       }
     } catch (e) {
       showToast('Could not open camera');
@@ -182,20 +193,31 @@ export const ProfileScreen: React.FC = () => {
         mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.85,
+        quality: 0.75,
+        base64: true,
       });
       if (!result.canceled && result.assets?.[0]) {
+        const base64Data = result.assets[0].base64;
         const photoUri = result.assets[0].uri;
-        setProfilePhoto(photoUri);
-        updateUser({ avatar: photoUri });
-        if (user._id) {
+
+        setProfilePhoto(photoUri); // fallback display immediately
+
+        if (user._id && base64Data) {
           try {
-            await updateStudent(user._id, { profilePhoto: photoUri });
+            const res = await uploadAvatar(user._id, base64Data);
+            if (res.success && res.avatarUrl) {
+              setProfilePhoto(res.avatarUrl);
+              updateUser({ avatar: res.avatarUrl });
+              showToast('Profile photo saved permanently! ✓');
+            }
           } catch (err) {
-            console.error('Failed to sync profile photo to backend:', err);
+            console.error('Failed to upload avatar:', err);
+            showToast('Failed to upload avatar');
           }
+        } else {
+          updateUser({ avatar: photoUri });
+          showToast('Profile photo updated! ✓');
         }
-        showToast('Profile photo updated! ✓');
       }
     } catch (e) {
       showToast('Could not open gallery');
