@@ -76,6 +76,22 @@ export async function updateStudent(
   return apiCall('PUT', `/api/students/${id}`, updates);
 }
 
+// ─── ORDERS ──────────────────────────────────────────────────────
+export interface OrderItem {
+  _id: string;
+  studentPhone: string;
+  courseTitle: string;
+  classInfo: string;
+  amount: string;
+  couponDiscount: string | number;
+  status: 'pending' | 'paid';
+  createdAt: string;
+}
+
+export async function getOrdersByPhone(phone: string): Promise<{ success: boolean; data: OrderItem[] }> {
+  return apiCall('GET', `/api/orders/${phone}`);
+}
+
 // ─── HEALTH ──────────────────────────────────────────────────────
 export async function healthCheck(): Promise<{ status: string }> {
   return apiCall('GET', '/health');

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useApp } from '../context/AppContext';
 import { Theme } from '../constants/theme';
 import { verifyOtp } from '../services/api';
@@ -33,12 +34,22 @@ export const OtpScreen: React.FC = () => {
       try {
         const res = await verifyOtp(authPhone, cleaned);
         if (res.success && res.student) {
+          try {
+            await AsyncStorage.setItem('@user_phone', res.student.phone);
+          } catch (err) {
+            console.error('AsyncStorage save error:', err);
+          }
+
           updateUser({
             _id: res.student._id,
             name: res.student.name || 'Student',
             phone: res.student.phone,
             email: res.student.email || '',
             avatar: res.student.profilePhoto || '',
+            altPhone: res.student.altPhone || '',
+            board: res.student.board || '',
+            state: res.student.state || '',
+            address: res.student.address || '',
           });
           if (res.student.selectedClass) {
             setSelectedClass(res.student.selectedClass);

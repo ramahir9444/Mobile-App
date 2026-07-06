@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppAnalyticsProvider } from './AppAnalyticsContext';
+import { getStudentByPhone } from '../services/api';
 
 export type AppScreen =
   | 'SPLASH'
@@ -214,6 +216,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setBookingDetails((prev) => ({ ...prev, ...fields }));
   };
 
+  // Load persistent user session on launch
+  useEffect(() => {
+    const loadSession = async () => {
+      try {
+        const savedPhone = await AsyncStorage.getItem('@user_phone');
+        if (savedPhone) {
+          const res = await getStudentByPhone(savedPhone);
+          if (res.success && res.data) {
+            setUser({
+              _id: res.data._id,
+              name: res.data.name || 'Student',
+              phone: res.data.phone,
+              email: res.data.email || '',
+              avatar: res.data.profilePhoto || '',
+              coins: 240,
+              xp: 450,
+              level: 12,
+              streak: 7,
+              attendance: 92,
+              altPhone: res.data.altPhone || '',
+              board: res.data.board || '',
+              state: res.data.state || '',
+              address: res.data.address || '',
+            });
+            if (res.data.selectedClass) {
+              setSelectedClass(res.data.selectedClass);
+            }
+            setAuthPhone(savedPhone);
+            setCurrentScreen('DASHBOARD');
+            setScreenStack(['DASHBOARD']);
+          }
+        }
+      } catch (err) {
+        console.error('Error loading persistent user session:', err);
+      }
+    };
+    loadSession();
+  }, []);
+
   // Trigger splash skeleton loader effect on screen change if global loading is toggled
   useEffect(() => {
     if (isLoading) {
@@ -269,6 +310,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const resetUser = () => {
     setUser(defaultUser);
+    AsyncStorage.removeItem('@user_phone').catch((err) => console.error(err));
   };
 
   return (

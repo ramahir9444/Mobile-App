@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,11 +8,13 @@ import {
   StatusBar,
   Dimensions,
   Linking,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
 import { useApp } from '../context/AppContext';
+import { getOrdersByPhone, OrderItem } from '../services/api';
 
 const { width } = Dimensions.get('window');
 const getFontSize = (size: number) => (width > 400 ? size : size - 1.2);
@@ -178,8 +180,39 @@ const pastOrders = [
 ];
 
 export const MyOrdersScreen: React.FC = () => {
-  const { navigateTo } = useApp();
+  const { navigateTo, authPhone } = useApp();
   const [showOther, setShowOther] = useState(false);
+  const [dbOrders, setDbOrders] = useState<OrderItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      if (!authPhone) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const res = await getOrdersByPhone(authPhone);
+        if (res.success && res.data) {
+          setDbOrders(res.data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch orders from DB:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchOrders();
+  }, [authPhone]);
+
+  // Filter pending and paid lists
+  const pendingList = dbOrders.length > 0
+    ? dbOrders.filter(o => o.status === 'pending')
+    : pendingOrders.map(o => ({ ...o, _id: String(o.id), courseTitle: o.title, amount: o.total.replace('₹ ', ''), couponDiscount: o.coupon ? o.coupon.replace('₹ ', '') : '0' }));
+
+  const paidList = dbOrders.length > 0
+    ? dbOrders.filter(o => o.status === 'paid')
+    : pastOrders.map(o => ({ ...o, _id: String(o.id), courseTitle: o.title, amount: o.total.replace('₹ ', ''), couponDiscount: '0' }));
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFC' }} edges={['top', 'left', 'right']}>
@@ -190,96 +223,104 @@ export const MyOrdersScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 100 }}
       >
-        {/* Pending / Active Orders */}
-        {pendingOrders.map(order => (
-          <View key={order.id} style={styles.orderCard}>
-            {/* Title & class info */}
-            <Text style={[styles.orderTitle, { fontFamily: Theme.fonts.poppinsMedium }]}>
-              {order.title}
-            </Text>
-            <Text style={[styles.orderMeta, { fontFamily: Theme.fonts.poppinsRegular }]}>
-              {order.classInfo}
-            </Text>
-
-            {/* Coupon row */}
-            {order.coupon && (
-              <View style={styles.couponRow}>
-                <Text style={[styles.couponLabel, { fontFamily: Theme.fonts.poppinsMedium }]}>
-                  Eligible Coupon
-                </Text>
-                <Text style={[styles.couponAmount, { fontFamily: Theme.fonts.poppinsMedium }]}>
-                  {order.coupon}
-                </Text>
-              </View>
-            )}
-
-            {/* Divider */}
-            <View style={styles.orderDivider} />
-
-            {/* Total + Pay Now */}
-            <View style={styles.orderFooter}>
-              <Text style={[styles.totalLabel, { fontFamily: Theme.fonts.poppinsMedium }]}>
-                Total:{' '}
-                <Text style={[styles.totalAmount, { fontFamily: Theme.fonts.poppinsBold }]}>
-                  {order.total}
-                </Text>
-              </Text>
-              <TouchableOpacity
-                onPress={() => navigateTo('BOOSTER_DETAILS')}
-                style={styles.payNowBtn}
-                activeOpacity={0.85}
-              >
-                <Text style={[styles.payNowText, { fontFamily: Theme.fonts.poppinsBold }]}>
-                  Pay Now
-                </Text>
-              </TouchableOpacity>
-            </View>
+        {loading ? (
+          <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+            <ActivityIndicator size="small" color="#00B6A6" />
           </View>
-        ))}
-
-        {/* Other Orders toggle */}
-        <TouchableOpacity
-          onPress={() => setShowOther(prev => !prev)}
-          style={styles.otherOrdersToggle}
-        >
-          <Feather
-            name={showOther ? 'chevron-up' : 'chevron-down'}
-            size={16}
-            color="#64748B"
-            style={{ marginRight: 4 }}
-          />
-          <Text style={[styles.otherOrdersText, { fontFamily: Theme.fonts.poppinsMedium }]}>
-            Other Orders
-          </Text>
-        </TouchableOpacity>
-
-        {showOther && (
-          <View style={{ marginTop: 8 }}>
-            {pastOrders.map(order => (
-              <View key={order.id} style={[styles.orderCard, { opacity: 0.8 }]}>
+        ) : (
+          <>
+            {/* Pending / Active Orders */}
+            {pendingList.map(order => (
+              <View key={order._id || order.id} style={styles.orderCard}>
+                {/* Title & class info */}
                 <Text style={[styles.orderTitle, { fontFamily: Theme.fonts.poppinsMedium }]}>
-                  {order.title}
+                  {order.courseTitle || order.title}
                 </Text>
                 <Text style={[styles.orderMeta, { fontFamily: Theme.fonts.poppinsRegular }]}>
                   {order.classInfo}
                 </Text>
+
+                {/* Coupon row */}
+                {order.couponDiscount && order.couponDiscount !== '0' && (
+                  <View style={styles.couponRow}>
+                    <Text style={[styles.couponLabel, { fontFamily: Theme.fonts.poppinsMedium }]}>
+                      Eligible Coupon
+                    </Text>
+                    <Text style={[styles.couponAmount, { fontFamily: Theme.fonts.poppinsMedium }]}>
+                      ₹ {order.couponDiscount}
+                    </Text>
+                  </View>
+                )}
+
+                {/* Divider */}
                 <View style={styles.orderDivider} />
+
+                {/* Total + Pay Now */}
                 <View style={styles.orderFooter}>
                   <Text style={[styles.totalLabel, { fontFamily: Theme.fonts.poppinsMedium }]}>
                     Total:{' '}
                     <Text style={[styles.totalAmount, { fontFamily: Theme.fonts.poppinsBold }]}>
-                      {order.total}
+                      ₹ {order.amount || order.total}
                     </Text>
                   </Text>
-                  <View style={styles.paidBadge}>
-                    <Text style={[styles.paidText, { fontFamily: Theme.fonts.poppinsBold }]}>
-                      Paid ✓
+                  <TouchableOpacity
+                    onPress={() => navigateTo('BOOSTER_DETAILS')}
+                    style={styles.payNowBtn}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={[styles.payNowText, { fontFamily: Theme.fonts.poppinsBold }]}>
+                      Pay Now
                     </Text>
-                  </View>
+                  </TouchableOpacity>
                 </View>
               </View>
             ))}
-          </View>
+
+            {/* Other Orders toggle */}
+            <TouchableOpacity
+              onPress={() => setShowOther(prev => !prev)}
+              style={styles.otherOrdersToggle}
+            >
+              <Feather
+                name={showOther ? 'chevron-up' : 'chevron-down'}
+                size={16}
+                color="#64748B"
+                style={{ marginRight: 4 }}
+              />
+              <Text style={[styles.otherOrdersText, { fontFamily: Theme.fonts.poppinsMedium }]}>
+                Other Orders
+              </Text>
+            </TouchableOpacity>
+
+            {showOther && (
+              <View style={{ marginTop: 8 }}>
+                {paidList.map(order => (
+                  <View key={order._id || order.id} style={[styles.orderCard, { opacity: 0.8 }]}>
+                    <Text style={[styles.orderTitle, { fontFamily: Theme.fonts.poppinsMedium }]}>
+                      {order.courseTitle || order.title}
+                    </Text>
+                    <Text style={[styles.orderMeta, { fontFamily: Theme.fonts.poppinsRegular }]}>
+                      {order.classInfo}
+                    </Text>
+                    <View style={styles.orderDivider} />
+                    <View style={styles.orderFooter}>
+                      <Text style={[styles.totalLabel, { fontFamily: Theme.fonts.poppinsMedium }]}>
+                        Total:{' '}
+                        <Text style={[styles.totalAmount, { fontFamily: Theme.fonts.poppinsBold }]}>
+                          ₹ {order.amount || order.total}
+                        </Text>
+                      </Text>
+                      <View style={styles.paidBadge}>
+                        <Text style={[styles.paidText, { fontFamily: Theme.fonts.poppinsBold }]}>
+                          Paid ✓
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+          </>
         )}
       </ScrollView>
     </SafeAreaView>
