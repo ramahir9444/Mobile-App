@@ -3,16 +3,18 @@ import { View, Text, TouchableOpacity, ScrollView, TextInput, ActivityIndicator,
 import { Feather } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { Theme } from '../constants/theme';
+import { verifyOtp } from '../services/api';
 
 export const OtpScreen: React.FC = () => {
-  const { navigateTo, authPhone } = useApp();
+  const { navigateTo, authPhone, updateUser, setSelectedClass } = useApp();
 
-  const [code, setCode] = useState('');
-  const [timer, setTimer] = useState(54);
+  const [code, setCode]             = useState('');
+  const [timer, setTimer]           = useState(54);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [error, setError]           = useState<string | null>(null);
   const inputRef = useRef<TextInput>(null);
 
-  // Countdown timer effect
+  // Countdown timer
   useEffect(() => {
     const interval = setInterval(() => {
       setTimer((prev) => (prev > 0 ? prev - 1 : 0));
@@ -20,17 +22,36 @@ export const OtpScreen: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Autofill simulation when length hits 6 digits
-  const handleTextChange = (text: string) => {
+  // Auto-verify when 6 digits entered
+  const handleTextChange = async (text: string) => {
     const cleaned = text.replace(/[^0-9]/g, '').slice(0, 6);
     setCode(cleaned);
-    
+    setError(null);
+
     if (cleaned.length === 6) {
       setIsLoggingIn(true);
-      setTimeout(() => {
+      try {
+        const res = await verifyOtp(authPhone, cleaned);
+        if (res.success && res.student) {
+          updateUser({
+            _id: res.student._id,
+            name: res.student.name || 'Student',
+            phone: res.student.phone,
+            email: res.student.email || '',
+            avatar: res.student.profilePhoto || '',
+          });
+          if (res.student.selectedClass) {
+            setSelectedClass(res.student.selectedClass);
+          }
+          navigateTo('DASHBOARD');
+        } else {
+          setError(res.error || 'Invalid OTP. Please try again.');
+          setIsLoggingIn(false);
+        }
+      } catch (err: any) {
+        setError(err.message || 'Network error. Is the server running?');
         setIsLoggingIn(false);
-        navigateTo('DASHBOARD');
-      }, 1500);
+      }
     }
   };
 
@@ -217,6 +238,16 @@ export const OtpScreen: React.FC = () => {
                   );
                 })}
               </TouchableOpacity>
+
+              {/* Error message */}
+              {error && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 8, marginTop: -4 }}>
+                  <Feather name="alert-circle" size={13} color="#EF4444" style={{ marginRight: 5 }} />
+                  <Text style={{ fontFamily: Theme.fonts.poppinsRegular, fontSize: 12, color: '#EF4444' }}>
+                    {error}
+                  </Text>
+                </View>
+              )}
 
               {/* Resend Timer Text */}
               <View className="items-center mb-2">

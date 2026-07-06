@@ -40,7 +40,8 @@ export const DashboardScreen: React.FC = () => {
     isEnrolled, 
     setIsEnrolled,
     activeTab,
-    setActiveTab
+    setActiveTab,
+    user
   } = useApp();
   const [isClassSheetVisible, setIsClassSheetVisible] = useState<boolean>(false);
   const [studyTab, setStudyTab] = useState<'Bridge' | 'All'>('Bridge');
@@ -662,20 +663,24 @@ export const DashboardScreen: React.FC = () => {
             className="flex-row items-center flex-1 active:opacity-80"
           >
             {/* Avatar cap */}
-            <View className="w-15 h-15 rounded-full bg-[#E0F7F6] items-center justify-center border border-[#B2DFDB] relative">
-              <MaterialCommunityIcons name="school" size={30} color="#00B6A6" />
+            <View className="w-15 h-15 rounded-full bg-[#E0F7F6] items-center justify-center border border-[#B2DFDB] overflow-hidden relative">
+              {user.avatar ? (
+                <Image source={{ uri: user.avatar }} className="w-full h-full" style={{ width: '100%', height: '100%' }} />
+              ) : (
+                <MaterialCommunityIcons name="school" size={30} color="#00B6A6" />
+              )}
             </View>
             
             <View className="ml-4">
               <View className="flex-row items-center">
                 <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(22) }} className="text-slate-800 font-bold">
-                  Ram
+                  {user.name}
                 </Text>
                 {/* Red dot */}
                 <View className="w-2.5 h-2.5 rounded-full bg-[#FF5E00] ml-1.5 self-center mt-1" />
               </View>
               <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(13.5) }} className="text-slate-400 mt-1">
-                Class 1
+                {selectedClass}
               </Text>
             </View>
           </TouchableOpacity>

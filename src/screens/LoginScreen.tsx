@@ -1,16 +1,30 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { Theme } from '../constants/theme';
+import { sendOtp } from '../services/api';
 
 export const LoginScreen: React.FC = () => {
   const { navigateTo, authPhone, setAuthPhone } = useApp();
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState<string | null>(null);
 
-  const handleContinue = () => {
-    if (authPhone.length === 10) {
-      // In a real app we'd trigger OTP SMS, here we navigate to the Otp Screen
-      navigateTo('OTP');
+  const handleContinue = async () => {
+    if (authPhone.length !== 10) return;
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await sendOtp(authPhone);
+      if (res.success) {
+        navigateTo('OTP');
+      } else {
+        setError('Failed to send OTP. Please try again.');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Network error. Is the server running?');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -169,10 +183,20 @@ export const LoginScreen: React.FC = () => {
                 />
               </View>
 
+              {/* Error message */}
+              {error && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, marginTop: -4 }}>
+                  <Feather name="alert-circle" size={13} color="#EF4444" style={{ marginRight: 5 }} />
+                  <Text style={{ fontFamily: Theme.fonts.poppinsRegular, fontSize: 12, color: '#EF4444', flex: 1 }}>
+                    {error}
+                  </Text>
+                </View>
+              )}
+
               {/* Action Continue Button */}
               <TouchableOpacity
                 activeOpacity={0.8}
-                disabled={authPhone.length < 10}
+                disabled={authPhone.length < 10 || loading}
                 onPress={handleContinue}
                 style={{
                   backgroundColor: authPhone.length === 10 ? '#00B6A6' : '#BCEFE8',
@@ -188,16 +212,20 @@ export const LoginScreen: React.FC = () => {
                   elevation: authPhone.length === 10 ? 3 : 0,
                 }}
               >
-                <Text 
-                  style={{ 
-                    fontFamily: Theme.fonts.poppinsBold, 
-                    fontSize: 16, 
-                    color: '#FFFFFF' 
-                  }}
-                  className="font-bold"
-                >
-                  Continue
-                </Text>
+                {loading ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text 
+                    style={{ 
+                      fontFamily: Theme.fonts.poppinsBold, 
+                      fontSize: 16, 
+                      color: '#FFFFFF' 
+                    }}
+                    className="font-bold"
+                  >
+                    Continue
+                  </Text>
+                )}
               </TouchableOpacity>
             </View>
 

@@ -26,6 +26,7 @@ export type AppScreen =
   | 'HOMEWORK_REPORT';
 
 export interface UserProfile {
+  _id?: string;
   name: string;
   email: string;
   phone: string;
@@ -35,6 +36,10 @@ export interface UserProfile {
   streak: number;
   attendance: number;
   avatar: string;
+  altPhone?: string;
+  board?: string;
+  state?: string;
+  address?: string;
 }
 
 export interface BookingDetails {
@@ -128,15 +133,15 @@ interface AppContextType {
 }
 
 const defaultUser: UserProfile = {
-  name: 'Priya Sharma',
-  email: 'student@example.com',
-  phone: '+91 98765 43210',
+  name: 'Ram',
+  email: '',
+  phone: '',
   coins: 240,
   xp: 450,
   level: 12,
   streak: 7,
   attendance: 92,
-  avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80',
+  avatar: '',
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);

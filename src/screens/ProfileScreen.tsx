@@ -19,6 +19,7 @@ import { Feather, MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { Theme } from '../constants/theme';
 import { useApp } from '../context/AppContext';
+import { updateStudent } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -83,19 +84,30 @@ const EditModal: React.FC<EditModalProps> = ({ visible, title, value, onSave, on
 };
 
 export const ProfileScreen: React.FC = () => {
-  const { goBack, navigateTo, selectedClass, authPhone, resetUser } = useApp();
+  const { goBack, navigateTo, selectedClass, authPhone, resetUser, user, updateUser } = useApp();
 
   const [voiceReminder, setVoiceReminder] = useState<boolean>(true);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Profile state
-  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
-  const [name, setName] = useState('Ram');
-  const [email, setEmail] = useState('');
-  const [altPhone, setAltPhone] = useState('');
-  const [board, setBoard] = useState('');
-  const [state, setState] = useState('');
-  const [address, setAddress] = useState('');
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(user.avatar || null);
+  const [name, setName] = useState(user.name || 'Ram');
+  const [email, setEmail] = useState(user.email || '');
+  const [altPhone, setAltPhone] = useState(user.altPhone || '');
+  const [board, setBoard] = useState(user.board || '');
+  const [state, setState] = useState(user.state || '');
+  const [address, setAddress] = useState(user.address || '');
+
+  // Keep local state in sync with context
+  React.useEffect(() => {
+    setName(user.name || 'Ram');
+    setEmail(user.email || '');
+    setProfilePhoto(user.avatar || null);
+    setAltPhone(user.altPhone || '');
+    setBoard(user.board || '');
+    setState(user.state || '');
+    setAddress(user.address || '');
+  }, [user]);
 
   // Edit modal state
   const [editField, setEditField] = useState<string | null>(null);
@@ -143,7 +155,16 @@ export const ProfileScreen: React.FC = () => {
         quality: 0.85,
       });
       if (!result.canceled && result.assets?.[0]) {
-        setProfilePhoto(result.assets[0].uri);
+        const photoUri = result.assets[0].uri;
+        setProfilePhoto(photoUri);
+        updateUser({ avatar: photoUri });
+        if (user._id) {
+          try {
+            await updateStudent(user._id, { profilePhoto: photoUri });
+          } catch (err) {
+            console.error('Failed to sync profile photo to backend:', err);
+          }
+        }
         showToast('Profile photo updated!');
       }
     } catch (e) {
@@ -164,7 +185,16 @@ export const ProfileScreen: React.FC = () => {
         quality: 0.85,
       });
       if (!result.canceled && result.assets?.[0]) {
-        setProfilePhoto(result.assets[0].uri);
+        const photoUri = result.assets[0].uri;
+        setProfilePhoto(photoUri);
+        updateUser({ avatar: photoUri });
+        if (user._id) {
+          try {
+            await updateStudent(user._id, { profilePhoto: photoUri });
+          } catch (err) {
+            console.error('Failed to sync profile photo to backend:', err);
+          }
+        }
         showToast('Profile photo updated! ✓');
       }
     } catch (e) {
@@ -178,15 +208,53 @@ export const ProfileScreen: React.FC = () => {
     setEditValue(currentValue);
   };
 
-  const saveField = (field: string, val: string) => {
+  const saveField = async (field: string, val: string) => {
+    const updates: any = {};
     switch (field) {
-      case 'Name': setName(val); break;
-      case 'Email': setEmail(val); break;
-      case 'Alternate Number': setAltPhone(val); break;
-      case 'Board': setBoard(val); break;
-      case 'State': setState(val); break;
-      case 'Address': setAddress(val); break;
+      case 'Name': 
+        setName(val); 
+        updates.name = val;
+        break;
+      case 'Email': 
+        setEmail(val); 
+        updates.email = val;
+        break;
+      case 'Alternate Number': 
+        setAltPhone(val); 
+        updates.altPhone = val;
+        break;
+      case 'Board': 
+        setBoard(val); 
+        updates.board = val;
+        break;
+      case 'State': 
+        setState(val); 
+        updates.state = val;
+        break;
+      case 'Address': 
+        setAddress(val); 
+        updates.address = val;
+        break;
     }
+
+    // Sync context state
+    updateUser({
+      name: field === 'Name' ? val : name,
+      email: field === 'Email' ? val : email,
+      altPhone: field === 'Alternate Number' ? val : altPhone,
+      board: field === 'Board' ? val : board,
+      state: field === 'State' ? val : state,
+      address: field === 'Address' ? val : address,
+    });
+
+    if (user._id) {
+      try {
+        await updateStudent(user._id, updates);
+      } catch (err: any) {
+        console.error('Failed to sync student update to backend:', err);
+      }
+    }
+
     showToast(`${field} updated successfully`);
   };
 
