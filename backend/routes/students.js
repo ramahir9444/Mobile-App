@@ -19,11 +19,25 @@ router.get('/phone/:phone', async (req, res) => {
 // PUT /api/students/:id  — update profile
 router.put('/:id', async (req, res) => {
   try {
-    const { name, selectedClass, profilePhoto, email, altPhone, board, state, address } = req.body;
+    const fields = ['name', 'selectedClass', 'profilePhoto', 'email', 'altPhone', 'board', 'state', 'address'];
+    const updateDoc = {};
+
+    for (const field of fields) {
+      if (req.body[field] !== undefined) {
+        updateDoc[field] = req.body[field];
+      }
+    }
+
+    if (Object.keys(updateDoc).length === 0) {
+      return res.status(400).json({ success: false, error: 'No fields to update' });
+    }
+
+    updateDoc.updatedAt = new Date();
+
     const db = getDB();
     const result = await db.collection('students').findOneAndUpdate(
       { _id: new ObjectId(req.params.id) },
-      { $set: { name, selectedClass, profilePhoto, email, altPhone, board, state, address, updatedAt: new Date() } },
+      { $set: updateDoc },
       { returnDocument: 'after' }
     );
     if (!result) return res.status(404).json({ success: false, error: 'Student not found' });

@@ -5,7 +5,7 @@ import { useApp } from '../context/AppContext';
 import { Theme } from '../constants/theme';
 
 export const SplashScreen: React.FC = () => {
-  const { navigateTo } = useApp();
+  const { navigateTo, user } = useApp();
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -27,16 +27,24 @@ export const SplashScreen: React.FC = () => {
       }),
     ]).start();
 
-    // Auto-navigate to LOGIN after 2.2 seconds
+    // Auto-navigate based on persistent login state after 2.2 seconds
     const timer = setTimeout(() => {
-      navigateTo('LOGIN');
+      if (user && user.phone) {
+        navigateTo('DASHBOARD');
+      } else {
+        navigateTo('LOGIN');
+      }
     }, 2200);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [user]);
 
   const handlePress = () => {
-    navigateTo('LOGIN');
+    if (user && user.phone) {
+      navigateTo('DASHBOARD');
+    } else {
+      navigateTo('LOGIN');
+    }
   };
 
   return (
