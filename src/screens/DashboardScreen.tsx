@@ -15,6 +15,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
 import { useApp } from '../context/AppContext';
+import { getAvatarUrl } from '../services/api';
+
 
 const { width, height } = Dimensions.get('window');
 
@@ -665,7 +667,7 @@ export const DashboardScreen: React.FC = () => {
             {/* Avatar cap */}
             <View className="w-15 h-15 rounded-full bg-[#E0F7F6] items-center justify-center border border-[#B2DFDB] overflow-hidden relative">
               {user.avatar ? (
-                <Image source={{ uri: user.avatar }} className="w-full h-full" style={{ width: '100%', height: '100%' }} />
+                <Image source={{ uri: getAvatarUrl(user.avatar) || undefined }} className="w-full h-full" style={{ width: '100%', height: '100%' }} />
               ) : (
                 <MaterialCommunityIcons name="school" size={30} color="#00B6A6" />
               )}

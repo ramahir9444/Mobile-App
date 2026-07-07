@@ -40,14 +40,30 @@ router.post('/', async (req, res) => {
   }
 });
 
+const buildIdQuery = (idStr) => {
+  try {
+    const { ObjectId } = require('mongodb');
+    if (ObjectId.isValid(idStr)) {
+      return {
+        $or: [
+          { _id: idStr },
+          { _id: new ObjectId(idStr) }
+        ]
+      };
+    }
+  } catch (err) {
+    // fallback
+  }
+  return { _id: idStr };
+};
+
 // PUT /api/orders/:id  — update payment status
 router.put('/:id', async (req, res) => {
   try {
     const { status } = req.body;
-    const { ObjectId } = require('mongodb');
     const db = getDB();
     const result = await db.collection('orders').updateOne(
-      { _id: new ObjectId(req.params.id) },
+      buildIdQuery(req.params.id),
       { $set: { status, updatedAt: new Date() } }
     );
     res.json({ success: true, message: 'Order status updated' });

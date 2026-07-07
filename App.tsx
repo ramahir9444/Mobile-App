@@ -70,7 +70,6 @@ const RootApp: React.FC = () => {
     'COURSE_DETAILS',
     'MATERIALS_MODULES',
     'WHY_ODA',
-    'PROFILE',
     'REPORT_PERIOD_SELECT'
   ].includes(currentScreen);
 

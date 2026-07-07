@@ -32,6 +32,12 @@ router.post('/send-otp', otpLimiter, async (req, res) => {
     return res.json(result);
   } catch (err) {
     console.error('[send-otp] Error:', err.message);
+    if (err.message && (err.message.includes('unverified') || err.message.includes('Trial accounts'))) {
+      return res.status(400).json({
+        success: false,
+        error: 'Twilio Trial limit: This phone number is not whitelisted. Please add it to your Twilio console (Verified Caller IDs) or verify it.'
+      });
+    }
     return res.status(500).json({ success: false, error: 'Failed to send OTP. Please try again.' });
   }
 });

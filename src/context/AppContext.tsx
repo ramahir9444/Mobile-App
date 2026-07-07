@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppAnalyticsProvider } from './AppAnalyticsContext';
-import { getStudentByPhone } from '../services/api';
+import { getStudentByPhone, updateStudentClass } from '../services/api';
 
 export type AppScreen =
   | 'SPLASH'
@@ -135,7 +135,7 @@ interface AppContextType {
 }
 
 const defaultUser: UserProfile = {
-  name: 'Ram',
+  name: '',
   email: '',
   phone: '',
   coins: 240,
@@ -181,7 +181,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [selectedChapter, setSelectedChapter] = useState('Chapter 3: Quadratic Equations');
   const [selectedLesson, setSelectedLesson] = useState('Factoring Quadratic Polynomials');
 
-  const [selectedClass, setSelectedClass] = useState('Class 1');
+  const [selectedClass, setSelectedClassState] = useState('Class 1');
+
+  const setSelectedClass = async (cls: string) => {
+    setSelectedClassState(cls);
+    if (user && user._id && selectedClass !== cls) {
+      try {
+        await updateStudentClass(user._id, cls);
+      } catch (err) {
+        console.error('Failed to update student class on server:', err);
+      }
+    }
+  };
+
 
   // Popup session tracker state
   const [hasSeenPopup, setHasSeenPopup] = useState<boolean>(false);
@@ -219,10 +231,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Load persistent user session on launch
   useEffect(() => {
     const loadSession = async () => {
+      console.log('🔄 [loadSession] Starting session recovery...');
       try {
         const savedPhone = await AsyncStorage.getItem('@user_phone');
+        console.log('🔄 [loadSession] AsyncStorage @user_phone:', savedPhone);
         if (savedPhone) {
           const res = await getStudentByPhone(savedPhone);
+          console.log('🔄 [loadSession] getStudentByPhone API response:', res);
           if (res.success && res.data) {
             setUser({
               _id: res.data._id,
@@ -241,15 +256,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               address: res.data.address || '',
             });
             if (res.data.selectedClass) {
-              setSelectedClass(res.data.selectedClass);
+              setSelectedClassState(res.data.selectedClass);
             }
             setAuthPhone(savedPhone);
             setCurrentScreen('DASHBOARD');
             setScreenStack(['DASHBOARD']);
+            console.log('🔄 [loadSession] Session recovered successfully! Routing to DASHBOARD.');
+          } else {
+            console.log('🔄 [loadSession] No student data found for phone:', savedPhone);
           }
+        } else {
+          console.log('🔄 [loadSession] No saved phone found in AsyncStorage.');
         }
       } catch (err) {
-        console.error('Error loading persistent user session:', err);
+        console.error('🔄 [loadSession] Exception occurred during session recovery:', err);
       }
     };
     loadSession();
@@ -310,6 +330,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const resetUser = () => {
     setUser(defaultUser);
+    setAuthPhone('');
     AsyncStorage.removeItem('@user_phone').catch((err) => console.error(err));
   };
 

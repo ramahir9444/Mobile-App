@@ -16,6 +16,23 @@ router.get('/phone/:phone', async (req, res) => {
   }
 });
 
+const buildIdQuery = (idStr) => {
+  try {
+    const { ObjectId } = require('mongodb');
+    if (ObjectId.isValid(idStr)) {
+      return {
+        $or: [
+          { _id: idStr },
+          { _id: new ObjectId(idStr) }
+        ]
+      };
+    }
+  } catch (err) {
+    // fallback
+  }
+  return { _id: idStr };
+};
+
 // PUT /api/students/:id  — update profile
 router.put('/:id', async (req, res) => {
   try {
@@ -36,7 +53,7 @@ router.put('/:id', async (req, res) => {
 
     const db = getDB();
     const result = await db.collection('students').findOneAndUpdate(
-      { _id: new ObjectId(req.params.id) },
+      buildIdQuery(req.params.id),
       { $set: updateDoc },
       { returnDocument: 'after' }
     );
@@ -46,6 +63,126 @@ router.put('/:id', async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+
+// PUT /api/students/:id/name
+router.put('/:id/name', async (req, res) => {
+  try {
+    const { name } = req.body;
+    const db = getDB();
+    const result = await db.collection('students').findOneAndUpdate(
+      buildIdQuery(req.params.id),
+      { $set: { name, updatedAt: new Date() } },
+      { returnDocument: 'after' }
+    );
+    if (!result) return res.status(404).json({ success: false, error: 'Student not found' });
+    res.json({ success: true, data: result });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// PUT /api/students/:id/email
+router.put('/:id/email', async (req, res) => {
+  try {
+    const { email } = req.body;
+    const db = getDB();
+    const result = await db.collection('students').findOneAndUpdate(
+      buildIdQuery(req.params.id),
+      { $set: { email, updatedAt: new Date() } },
+      { returnDocument: 'after' }
+    );
+    if (!result) return res.status(404).json({ success: false, error: 'Student not found' });
+    res.json({ success: true, data: result });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// PUT /api/students/:id/alt-phone
+router.put('/:id/alt-phone', async (req, res) => {
+  try {
+    const { altPhone } = req.body;
+    const db = getDB();
+    const result = await db.collection('students').findOneAndUpdate(
+      buildIdQuery(req.params.id),
+      { $set: { altPhone, updatedAt: new Date() } },
+      { returnDocument: 'after' }
+    );
+    if (!result) return res.status(404).json({ success: false, error: 'Student not found' });
+    res.json({ success: true, data: result });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// PUT /api/students/:id/board
+router.put('/:id/board', async (req, res) => {
+  try {
+    const { board } = req.body;
+    const db = getDB();
+    const result = await db.collection('students').findOneAndUpdate(
+      buildIdQuery(req.params.id),
+      { $set: { board, updatedAt: new Date() } },
+      { returnDocument: 'after' }
+    );
+    if (!result) return res.status(404).json({ success: false, error: 'Student not found' });
+    res.json({ success: true, data: result });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// PUT /api/students/:id/state
+router.put('/:id/state', async (req, res) => {
+  try {
+    const { state } = req.body;
+    const db = getDB();
+    const result = await db.collection('students').findOneAndUpdate(
+      buildIdQuery(req.params.id),
+      { $set: { state, updatedAt: new Date() } },
+      { returnDocument: 'after' }
+    );
+    if (!result) return res.status(404).json({ success: false, error: 'Student not found' });
+    res.json({ success: true, data: result });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// PUT /api/students/:id/address
+router.put('/:id/address', async (req, res) => {
+  try {
+    const { address } = req.body;
+    const db = getDB();
+    const result = await db.collection('students').findOneAndUpdate(
+      buildIdQuery(req.params.id),
+      { $set: { address, updatedAt: new Date() } },
+      { returnDocument: 'after' }
+    );
+    if (!result) return res.status(404).json({ success: false, error: 'Student not found' });
+    res.json({ success: true, data: result });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// PUT /api/students/:id/class
+router.put('/:id/class', async (req, res) => {
+  try {
+    const { selectedClass } = req.body;
+    const db = getDB();
+    const result = await db.collection('students').findOneAndUpdate(
+      buildIdQuery(req.params.id),
+      { $set: { selectedClass, updatedAt: new Date() } },
+      { returnDocument: 'after' }
+    );
+    if (!result) return res.status(404).json({ success: false, error: 'Student not found' });
+    res.json({ success: true, data: result });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 
 // POST /api/students/:id/upload-avatar — receive base64 photo, save to file system, return real URL
 router.post('/:id/upload-avatar', async (req, res) => {
@@ -77,7 +214,7 @@ router.post('/:id/upload-avatar', async (req, res) => {
 
     const db = getDB();
     const result = await db.collection('students').findOneAndUpdate(
-      { _id: new ObjectId(studentId) },
+      buildIdQuery(studentId),
       { $set: { profilePhoto: avatarUrl, updatedAt: new Date() } },
       { returnDocument: 'after' }
     );

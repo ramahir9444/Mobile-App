@@ -10,6 +10,24 @@
 //     For physical device: http://<YOUR_PC_IP>:3001
 const BASE_URL = 'http://localhost:3001';
 
+export function getAvatarUrl(path: string | null | undefined): string | null {
+  if (!path) return null;
+  
+  if (!path.startsWith('http://') && !path.startsWith('https://') && !path.startsWith('data:image')) {
+    return `${BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
+  }
+
+  if (path.includes('localhost:3001') || path.includes('127.0.0.1:3001')) {
+    const parts = path.split('/uploads/');
+    if (parts.length > 1) {
+      return `${BASE_URL}/uploads/${parts[1]}`;
+    }
+  }
+
+  return path;
+}
+
+
 // ─── Generic fetch wrapper ────────────────────────────────────────
 async function apiCall<T = any>(
   method: 'GET' | 'POST' | 'PUT' | 'DELETE',
@@ -75,6 +93,35 @@ export async function updateStudent(
 ): Promise<{ success: boolean; data: StudentProfile }> {
   return apiCall('PUT', `/api/students/${id}`, updates);
 }
+
+export async function updateStudentName(id: string, name: string): Promise<{ success: boolean; data: StudentProfile }> {
+  return apiCall('PUT', `/api/students/${id}/name`, { name });
+}
+
+export async function updateStudentEmail(id: string, email: string): Promise<{ success: boolean; data: StudentProfile }> {
+  return apiCall('PUT', `/api/students/${id}/email`, { email });
+}
+
+export async function updateStudentAltPhone(id: string, altPhone: string): Promise<{ success: boolean; data: StudentProfile }> {
+  return apiCall('PUT', `/api/students/${id}/alt-phone`, { altPhone });
+}
+
+export async function updateStudentBoard(id: string, board: string): Promise<{ success: boolean; data: StudentProfile }> {
+  return apiCall('PUT', `/api/students/${id}/board`, { board });
+}
+
+export async function updateStudentState(id: string, state: string): Promise<{ success: boolean; data: StudentProfile }> {
+  return apiCall('PUT', `/api/students/${id}/state`, { state });
+}
+
+export async function updateStudentAddress(id: string, address: string): Promise<{ success: boolean; data: StudentProfile }> {
+  return apiCall('PUT', `/api/students/${id}/address`, { address });
+}
+
+export async function updateStudentClass(id: string, selectedClass: string): Promise<{ success: boolean; data: StudentProfile }> {
+  return apiCall('PUT', `/api/students/${id}/class`, { selectedClass });
+}
+
 
 export async function uploadAvatar(
   id: string,

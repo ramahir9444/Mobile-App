@@ -19,7 +19,17 @@ import { Feather, MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { Theme } from '../constants/theme';
 import { useApp } from '../context/AppContext';
-import { updateStudent, uploadAvatar } from '../services/api';
+import { 
+  updateStudent, 
+  uploadAvatar,
+  updateStudentName,
+  updateStudentEmail,
+  updateStudentAltPhone,
+  updateStudentBoard,
+  updateStudentState,
+  updateStudentAddress,
+  getAvatarUrl
+} from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -83,6 +93,23 @@ const EditModal: React.FC<EditModalProps> = ({ visible, title, value, onSave, on
   );
 };
 
+const getBase64FromUri = async (uri: string): Promise<string> => {
+  if (uri.startsWith('data:image')) {
+    return uri.split(',')[1];
+  }
+  const response = await fetch(uri);
+  const blob = await response.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      resolve(base64String.split(',')[1]);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
+
 export const ProfileScreen: React.FC = () => {
   const { goBack, navigateTo, selectedClass, authPhone, resetUser, user, updateUser } = useApp();
 
@@ -90,8 +117,8 @@ export const ProfileScreen: React.FC = () => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Profile state
-  const [profilePhoto, setProfilePhoto] = useState<string | null>(user.avatar || null);
-  const [name, setName] = useState(user.name || 'Ram');
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(getAvatarUrl(user.avatar));
+  const [name, setName] = useState(user.name || '');
   const [email, setEmail] = useState(user.email || '');
   const [altPhone, setAltPhone] = useState(user.altPhone || '');
   const [board, setBoard] = useState(user.board || '');
@@ -100,9 +127,9 @@ export const ProfileScreen: React.FC = () => {
 
   // Keep local state in sync with context
   React.useEffect(() => {
-    setName(user.name || 'Ram');
+    setName(user.name || '');
     setEmail(user.email || '');
-    setProfilePhoto(user.avatar || null);
+    setProfilePhoto(getAvatarUrl(user.avatar));
     setAltPhone(user.altPhone || '');
     setBoard(user.board || '');
     setState(user.state || '');
@@ -123,7 +150,25 @@ export const ProfileScreen: React.FC = () => {
     navigateTo('LOGIN');
   };
 
-  const displayPhone = authPhone || '9974483435';
+  const confirmLogout = () => {
+    if (Platform.OS === 'web') {
+      const confirm = window.confirm('Are you sure you want to log out?');
+      if (confirm) {
+        handleLogout();
+      }
+    } else {
+      Alert.alert(
+        'Log Out',
+        'Are you sure you want to log out?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Log Out', onPress: handleLogout }
+        ]
+      );
+    }
+  };
+
+  const displayPhone = user.phone || authPhone || '';
 
   // Photo picker — works on web, Android and iOS
   const handlePhotoPress = async () => {
@@ -153,21 +198,19 @@ export const ProfileScreen: React.FC = () => {
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.75,
-        base64: true,
       });
       if (!result.canceled && result.assets?.[0]) {
-        const base64Data = result.assets[0].base64;
         const photoUri = result.assets[0].uri;
-        
         setProfilePhoto(photoUri); // fallback display immediately
 
-        if (user._id && base64Data) {
+        if (user._id) {
           try {
+            const base64Data = await getBase64FromUri(photoUri);
             const res = await uploadAvatar(user._id, base64Data);
             if (res.success && res.avatarUrl) {
               setProfilePhoto(res.avatarUrl);
               updateUser({ avatar: res.avatarUrl });
-              showToast('Profile photo saved permanently!');
+              showToast('Profile photo saved permanently! ✓');
             }
           } catch (err) {
             console.error('Failed to upload avatar:', err);
@@ -175,7 +218,7 @@ export const ProfileScreen: React.FC = () => {
           }
         } else {
           updateUser({ avatar: photoUri });
-          showToast('Profile photo updated!');
+          showToast('Profile photo updated! ✓');
         }
       }
     } catch (e) {
@@ -194,16 +237,14 @@ export const ProfileScreen: React.FC = () => {
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.75,
-        base64: true,
       });
       if (!result.canceled && result.assets?.[0]) {
-        const base64Data = result.assets[0].base64;
         const photoUri = result.assets[0].uri;
-
         setProfilePhoto(photoUri); // fallback display immediately
 
-        if (user._id && base64Data) {
+        if (user._id) {
           try {
+            const base64Data = await getBase64FromUri(photoUri);
             const res = await uploadAvatar(user._id, base64Data);
             if (res.success && res.avatarUrl) {
               setProfilePhoto(res.avatarUrl);
@@ -224,6 +265,7 @@ export const ProfileScreen: React.FC = () => {
     }
   };
 
+
   // Open edit modal
   const openEdit = (field: string, currentValue: string) => {
     setEditField(field);
@@ -231,31 +273,28 @@ export const ProfileScreen: React.FC = () => {
   };
 
   const saveField = async (field: string, val: string) => {
-    const updates: any = {};
+    if (!user.phone) {
+      showToast('Please log in via OTP to save profile details! ⚠️');
+      return;
+    }
     switch (field) {
       case 'Name': 
         setName(val); 
-        updates.name = val;
         break;
       case 'Email': 
         setEmail(val); 
-        updates.email = val;
         break;
       case 'Alternate Number': 
         setAltPhone(val); 
-        updates.altPhone = val;
         break;
       case 'Board': 
         setBoard(val); 
-        updates.board = val;
         break;
       case 'State': 
         setState(val); 
-        updates.state = val;
         break;
       case 'Address': 
         setAddress(val); 
-        updates.address = val;
         break;
     }
 
@@ -271,24 +310,44 @@ export const ProfileScreen: React.FC = () => {
 
     if (user._id) {
       try {
-        await updateStudent(user._id, updates);
+        switch (field) {
+          case 'Name':
+            await updateStudentName(user._id, val);
+            break;
+          case 'Email':
+            await updateStudentEmail(user._id, val);
+            break;
+          case 'Alternate Number':
+            await updateStudentAltPhone(user._id, val);
+            break;
+          case 'Board':
+            await updateStudentBoard(user._id, val);
+            break;
+          case 'State':
+            await updateStudentState(user._id, val);
+            break;
+          case 'Address':
+            await updateStudentAddress(user._id, val);
+            break;
+        }
       } catch (err: any) {
-        console.error('Failed to sync student update to backend:', err);
+        console.error(`Failed to sync ${field} update to backend:`, err);
       }
     }
 
     showToast(`${field} updated successfully`);
   };
 
+
   const rows = [
-    { label: 'Name', value: name, field: 'Name', keyboard: 'default' as const },
-    { label: 'Class', value: selectedClass, field: null },
-    { label: 'Phone', value: displayPhone, field: null },
-    { label: 'Alternate Number', value: altPhone || 'Add number', field: 'Alternate Number', keyboard: 'phone-pad' as const },
-    { label: 'Board', value: board || 'Select board', field: 'Board', keyboard: 'default' as const },
-    { label: 'State', value: state || 'Select state', field: 'State', keyboard: 'default' as const },
-    { label: 'Email', value: email || 'Add email', field: 'Email', keyboard: 'email-address' as const },
-    { label: 'Address', value: address || 'Add address', field: 'Address', keyboard: 'default' as const, multiline: true },
+    { label: 'Name', value: user.phone ? (name || 'Student') : 'Guest Student', field: user.phone ? 'Name' : null, keyboard: 'default' as const },
+    { label: 'Class', value: user.phone ? selectedClass : '—', field: null },
+    { label: 'Phone', value: user.phone ? displayPhone : 'Not logged in', field: null },
+    { label: 'Alternate Number', value: user.phone ? (altPhone || 'Add number') : '—', field: user.phone ? 'Alternate Number' : null, keyboard: 'phone-pad' as const },
+    { label: 'Board', value: user.phone ? (board || 'Select board') : '—', field: user.phone ? 'Board' : null, keyboard: 'default' as const },
+    { label: 'State', value: user.phone ? (state || 'Select state') : '—', field: user.phone ? 'State' : null, keyboard: 'default' as const },
+    { label: 'Email', value: user.phone ? (email || 'Add email') : '—', field: user.phone ? 'Email' : null, keyboard: 'email-address' as const },
+    { label: 'Address', value: user.phone ? (address || 'Add address') : '—', field: user.phone ? 'Address' : null, keyboard: 'default' as const, multiline: true },
   ];
 
   return (
@@ -327,9 +386,9 @@ export const ProfileScreen: React.FC = () => {
             </View>
           </TouchableOpacity>
 
-          <Text style={[styles.photoName, { fontFamily: Theme.fonts.poppinsBold }]}>{name}</Text>
+          <Text style={[styles.photoName, { fontFamily: Theme.fonts.poppinsBold }]}>{user.phone ? name : 'Guest Student'}</Text>
           <Text style={[styles.photoSubtitle, { fontFamily: Theme.fonts.poppinsMedium }]}>
-            Class {selectedClass} · Student ID: 26394
+            {user.phone ? `Class ${selectedClass} · Student ID: ${user._id?.slice(-5) || '26394'}` : 'Log in to sync profile with database'}
           </Text>
 
           <TouchableOpacity onPress={handlePhotoPress} style={styles.changePhotoBtn} activeOpacity={0.8}>
@@ -394,21 +453,31 @@ export const ProfileScreen: React.FC = () => {
           />
         </View>
 
-        {/* LOG OUT */}
+        {/* LOG OUT / LOG IN */}
         <View style={{ paddingHorizontal: 20, marginTop: 12 }}>
-          <TouchableOpacity 
-            onPress={() => Alert.alert('Log Out', 'Are you sure you want to log out?', [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Log Out', onPress: handleLogout }
-            ])}
-            style={styles.logoutBtn}
-            activeOpacity={0.85}
-          >
-            <Feather name="log-out" size={18} color="#64748B" style={{ marginRight: 8 }} />
-            <Text style={[styles.logoutText, { fontFamily: Theme.fonts.poppinsBold }]}>
-              Log Out
-            </Text>
-          </TouchableOpacity>
+          {user.phone ? (
+            <TouchableOpacity 
+              onPress={confirmLogout}
+              style={styles.logoutBtn}
+              activeOpacity={0.85}
+            >
+              <Feather name="log-out" size={18} color="#64748B" style={{ marginRight: 8 }} />
+              <Text style={[styles.logoutText, { fontFamily: Theme.fonts.poppinsBold }]}>
+                Log Out
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity 
+              onPress={() => navigateTo('LOGIN')}
+              style={[styles.logoutBtn, { backgroundColor: '#00B6A6' }]}
+              activeOpacity={0.85}
+            >
+              <Feather name="log-in" size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+              <Text style={[styles.logoutText, { fontFamily: Theme.fonts.poppinsBold, color: '#FFFFFF' }]}>
+                Log In
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
 

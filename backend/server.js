@@ -17,13 +17,24 @@ const orderRoutes         = require('./routes/orders');
 const app  = express();
 const PORT = process.env.PORT || 3001;
 
+// ── Body Parser Middleware ───────────────────────────────────────
+app.use(express.json({ limit: '10mb' }));
+
+// ── Request Logger Middleware ────────────────────────────────────
+app.use((req, res, next) => {
+  const bodyStr = req.body ? JSON.stringify(req.body) : '';
+  console.log(`[${req.method}] ${req.path} - Body:`, bodyStr.slice(0, 100) + (bodyStr.length > 100 ? '...' : ''));
+  next();
+});
+
 // ── Security Middleware ──────────────────────────────────────────
-app.use(helmet());                 // sets secure HTTP headers
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}));                 // sets secure HTTP headers
 app.use(cors({
   origin: '*',                     // restrict to your domain in production
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
 }));
-app.use(express.json({ limit: '10mb' }));
 const path = require('path');
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -53,19 +64,28 @@ app.use((err, req, res, _next) => {
 });
 
 // ── Boot ─────────────────────────────────────────────────────────
+const startExpressServer = () => {
+  app.listen(PORT, () => {
+    console.log(`\n🚀  Oda Class API  →  http://localhost:${PORT}`);
+    console.log(`    Health:       GET  /health`);
+    console.log(`    Send OTP:     POST /api/auth/send-otp`);
+    console.log(`    Verify OTP:   POST /api/auth/verify-otp`);
+    console.log(`    Student:      GET  /api/students/phone/:phone`);
+    console.log(`    Update:       PUT  /api/students/:id\n`);
+  });
+};
+
 connectDB()
   .then(async () => {
-    await initCollections();          // ensure indexes exist
-    app.listen(PORT, () => {
-      console.log(`\n🚀  Oda Class API  →  http://localhost:${PORT}`);
-      console.log(`    Health:       GET  /health`);
-      console.log(`    Send OTP:     POST /api/auth/send-otp`);
-      console.log(`    Verify OTP:   POST /api/auth/verify-otp`);
-      console.log(`    Student:      GET  /api/students/phone/:phone`);
-      console.log(`    Update:       PUT  /api/students/:id\n`);
-    });
+    try {
+      await initCollections();          // ensure indexes exist
+    } catch (indexErr) {
+      console.error('⚠️  Failed to initialize indexes:', indexErr.message);
+    }
+    startExpressServer();
   })
   .catch((err) => {
-    console.error('❌  Failed to start server:', err.message);
-    process.exit(1);
+    console.error('❌  Failed to connect to MongoDB Atlas:', err.message);
+    console.log('⚠️  Starting Express server anyway in offline/bypass mode. Please verify your MongoDB Atlas IP Access List (whitelist).');
+    startExpressServer();
   });
