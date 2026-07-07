@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, MaterialCommunityIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
 import { useApp } from '../context/AppContext';
-import { createOrder } from '../services/api';
+import { createOrder, getHomepageConfig, HomepageConfig, getAvatarUrl } from '../services/api';
 
 
 const { width } = Dimensions.get('window');
@@ -30,14 +30,48 @@ const getFontSize = (baseSize: number) => {
 // 1. BOOSTER DETAILS SCREEN
 // ==========================================
 export const BoosterDetailsScreen: React.FC = () => {
-  const { navigateTo, goBack } = useApp();
+  const { navigateTo, goBack, selectedClass } = useApp();
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [homeConfig, setHomeConfig] = useState<HomepageConfig | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+      setIsLoading(true);
+      try {
+        const res = await getHomepageConfig(selectedClass);
+        if (res.success && res.data) {
+          setHomeConfig(res.data);
+        }
+      } catch (err) {
+        console.error('Failed to load config for booster details:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchConfig();
+  }, [selectedClass]);
 
   const showToast = (message: string) => {
     setToastMessage(message);
     setTimeout(() => {
       setToastMessage(null);
     }, 2000);
+  };
+
+  const booster = homeConfig?.boosterCourse || {
+    headerTitle: '6-Day Head Start Course',
+    headerSubtitle: 'IIT/NIT Premium BootCamp',
+    cardTitle: "Maximize Your Child's Potential 100%",
+    title: 'Concept Booster Course - 5X Efficient Learning Methods by IITians',
+    bullets: [
+      'Maths & Science & Olympiads',
+      '50+ Core Concepts',
+      '50+ Solving Skills',
+      'IIT/NIT Teachers'
+    ],
+    price: 149,
+    originalPrice: 999
   };
 
   return (
@@ -53,7 +87,7 @@ export const BoosterDetailsScreen: React.FC = () => {
           style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(17) }}
           className="text-slate-800 font-bold text-center flex-1 mr-6"
         >
-          Limited Time Offer
+          {booster.headerTitle || 'Limited Time Offer'}
         </Text>
       </View>
 
@@ -69,29 +103,29 @@ export const BoosterDetailsScreen: React.FC = () => {
           <View className="absolute -left-20 -bottom-20 w-60 h-60 rounded-full bg-white/5" />
 
           {/* Heading info */}
-          <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(25) }} className="text-white font-bold tracking-tight leading-tight">
-            CONCEPT BOOSTER COURSE
+          <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(22) }} className="text-white font-bold tracking-tight leading-tight uppercase">
+            {booster.title || 'CONCEPT BOOSTER COURSE'}
           </Text>
-          <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(13) }} className="text-[#FFE0B2] mt-1">
-            Unlock Potential to Score 100%
+          <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(13) }} className="text-[#FFE0B2] mt-1.5">
+            {booster.cardTitle || 'Unlock Potential to Score 100%'}
           </Text>
 
           {/* Notification Alert Chip */}
           <View className="bg-black/15 py-1.5 px-3.5 rounded-full self-start mt-4 flex-row items-center">
-            <View className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-2 animate-ping" />
+            <View className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-2" />
             <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(10) }} className="text-white font-medium">
-              k***i from Assam has enrolled
+              Active Enrollment Period Open
             </Text>
           </View>
 
           {/* Bullet metrics */}
           <View className="mt-6 space-y-3.5">
-            {[
+            {(booster.bullets || [
               'Maths & Science & Olympiads',
               '50+ Core Concepts',
               '50+ Solving Skills',
               'IIT/NIT Teachers'
-            ].map((blt, idx) => (
+            ]).map((blt, idx) => (
               <View key={idx} className="flex-row items-center">
                 <Ionicons name="caret-forward-circle" size={14} color="#FFE0B2" className="mr-2" />
                 <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13) }} className="text-white font-bold">
@@ -474,9 +508,9 @@ export const BoosterDetailsScreen: React.FC = () => {
         <View>
           <View className="flex-row items-baseline">
             <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(22) }} className="text-[#FF5E00] font-bold">
-              ₹49
+              ₹{booster.price}
             </Text>
-            <Text className="text-slate-400 text-[12px] line-through ml-2">₹499</Text>
+            <Text className="text-slate-400 text-[12px] line-through ml-2">₹{booster.originalPrice}</Text>
           </View>
           <Text className="text-slate-400 text-[9px]">Include taxes</Text>
         </View>
