@@ -248,6 +248,24 @@
       gap: 8px;
     }
 
+    .grid-fields-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 20px;
+    }
+
+    .grid-fields-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .grid-fields-3, .grid-fields-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+
     .teacher-grid-edit {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -283,10 +301,10 @@
       background: var(--teal);
       color: white;
       border: none;
-      padding: 15px;
+      padding: 16px;
       border-radius: 12px;
       font-weight: 600;
-      font-size: 14.5px;
+      font-size: 15px;
       cursor: pointer;
       display: flex;
       justify-content: center;
@@ -382,7 +400,7 @@
 
   <div class="main-container">
     
-    <!-- Class Selector Dropdown (Extremely Visible Select Option) -->
+    <!-- Class Selector Dropdown -->
     <div class="card class-selector-card">
       <h2 class="section-title">Select Student Grade to Configure</h2>
       <select id="classSelect" onchange="selectClass(this.value)" class="class-select-dropdown">
@@ -403,13 +421,13 @@
     <!-- Layout Forms -->
     <div class="editor-layout">
       
-      <!-- Brand & Upcoming Class Card -->
+      <!-- Top banner & Upcoming class -->
       <div class="card">
         <h3 class="sub-card-title">1. Dashboard Value Banner & Live Upcoming Class</h3>
         
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div class="grid-fields-2">
           <div class="form-group">
-            <label for="bannerText">Marketing Subtitle Banner text</label>
+            <label for="bannerText">Marketing Subtitle Banner Text</label>
             <input type="text" id="bannerText" placeholder="e.g. Best with 20 Million Users' Trust">
           </div>
 
@@ -419,7 +437,7 @@
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 10px;">
+        <div class="grid-fields-3">
           <div class="form-group">
             <label for="upcomingSubject">Subject</label>
             <input type="text" id="upcomingSubject" placeholder="e.g. Mathematics">
@@ -437,8 +455,8 @@
         </div>
 
         <!-- Teacher Avatar File Upload -->
-        <div class="form-group" style="margin-top: 10px;">
-          <label>Upcoming Class Teacher Photo / Avatar</label>
+        <div class="form-group">
+          <label>Upcoming Class Teacher Photo</label>
           <div class="media-upload-row">
             <div class="media-preview-container">
               <img id="upcomingTeacherAvatarPreview" src="" alt="" style="display: none;">
@@ -453,9 +471,92 @@
         </div>
       </div>
 
+      <!-- Booster Course Form -->
+      <div class="card">
+        <h3 class="sub-card-title">2. Concept Booster Course Card Content</h3>
+        
+        <div class="grid-fields-3">
+          <div class="form-group">
+            <label for="boosterHeaderTitle">Booster Section Header Title</label>
+            <input type="text" id="boosterHeaderTitle" placeholder="e.g. 6-Day Head Start Course">
+          </div>
+
+          <div class="form-group">
+            <label for="boosterHeaderSubtitle">Booster Section Header Subtitle</label>
+            <input type="text" id="boosterHeaderSubtitle" placeholder="e.g. IIT/NIT Premium BootCamp">
+          </div>
+
+          <div class="form-group">
+            <label for="boosterCardTitle">Booster Inner Card Cover Title</label>
+            <input type="text" id="boosterCardTitle" placeholder="e.g. Maximize Your Child's Potential 100%">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="boosterTitle">Booster Course Lecture Description</label>
+          <input type="text" id="boosterTitle" placeholder="e.g. Concept Booster Course - 5X Efficient Learning Methods by IITians">
+        </div>
+
+        <div class="grid-fields-2">
+          <div class="form-group">
+            <label for="boosterPrice">Booster Enrollment Price (INR)</label>
+            <input type="number" id="boosterPrice" placeholder="149">
+          </div>
+
+          <div class="form-group">
+            <label for="boosterOriginalPrice">Booster Original Strike Price (INR)</label>
+            <input type="number" id="boosterOriginalPrice" placeholder="999">
+          </div>
+        </div>
+      </div>
+
+      <!-- Master Program Form -->
+      <div class="card">
+        <h3 class="sub-card-title">3. Master Program Card Content</h3>
+        
+        <div class="grid-fields-3">
+          <div class="form-group">
+            <label for="masterHeaderTitle">Master Program Section Header Title</label>
+            <input type="text" id="masterHeaderTitle" placeholder="e.g. Master Program">
+          </div>
+
+          <div class="form-group">
+            <label for="masterHeaderSubtitle">Master Program Section Header Subtitle</label>
+            <input type="text" id="masterHeaderSubtitle" placeholder="Long-term Comprehensive Intensive 🎯">
+          </div>
+
+          <div class="form-group">
+            <label for="masterPrice">Master Program Price (INR)</label>
+            <input type="number" id="masterPrice" placeholder="31999">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="masterTitle">Master Program Title Description</label>
+          <input type="text" id="masterTitle" placeholder="e.g. LIVE Interactive Full Syllabus Course for Class 6 (2026-27)">
+        </div>
+
+        <div class="grid-fields-3">
+          <div class="form-group">
+            <label for="masterBullet1">Curriculum Bullet 1</label>
+            <input type="text" id="masterBullet1" placeholder="e.g. Full Academic Year Preparation">
+          </div>
+
+          <div class="form-group">
+            <label for="masterBullet2">Curriculum Bullet 2</label>
+            <input type="text" id="masterBullet2" placeholder="e.g. Complete CBSE/ICSE Board Syllabus covered">
+          </div>
+
+          <div class="form-group">
+            <label for="masterBullet3">Curriculum Bullet 3</label>
+            <input type="text" id="masterBullet3" placeholder="e.g. All Core Subjects covered">
+          </div>
+        </div>
+      </div>
+
       <!-- Teachers Roster list -->
       <div class="card">
-        <h3 class="sub-card-title">2. Main Roster Teachers</h3>
+        <h3 class="sub-card-title">4. Main Roster Teachers</h3>
         
         <div class="teacher-grid-edit" id="teachersContainer">
           <!-- 3 teachers cards loaded here -->
@@ -531,6 +632,27 @@
       const upcomingAvatar = uc.teacherAvatar || '';
       document.getElementById('upcomingTeacherAvatar').value = upcomingAvatar;
       setPreviewImage('upcomingTeacherAvatarPreview', 'upcomingTeacherAvatarPlaceholder', upcomingAvatar);
+
+      // Populate Booster card fields
+      const bc = data.boosterCourse || {};
+      document.getElementById('boosterHeaderTitle').value = bc.headerTitle || '6-Day Head Start Course';
+      document.getElementById('boosterHeaderSubtitle').value = bc.headerSubtitle || 'IIT/NIT Premium BootCamp';
+      document.getElementById('boosterCardTitle').value = bc.cardTitle || "Maximize Your Child's Potential 100%";
+      document.getElementById('boosterTitle').value = bc.title || '';
+      document.getElementById('boosterPrice').value = bc.price || 149;
+      document.getElementById('boosterOriginalPrice').value = bc.originalPrice || 999;
+
+      // Populate Master card fields
+      const mc = data.masterProgram || {};
+      document.getElementById('masterHeaderTitle').value = mc.headerTitle || 'Master Program';
+      document.getElementById('masterHeaderSubtitle').value = mc.headerSubtitle || 'Long-term Comprehensive Intensive 🎯';
+      document.getElementById('masterTitle').value = mc.title || '';
+      document.getElementById('masterPrice').value = mc.price || 31999;
+
+      const bullets = mc.bullets || [];
+      document.getElementById('masterBullet1').value = bullets[0] || 'Full Academic Year Preparation';
+      document.getElementById('masterBullet2').value = bullets[1] || 'Complete CBSE/ICSE Board Syllabus covered';
+      document.getElementById('masterBullet3').value = bullets[2] || 'All Core Subjects covered';
 
       // Render teachers list
       const container = document.getElementById('teachersContainer');
@@ -639,6 +761,28 @@
         teacherAvatar: document.getElementById('upcomingTeacherAvatar').value
       };
 
+      const boosterCourse = {
+        headerTitle: document.getElementById('boosterHeaderTitle').value,
+        headerSubtitle: document.getElementById('boosterHeaderSubtitle').value,
+        cardTitle: document.getElementById('boosterCardTitle').value,
+        title: document.getElementById('boosterTitle').value,
+        subjects: currentConfigData.boosterCourse.subjects || ['Maths', 'Science', 'English'],
+        price: Number(document.getElementById('boosterPrice').value) || 149,
+        originalPrice: Number(document.getElementById('boosterOriginalPrice').value) || 999
+      };
+
+      const masterProgram = {
+        headerTitle: document.getElementById('masterHeaderTitle').value,
+        headerSubtitle: document.getElementById('masterHeaderSubtitle').value,
+        title: document.getElementById('masterTitle').value,
+        bullets: [
+          document.getElementById('masterBullet1').value,
+          document.getElementById('masterBullet2').value,
+          document.getElementById('masterBullet3').value
+        ],
+        price: Number(document.getElementById('masterPrice').value) || 31999
+      };
+
       const teachers = [];
       const groups = document.querySelectorAll('.teacher-item-group');
       groups.forEach((g, idx) => {
@@ -653,8 +797,8 @@
         bannerText,
         upcomingClass,
         teachers,
-        boosterCourse: currentConfigData.boosterCourse,
-        masterProgram: currentConfigData.masterProgram
+        boosterCourse,
+        masterProgram
       };
 
       try {

@@ -99,6 +99,9 @@ export interface UpcomingClass {
 }
 
 export interface BoosterConfig {
+  headerTitle: string;
+  headerSubtitle: string;
+  cardTitle: string;
   title: string;
   subjects: string[];
   price: number;
@@ -106,6 +109,8 @@ export interface BoosterConfig {
 }
 
 export interface MasterConfig {
+  headerTitle: string;
+  headerSubtitle: string;
   title: string;
   bullets: string[];
   price: number;

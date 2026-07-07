@@ -240,6 +240,9 @@ export const DashboardScreen: React.FC = () => {
 
   const renderBoosterCourseCard = () => {
     const booster = homeConfig?.boosterCourse || {
+      headerTitle: '6-Day Head Start Course',
+      headerSubtitle: 'IIT/NIT Premium BootCamp',
+      cardTitle: "Maximize Your Child's Potential 100%",
       title: 'Concept Booster Course - 5X Efficient Learning Methods by IITians',
       subjects: ['Maths', 'Science', 'English'],
       price: 149,
@@ -258,14 +261,14 @@ export const DashboardScreen: React.FC = () => {
             style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(19) }}
             className="text-slate-900 font-bold tracking-tight"
           >
-            6-Day Head Start Course
+            {booster.headerTitle || '6-Day Head Start Course'}
           </Text>
           <View className="flex-row items-center mt-0.5">
             <Text 
               style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12) }}
               className="text-[#FF6600] font-bold"
             >
-              IIT/NIT Premium BootCamp
+              {booster.headerSubtitle || 'IIT/NIT Premium BootCamp'}
             </Text>
             <Text className="ml-1 text-[12px]">🔥</Text>
           </View>
@@ -282,7 +285,7 @@ export const DashboardScreen: React.FC = () => {
                 style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(14.5) }}
                 className="text-[#7C2D12] font-bold leading-tight"
               >
-                Maximize Your Child's{"\n"}Potential 100%
+                {booster.cardTitle || "Maximize Your Child's\nPotential 100%"}
               </Text>
             </View>
 
@@ -377,6 +380,8 @@ export const DashboardScreen: React.FC = () => {
 
   const renderMasterProgramCard = () => {
     const master = homeConfig?.masterProgram || {
+      headerTitle: 'Master Program',
+      headerSubtitle: 'Long-term Comprehensive Intensive 🎯',
       title: `LIVE Interactive Full Syllabus Course for ${selectedClass} (2026-27)`,
       bullets: [
         'Full Academic Year Preparation',
@@ -393,13 +398,13 @@ export const DashboardScreen: React.FC = () => {
             style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(19) }}
             className="text-slate-900 font-bold"
           >
-            Master Program
+            {master.headerTitle || 'Master Program'}
           </Text>
           <Text 
             style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(12.5) }}
             className="text-[#00B6A6] font-semibold"
           >
-            Long-term Comprehensive Intensive 🎯
+            {master.headerSubtitle || 'Long-term Comprehensive Intensive 🎯'}
           </Text>
         </View>
 

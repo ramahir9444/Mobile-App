@@ -32,12 +32,17 @@ for (let i = 1; i <= 11; i++) {
       teacherAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=120'
     },
     boosterCourse: {
+      headerTitle: '6-Day Head Start Course',
+      headerSubtitle: 'IIT/NIT Premium BootCamp',
+      cardTitle: "Maximize Your Child's Potential 100%",
       title: 'Concept Booster Course - 5X Efficient Learning Methods by IITians',
       subjects: ['Maths', 'Science', 'English'],
       price: 149,
       originalPrice: 999
     },
     masterProgram: {
+      headerTitle: 'Master Program',
+      headerSubtitle: 'Long-term Comprehensive Intensive 🎯',
       title: `LIVE Interactive Full Syllabus Course for ${classId} (2026-27)`,
       bullets: [
         'Full Academic Year Preparation',
