@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AppAnalyticsProvider } from './AppAnalyticsContext';
 import { getStudentByPhone, updateStudentClass } from '../services/api';
 
 export type AppScreen =
@@ -25,7 +24,11 @@ export type AppScreen =
   | 'STUDY_REPORT'
   | 'CLASS_DETAILS'
   | 'HOMEWORK_QUIZ'
-  | 'HOMEWORK_REPORT';
+  | 'HOMEWORK_REPORT'
+  | 'ADMIN_PORTAL'
+  | 'FAQ'
+  | 'MY_ORDERS'
+  | 'ABOUT_ODA';
 
 export interface UserProfile {
   _id?: string;
@@ -42,6 +45,7 @@ export interface UserProfile {
   board?: string;
   state?: string;
   address?: string;
+  enrollmentType?: 'none' | 'demo' | 'master';
 }
 
 export interface BookingDetails {
@@ -144,6 +148,7 @@ const defaultUser: UserProfile = {
   streak: 7,
   attendance: 92,
   avatar: '',
+  enrollmentType: 'none',
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -199,7 +204,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [hasSeenPopup, setHasSeenPopup] = useState<boolean>(false);
 
   // Enrollment state tracker
-  const [isEnrolled, setIsEnrolled] = useState<boolean>(true);
+  const [isEnrolled, setIsEnrolled] = useState<boolean>(false);
 
   // Selected report period
   const [selectedReportPeriod, setSelectedReportPeriod] = useState<string>('Weekly');
@@ -241,7 +246,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           if (res.success && res.data) {
             setUser({
               _id: res.data._id,
-              name: res.data.name || 'Student',
+              name: res.data.name || '',
               phone: res.data.phone,
               email: res.data.email || '',
               avatar: res.data.profilePhoto || '',
@@ -254,10 +259,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               board: res.data.board || '',
               state: res.data.state || '',
               address: res.data.address || '',
+              enrollmentType: res.data.enrollmentType || 'none',
             });
             if (res.data.selectedClass) {
               setSelectedClassState(res.data.selectedClass);
             }
+            setIsEnrolled(!!(res.data.enrollmentType && res.data.enrollmentType !== 'none'));
             setAuthPhone(savedPhone);
             setCurrentScreen('DASHBOARD');
             setScreenStack(['DASHBOARD']);

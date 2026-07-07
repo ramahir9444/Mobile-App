@@ -77,6 +77,7 @@ router.post('/verify-otp', async (req, res) => {
           board:         null,
           state:         null,
           address:       null,
+          enrollmentType: 'none',
           // Stats initialised at zero for new students
           totalClassesAttended: 0,
           totalQuizzesAttempted: 0,
@@ -102,6 +103,7 @@ router.post('/verify-otp', async (req, res) => {
         selectedClass: student.selectedClass,
         profilePhoto:  student.profilePhoto  || null,
         email:         student.email         || null,
+        enrollmentType: student.enrollmentType || 'none',
         totalClassesAttended:  student.totalClassesAttended,
         totalQuizzesAttempted: student.totalQuizzesAttempted,
       },

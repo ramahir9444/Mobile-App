@@ -17,23 +17,44 @@ router.get('/:phone', async (req, res) => {
   }
 });
 
+// Helper function to update student enrollmentType in MongoDB
+async function updateStudentEnrollment(db, phone, courseTitle, amount) {
+  try {
+    const isMaster = courseTitle.includes('Master') || String(amount) === '31999';
+    const enrollmentType = isMaster ? 'master' : 'demo';
+    await db.collection('students').updateOne(
+      { phone },
+      { $set: { enrollmentType, updatedAt: new Date() } }
+    );
+    console.log(`[Enrollment] Updated student ${phone} to type: ${enrollmentType}`);
+  } catch (err) {
+    console.error('[Enrollment] Failed to update student:', err);
+  }
+}
+
 // POST /api/orders
 router.post('/', async (req, res) => {
   try {
-    const { studentPhone, courseTitle, classInfo, amount, couponDiscount } = req.body;
+    const { studentPhone, courseTitle, classInfo, amount, couponDiscount, status } = req.body;
     const db = getDB();
     
+    const orderStatus = status || 'pending';
     const newOrder = {
       studentPhone,
       courseTitle,
       classInfo,
       amount: String(amount),
       couponDiscount: String(couponDiscount || 0),
-      status: 'pending',
+      status: orderStatus,
       createdAt: new Date(),
     };
 
     const result = await db.collection('orders').insertOne(newOrder);
+    
+    if (orderStatus === 'paid') {
+      await updateStudentEnrollment(db, studentPhone, courseTitle, amount);
+    }
+
     res.status(201).json({ success: true, data: { _id: result.insertedId, ...newOrder } });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -62,10 +83,21 @@ router.put('/:id', async (req, res) => {
   try {
     const { status } = req.body;
     const db = getDB();
-    const result = await db.collection('orders').updateOne(
+    
+    const order = await db.collection('orders').findOne(buildIdQuery(req.params.id));
+    if (!order) {
+      return res.status(404).json({ success: false, error: 'Order not found' });
+    }
+
+    await db.collection('orders').updateOne(
       buildIdQuery(req.params.id),
       { $set: { status, updatedAt: new Date() } }
     );
+
+    if (status === 'paid') {
+      await updateStudentEnrollment(db, order.studentPhone, order.courseTitle, order.amount);
+    }
+
     res.json({ success: true, message: 'Order status updated' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

@@ -499,7 +499,7 @@ export const BoosterDetailsScreen: React.FC = () => {
 // 2. BOOSTER SELECT CLASS SCREEN
 // ==========================================
 export const BoosterSelectClassScreen: React.FC = () => {
-  const { navigateTo, goBack, selectedClass, setSelectedClass, setIsEnrolled } = useApp();
+  const { navigateTo, goBack, selectedClass, setSelectedClass, setIsEnrolled, authPhone } = useApp();
   const [paySheetVisible, setPaySheetVisible] = useState<boolean>(false);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [paySuccess, setPaySuccess] = useState<boolean>(false);

@@ -206,13 +206,31 @@ export const MyOrdersScreen: React.FC = () => {
   }, [authPhone]);
 
   // Filter pending and paid lists
-  const pendingList = dbOrders.length > 0
+  const pendingList = (dbOrders.length > 0
     ? dbOrders.filter(o => o.status === 'pending')
-    : pendingOrders.map(o => ({ ...o, _id: String(o.id), courseTitle: o.title, amount: o.total.replace('₹ ', ''), couponDiscount: o.coupon ? o.coupon.replace('₹ ', '') : '0' }));
+    : pendingOrders.map(o => ({
+        _id: String(o.id),
+        studentPhone: '',
+        courseTitle: o.title,
+        classInfo: o.classInfo,
+        amount: o.total.replace('₹ ', ''),
+        couponDiscount: o.coupon ? o.coupon.replace('₹ ', '') : '0',
+        status: 'pending' as const,
+        createdAt: new Date().toISOString()
+      }))) as OrderItem[];
 
-  const paidList = dbOrders.length > 0
+  const paidList = (dbOrders.length > 0
     ? dbOrders.filter(o => o.status === 'paid')
-    : pastOrders.map(o => ({ ...o, _id: String(o.id), courseTitle: o.title, amount: o.total.replace('₹ ', ''), couponDiscount: '0' }));
+    : pastOrders.map(o => ({
+        _id: String(o.id),
+        studentPhone: '',
+        courseTitle: o.title,
+        classInfo: o.classInfo,
+        amount: o.total.replace('₹ ', ''),
+        couponDiscount: '0',
+        status: 'paid' as const,
+        createdAt: new Date().toISOString()
+      }))) as OrderItem[];
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFC' }} edges={['top', 'left', 'right']}>
@@ -231,10 +249,10 @@ export const MyOrdersScreen: React.FC = () => {
           <>
             {/* Pending / Active Orders */}
             {pendingList.map(order => (
-              <View key={order._id || order.id} style={styles.orderCard}>
+              <View key={order._id} style={styles.orderCard}>
                 {/* Title & class info */}
                 <Text style={[styles.orderTitle, { fontFamily: Theme.fonts.poppinsMedium }]}>
-                  {order.courseTitle || order.title}
+                  {order.courseTitle}
                 </Text>
                 <Text style={[styles.orderMeta, { fontFamily: Theme.fonts.poppinsRegular }]}>
                   {order.classInfo}
@@ -260,7 +278,7 @@ export const MyOrdersScreen: React.FC = () => {
                   <Text style={[styles.totalLabel, { fontFamily: Theme.fonts.poppinsMedium }]}>
                     Total:{' '}
                     <Text style={[styles.totalAmount, { fontFamily: Theme.fonts.poppinsBold }]}>
-                      ₹ {order.amount || order.total}
+                      ₹ {order.amount}
                     </Text>
                   </Text>
                   <TouchableOpacity
@@ -295,9 +313,9 @@ export const MyOrdersScreen: React.FC = () => {
             {showOther && (
               <View style={{ marginTop: 8 }}>
                 {paidList.map(order => (
-                  <View key={order._id || order.id} style={[styles.orderCard, { opacity: 0.8 }]}>
+                  <View key={order._id} style={[styles.orderCard, { opacity: 0.8 }]}>
                     <Text style={[styles.orderTitle, { fontFamily: Theme.fonts.poppinsMedium }]}>
-                      {order.courseTitle || order.title}
+                      {order.courseTitle}
                     </Text>
                     <Text style={[styles.orderMeta, { fontFamily: Theme.fonts.poppinsRegular }]}>
                       {order.classInfo}
@@ -307,7 +325,7 @@ export const MyOrdersScreen: React.FC = () => {
                       <Text style={[styles.totalLabel, { fontFamily: Theme.fonts.poppinsMedium }]}>
                         Total:{' '}
                         <Text style={[styles.totalAmount, { fontFamily: Theme.fonts.poppinsBold }]}>
-                          ₹ {order.amount || order.total}
+                          ₹ {order.amount}
                         </Text>
                       </Text>
                       <View style={styles.paidBadge}>

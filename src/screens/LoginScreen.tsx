@@ -43,29 +43,27 @@ export const LoginScreen: React.FC = () => {
           {/* Simulated ambient glow backdrops */}
           <View 
             style={{ 
-              position: 'absolute', 
-              top: -80, 
-              left: -80, 
-              width: 300, 
-              height: 300, 
-              borderRadius: 150, 
-              backgroundColor: '#E0F2FE', 
-              opacity: 0.6 
+               position: 'absolute', 
+               top: -80, 
+               left: -80, 
+               width: 300, 
+               height: 300, 
+               borderRadius: 150, 
+               backgroundColor: '#E0F2FE', 
+               opacity: 0.6 
             }} 
-            blurRadius={80} 
           />
           <View 
             style={{ 
-              position: 'absolute', 
-              top: '20%', 
-              right: -100, 
-              width: 250, 
-              height: 250, 
-              borderRadius: 125, 
-              backgroundColor: '#E2FBF6', 
-              opacity: 0.8 
+               position: 'absolute', 
+               top: '20%', 
+               right: -100, 
+               width: 250, 
+               height: 250, 
+               borderRadius: 125, 
+               backgroundColor: '#E2FBF6', 
+               opacity: 0.8 
             }} 
-            blurRadius={85} 
           />
 
           {/* Top Logo & Slogan Header Section */}

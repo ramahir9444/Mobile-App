@@ -7,7 +7,8 @@ import {
   Image, 
   Dimensions, 
   ActivityIndicator, 
-  StatusBar 
+  StatusBar,
+  Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -20,6 +21,8 @@ const getFontSize = (baseSize: number) => {
   if (width > 400) return baseSize;
   return baseSize - 1.5;
 };
+
+const showToast = (msg: string) => Alert.alert("Oda Class", msg);
 
 // ==========================================
 // 1. TEST INTRO SCREEN

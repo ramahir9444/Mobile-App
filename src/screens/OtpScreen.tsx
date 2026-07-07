@@ -97,7 +97,6 @@ export const OtpScreen: React.FC = () => {
               backgroundColor: '#E0F2FE', 
               opacity: 0.6 
             }} 
-            blurRadius={80} 
           />
           <View 
             style={{ 
@@ -110,7 +109,6 @@ export const OtpScreen: React.FC = () => {
               backgroundColor: '#E2FBF6', 
               opacity: 0.8 
             }} 
-            blurRadius={85} 
           />
 
           {/* Top Logo & Slogan Header Section */}

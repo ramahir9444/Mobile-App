@@ -81,6 +81,52 @@ export interface StudentProfile {
   board?: string | null;
   state?: string | null;
   address?: string | null;
+  enrollmentType?: 'none' | 'demo' | 'master';
+}
+
+export interface Teacher {
+  name: string;
+  role: string;
+  avatar: string;
+}
+
+export interface UpcomingClass {
+  title: string;
+  subject: string;
+  time: string;
+  teacherName: string;
+  teacherAvatar: string;
+}
+
+export interface BoosterConfig {
+  title: string;
+  subjects: string[];
+  price: number;
+  originalPrice: number;
+}
+
+export interface MasterConfig {
+  title: string;
+  bullets: string[];
+  price: number;
+}
+
+export interface HomepageConfig {
+  _id?: string;
+  classId: string;
+  bannerText: string;
+  teachers: Teacher[];
+  upcomingClass: UpcomingClass;
+  boosterCourse: BoosterConfig;
+  masterProgram: MasterConfig;
+}
+
+export async function getHomepageConfig(classId: string): Promise<{ success: boolean; data: HomepageConfig }> {
+  return apiCall('GET', `/api/homepage-configs/${classId}`);
+}
+
+export async function updateHomepageConfig(classId: string, config: Partial<HomepageConfig>): Promise<{ success: boolean; data: HomepageConfig }> {
+  return apiCall('PUT', `/api/homepage-configs/${classId}`, config);
 }
 
 export async function getStudentByPhone(phone: string): Promise<{ success: boolean; data: StudentProfile }> {

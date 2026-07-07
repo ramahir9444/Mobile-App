@@ -9,13 +9,14 @@ import {
   StyleSheet, 
   Dimensions, 
   StatusBar,
-  Animated
+  Animated,
+  ActivityIndicator
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
 import { useApp } from '../context/AppContext';
-import { getAvatarUrl } from '../services/api';
+import { getAvatarUrl, getHomepageConfig, HomepageConfig } from '../services/api';
 
 
 const { width, height } = Dimensions.get('window');
@@ -47,6 +48,26 @@ export const DashboardScreen: React.FC = () => {
   } = useApp();
   const [isClassSheetVisible, setIsClassSheetVisible] = useState<boolean>(false);
   const [studyTab, setStudyTab] = useState<'Bridge' | 'All'>('Bridge');
+
+  const [homeConfig, setHomeConfig] = useState<HomepageConfig | null>(null);
+  const [isConfigLoading, setIsConfigLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+      setIsConfigLoading(true);
+      try {
+        const res = await getHomepageConfig(selectedClass);
+        if (res.success && res.data) {
+          setHomeConfig(res.data);
+        }
+      } catch (err) {
+        console.error('Failed to load homepage config for selected class:', err);
+      } finally {
+        setIsConfigLoading(false);
+      }
+    };
+    fetchConfig();
+  }, [selectedClass]);
 
   // Pop-up states (Show only once per app session using context)
   const [isPopupVisible, setIsPopupVisible] = useState<boolean>(!hasSeenPopup);
@@ -111,8 +132,354 @@ export const DashboardScreen: React.FC = () => {
     ? "Most Pioneer LIVE Learning Platform" 
     : "Best with 20 Million Users' Trust";
 
+  // SUB-RENDERERS FOR DYNAMIC HOMEPAGE
+  const renderWhyOdaBanner = () => {
+    const isOlderClass = (parseInt(selectedClass.replace('Class ', '')) || 1) >= 8;
+    const bannerText = homeConfig?.bannerText || (
+      isOlderClass 
+        ? "Most Pioneer LIVE Learning Platform" 
+        : "Best with 20 Million Users' Trust"
+    );
+    const enrollmentType = user.enrollmentType || 'none';
+    const titleText = enrollmentType === 'demo' ? 'Why Demo Class' : 'Why Oda Class';
+
+    return (
+      <TouchableOpacity 
+        onPress={() => navigateTo('WHY_ODA')}
+        style={styles.bannerContainer}
+        className="mx-5 my-3 px-4 py-3.5 rounded-2xl flex-row items-center justify-between relative overflow-hidden"
+      >
+        <View style={styles.bannerGridOverlay} pointerEvents="none" />
+        
+        <View className="flex-1 z-10">
+          <Text 
+            style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13) }}
+            className="text-[#DF2C2C] font-bold tracking-wide"
+          >
+            {titleText}
+          </Text>
+          <Text 
+            style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(13) }}
+            className="text-[#DF2C2C] font-semibold mt-0.5"
+          >
+            {bannerText}
+          </Text>
+        </View>
+        <View className="flex-row items-center z-10 ml-2">
+          <Feather name="chevrons-right" size={20} color="#FDA4AF" strokeWidth={2.5} />
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderUpcomingClassCard = () => {
+    const classNum = parseInt(selectedClass.replace('Class ', '')) || 1;
+    const defaultUpcomingTitle = classNum <= 5 
+      ? 'Fun with Numbers & Shapes - Lesson 1' 
+      : classNum <= 8 
+        ? 'Linear Equations & Algebraic Identities' 
+        : 'IIT/JEE Foundation: Quadratic Functions';
+
+    const upcoming = homeConfig?.upcomingClass || {
+      title: defaultUpcomingTitle,
+      subject: classNum <= 5 ? 'Maths' : 'Mathematics',
+      time: 'Today, 6:00 PM',
+      teacherName: 'Sonia Verma',
+      teacherAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=120'
+    };
+
+    return (
+      <View style={styles.upcomingContainer} className="mx-5 my-3 p-4 bg-white rounded-2xl relative overflow-hidden shadow-sm">
+        <View style={styles.upcomingGlow} />
+        
+        <View className="flex-row items-center justify-between mb-3 z-10">
+          <View className="flex-row items-center bg-[#E0F7F6] px-2.5 py-0.5 rounded-full">
+            <View className="w-1.5 h-1.5 rounded-full bg-[#00B6A6] mr-1.5" />
+            <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9.5) }} className="text-[#00B6A6] font-bold uppercase tracking-wider">
+              Upcoming Live Class
+            </Text>
+          </View>
+          <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(11) }} className="text-slate-400 font-medium">
+            {upcoming.time}
+          </Text>
+        </View>
+
+        <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(15) }} className="text-slate-850 font-bold leading-snug mb-3.5 z-10">
+          {upcoming.title}
+        </Text>
+
+        <View className="flex-row items-center justify-between mt-1 pt-3 border-t border-slate-100/60 z-10">
+          <View className="flex-row items-center">
+            <Image 
+              source={{ uri: upcoming.teacherAvatar }} 
+              className="w-9 h-9 rounded-full bg-slate-200 mr-2.5 border border-slate-100"
+            />
+            <View>
+              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12.5) }} className="text-slate-700 font-bold leading-tight">
+                {upcoming.teacherName}
+              </Text>
+              <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(10) }} className="text-slate-400 font-medium mt-0.5">
+                {upcoming.subject} Expert
+              </Text>
+            </View>
+          </View>
+
+          <TouchableOpacity 
+            onPress={() => navigateTo('CLASS_DETAILS')}
+            style={styles.joinBtn}
+            className="px-5 py-2 rounded-full bg-[#00B6A6] active:opacity-90 shadow-sm"
+          >
+            <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12) }} className="text-white font-bold">
+              Join
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
+  const renderBoosterCourseCard = () => {
+    const booster = homeConfig?.boosterCourse || {
+      title: 'Concept Booster Course - 5X Efficient Learning Methods by IITians',
+      subjects: ['Maths', 'Science', 'English'],
+      price: 149,
+      originalPrice: 999
+    };
+
+    const teacherAvatars = homeConfig?.teachers || [
+      { avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=120' },
+      { avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120' }
+    ];
+
+    return (
+      <View className="mt-4 px-5 mb-5">
+        <View className="mb-3">
+          <Text 
+            style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(19) }}
+            className="text-slate-900 font-bold tracking-tight"
+          >
+            6-Day Head Start Course
+          </Text>
+          <View className="flex-row items-center mt-0.5">
+            <Text 
+              style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12) }}
+              className="text-[#FF6600] font-bold"
+            >
+              IIT/NIT Premium BootCamp
+            </Text>
+            <Text className="ml-1 text-[12px]">🔥</Text>
+          </View>
+        </View>
+
+        <TouchableOpacity 
+          onPress={() => navigateTo('BOOSTER_DETAILS')}
+          style={styles.courseCard} 
+          className="bg-white rounded-2xl overflow-hidden active:opacity-95"
+        >
+          <View className="bg-[#FAF2EE] px-4 py-4 flex-row justify-between items-center relative">
+            <View className="flex-1 z-10 pr-2">
+              <Text 
+                style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(14.5) }}
+                className="text-[#7C2D12] font-bold leading-tight"
+              >
+                Maximize Your Child's{"\n"}Potential 100%
+              </Text>
+            </View>
+
+            <View className="flex-row items-center space-x-[-12px] z-10">
+              {teacherAvatars.slice(0, 2).map((t, idx) => (
+                <View key={idx} className="border-[2.5px] border-white rounded-full overflow-hidden shadow-sm">
+                  <Image 
+                    source={{ uri: t.avatar }} 
+                    className="w-12 h-12 bg-slate-200"
+                  />
+                </View>
+              ))}
+            </View>
+          </View>
+
+          <View className="flex-row flex-wrap items-center mt-3 px-4 gap-1.5">
+            <View className="bg-[#F8FAFC] py-0.5 px-2 rounded-full border border-slate-200 flex-row items-center">
+              <Text className="text-[10px] mr-1">🎓</Text>
+              <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(9) }} className="text-[#475569] font-medium">IIT/NIT</Text>
+            </View>
+            <View className="bg-[#F8FAFC] py-0.5 px-2 rounded-full border border-slate-200 flex-row items-center">
+              <Text className="text-[10px] mr-1">⭐</Text>
+              <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(9) }} className="text-[#475569] font-medium">98% Good Rate</Text>
+            </View>
+            <View className="bg-[#F8FAFC] py-0.5 px-2 rounded-full border border-slate-200 flex-row items-center">
+              <Text className="text-[10px] mr-1">🏆</Text>
+              <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(9) }} className="text-[#475569] font-medium">5+ Years Teaching</Text>
+            </View>
+          </View>
+
+          <View className="p-4 pt-3">
+            <Text 
+              style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(14.5) }}
+              className="text-slate-800 font-bold leading-snug"
+            >
+              {booster.title}
+            </Text>
+
+            <View className="flex-row flex-wrap items-center mt-2.5 gap-1.5">
+              {(booster.subjects || ['Maths', 'Science', 'English']).map((sub, idx) => (
+                <View key={idx} className="border border-slate-200 rounded-md px-2 py-0.5 bg-slate-50">
+                  <Text 
+                    style={{ fontFamily: Theme.fonts.poppinsRegular, fontSize: getFontSize(10) }}
+                    className="text-slate-500"
+                  >
+                    {sub}
+                  </Text>
+                </View>
+              ))}
+            </View>
+
+            <View className="w-full h-[1px] bg-slate-100 my-3.5" />
+
+            <View className="flex-row items-center justify-between flex-wrap gap-2">
+              <View>
+                <View className="flex-row items-baseline flex-wrap">
+                  <Text 
+                    style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(22) }}
+                    className="text-[#FF5E00] font-bold"
+                  >
+                    ₹{booster.price}
+                  </Text>
+                  <Text 
+                    style={{ fontFamily: Theme.fonts.poppinsRegular, fontSize: getFontSize(12) }}
+                    className="text-slate-400 line-through ml-2"
+                  >
+                    ₹{booster.originalPrice}
+                  </Text>
+                  <Text 
+                    style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(11) }}
+                    className="text-[#FF5E00] font-bold ml-2"
+                  >
+                    Today Only
+                  </Text>
+                </View>
+              </View>
+
+              <View className="bg-[#FF5E00] py-2 px-6 rounded-full shadow-sm">
+                <Text 
+                  style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13) }}
+                  className="text-white font-bold"
+                >
+                  Enroll
+                </Text>
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  const renderMasterProgramCard = () => {
+    const master = homeConfig?.masterProgram || {
+      title: `LIVE Interactive Full Syllabus Course for ${selectedClass} (2026-27)`,
+      bullets: [
+        'Full Academic Year Preparation',
+        'Complete CBSE/ICSE Board Syllabus covered',
+        'All Core Subjects: Maths, Science, SST & English'
+      ],
+      price: 31999
+    };
+
+    return (
+      <View className="px-5 mb-5">
+        <View className="mb-3">
+          <Text 
+            style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(19) }}
+            className="text-slate-900 font-bold"
+          >
+            Master Program
+          </Text>
+          <Text 
+            style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(12.5) }}
+            className="text-[#00B6A6] font-semibold"
+          >
+            Long-term Comprehensive Intensive 🎯
+          </Text>
+        </View>
+
+        <TouchableOpacity 
+          onPress={() => navigateTo('MASTER_PROGRAM')}
+          style={styles.courseCard} 
+          className="bg-white rounded-2xl p-4 active:opacity-95"
+        >
+          <View className="flex-row justify-between items-center flex-wrap gap-2">
+            <View className="flex-1 min-w-[200px]">
+              <Text 
+                style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(14.5) }}
+                className="text-slate-800 font-bold leading-snug"
+              >
+                {master.title}
+              </Text>
+
+              <View className="mt-3.5 space-y-2">
+                {(master.bullets || []).map((bullet, idx) => (
+                  <View key={idx} className="flex-row items-center">
+                    <Text className="text-[12px] mr-2">🔥</Text>
+                    <Text 
+                      style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(11.5) }}
+                      className="text-slate-655 font-medium"
+                    >
+                      {bullet}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            <View className="items-center justify-center">
+              <Image 
+                source={{ uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80' }} 
+                className="w-16 h-16 rounded-xl bg-slate-100"
+              />
+            </View>
+          </View>
+
+          <View className="w-full h-[1px] bg-slate-100 my-3.5" />
+
+          <View className="flex-row items-center justify-between flex-wrap gap-2">
+            <View>
+              <Text 
+                style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(24) }}
+                className="text-[#00B6A6] font-bold"
+              >
+                ₹{master.price.toLocaleString('en-IN')}
+              </Text>
+            </View>
+
+            <View className="bg-[#00B6A6] py-2 px-6 rounded-full shadow-sm">
+              <Text 
+                style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13) }}
+                className="text-white font-bold"
+              >
+                Enroll
+              </Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  const renderBottomMetrics = () => {
+    return (
+      <View className="items-center justify-center mt-6 px-8 opacity-40">
+        <Text style={{ fontFamily: Theme.fonts.poppinsRegular, fontSize: getFontSize(10) }} className="text-center text-slate-400">
+          © Oda Class. Trusted by 20+ Million Parents
+        </Text>
+      </View>
+    );
+  };
+
   // HOME SCREEN LAYOUT
   const renderHomeScreen = () => {
+    const enrollmentType = user.enrollmentType || 'none';
+
     return (
       <View style={{ flex: 1 }}>
         {/* TOP HEADER */}
@@ -131,264 +498,45 @@ export const DashboardScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
-        <ScrollView 
-          showsVerticalScrollIndicator={false} 
-          contentContainerStyle={{ paddingBottom: 130 }}
-          className="flex-1 bg-[#F8FAFC]"
-        >
-          {/* BRAND BANNER */}
-          <TouchableOpacity 
-            onPress={() => navigateTo('WHY_ODA')}
-            style={styles.bannerContainer}
-            className="mx-5 my-3 px-4 py-3.5 rounded-2xl flex-row items-center justify-between relative overflow-hidden"
+        {isConfigLoading && !homeConfig ? (
+          <View className="flex-1 items-center justify-center pt-20">
+            <ActivityIndicator size="large" color="#00B6A6" />
+          </View>
+        ) : (
+          <ScrollView 
+            showsVerticalScrollIndicator={false} 
+            contentContainerStyle={{ paddingBottom: 130 }}
+            className="flex-1 bg-[#F8FAFC]"
           >
-            <View style={styles.bannerGridOverlay} pointerEvents="none" />
-            
-            <View className="flex-1 z-10">
-              <Text 
-                style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13) }}
-                className="text-[#DF2C2C] font-bold tracking-wide"
-              >
-                Why Oda Class
-              </Text>
-              <Text 
-                style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(13) }}
-                className="text-[#DF2C2C] font-semibold mt-0.5"
-              >
-                {bannerText}
-              </Text>
-            </View>
-            <View className="flex-row items-center z-10 ml-2">
-              <Feather name="chevrons-right" size={20} color="#FDA4AF" strokeWidth={2.5} />
-            </View>
-          </TouchableOpacity>
+            {/* 1. BRAND BANNER (TOP FOR GUESTS & DEMO STUDENTS) */}
+            {enrollmentType !== 'master' && renderWhyOdaBanner()}
 
-          {/* 6-DAY HEAD START COURSE CARD */}
-          <View className="mt-4 px-5 mb-5">
-            <View className="mb-3">
-              <Text 
-                style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(19) }}
-                className="text-slate-900 font-bold tracking-tight"
-              >
-                6-Day Head Start Course
-              </Text>
-              <View className="flex-row items-center mt-0.5">
+            {/* 2. UPCOMING CLASS (TOP FOR MASTER, SUB-TOP FOR DEMO STUDENTS) */}
+            {enrollmentType !== 'none' && renderUpcomingClassCard()}
+
+            {/* 3. 6-DAY HEAD START COURSE CARD (GUEST & DEMO ONLY) */}
+            {enrollmentType !== 'master' && renderBoosterCourseCard()}
+
+            {/* 4. MASTER PROGRAM SECTION (ALL) */}
+            {renderMasterProgramCard()}
+
+            {/* 5. BRAND BANNER AT BOTTOM (FOR MASTER PROGRAM STUDENTS ONLY) */}
+            {enrollmentType === 'master' && (
+              <View className="mt-4 border-t border-slate-100 pt-2">
                 <Text 
-                  style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12) }}
-                  className="text-[#FF6600] font-bold"
+                  style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(15) }}
+                  className="text-slate-600 font-bold mx-5 mt-3 mb-1"
                 >
-                  IIT/NIT Premium BootCamp
+                  About Our Academy
                 </Text>
-                <Text className="ml-1 text-[12px]">🔥</Text>
+                {renderWhyOdaBanner()}
               </View>
-            </View>
+            )}
 
-            <TouchableOpacity 
-              onPress={() => navigateTo('BOOSTER_DETAILS')}
-              style={styles.courseCard} 
-              className="bg-white rounded-2xl overflow-hidden active:opacity-95"
-            >
-              {/* Top Beige Container */}
-              <View className="bg-[#FAF2EE] px-4 py-4 flex-row justify-between items-center relative">
-                <View className="flex-1 z-10 pr-2">
-                  <Text 
-                    style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(14.5) }}
-                    className="text-[#7C2D12] font-bold leading-tight"
-                  >
-                    Maximize Your Child's{"\n"}Potential 100%
-                  </Text>
-                </View>
-
-                {/* Teacher Avatars */}
-                <View className="flex-row items-center space-x-[-12px] z-10">
-                  <View className="border-[2.5px] border-white rounded-full overflow-hidden shadow-sm">
-                    <Image 
-                      source={{ uri: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=120&auto=format&fit=crop&q=80' }} 
-                      className="w-12 h-12 bg-slate-200"
-                    />
-                  </View>
-                  <View className="border-[2.5px] border-white rounded-full overflow-hidden shadow-sm">
-                    <Image 
-                      source={{ uri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80' }} 
-                      className="w-12 h-12 bg-slate-200"
-                    />
-                  </View>
-                </View>
-              </View>
-
-              {/* Three sub-badges */}
-              <View className="flex-row flex-wrap items-center mt-3 px-4 gap-1.5">
-                <View className="bg-[#F8FAFC] py-0.5 px-2 rounded-full border border-slate-200 flex-row items-center">
-                  <Text className="text-[10px] mr-1">🎓</Text>
-                  <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(9) }} className="text-[#475569] font-medium">IIT/NIT</Text>
-                </View>
-                <View className="bg-[#F8FAFC] py-0.5 px-2 rounded-full border border-slate-200 flex-row items-center">
-                  <Text className="text-[10px] mr-1">⭐</Text>
-                  <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(9) }} className="text-[#475569] font-medium">98% Good Rate</Text>
-                </View>
-                <View className="bg-[#F8FAFC] py-0.5 px-2 rounded-full border border-slate-200 flex-row items-center">
-                  <Text className="text-[10px] mr-1">🏆</Text>
-                  <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(9) }} className="text-[#475569] font-medium">5+ Years Teaching</Text>
-                </View>
-              </View>
-
-              {/* Course Title and details */}
-              <View className="p-4 pt-3">
-                <Text 
-                  style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(14.5) }}
-                  className="text-slate-800 font-bold leading-snug"
-                >
-                  Concept Booster Course - 5X Efficient Learning Methods by IITians
-                </Text>
-
-                {/* Subject Boxes */}
-                <View className="flex-row flex-wrap items-center mt-2.5 gap-1.5">
-                  {['Maths', 'Science', 'English'].map((sub, idx) => (
-                    <View key={idx} className="border border-slate-200 rounded-md px-2 py-0.5 bg-slate-50">
-                      <Text 
-                        style={{ fontFamily: Theme.fonts.poppinsRegular, fontSize: getFontSize(10) }}
-                        className="text-slate-500"
-                      >
-                        {sub}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-
-                <View className="w-full h-[1px] bg-slate-100 my-3.5" />
-
-                {/* Pricing & CTA Row */}
-                <View className="flex-row items-center justify-between flex-wrap gap-2">
-                  <View>
-                    <View className="flex-row items-baseline flex-wrap">
-                      <Text 
-                        style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(22) }}
-                        className="text-[#FF5E00] font-bold"
-                      >
-                        ₹149
-                      </Text>
-                      <Text 
-                        style={{ fontFamily: Theme.fonts.poppinsRegular, fontSize: getFontSize(12) }}
-                        className="text-slate-400 line-through ml-2"
-                      >
-                        ₹999
-                      </Text>
-                      <Text 
-                        style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(11) }}
-                        className="text-[#FF5E00] font-bold ml-2"
-                      >
-                        Today Only
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View className="bg-[#FF5E00] py-2 px-6 rounded-full shadow-sm">
-                    <Text 
-                      style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13) }}
-                      className="text-white font-bold"
-                    >
-                      Enroll
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            </TouchableOpacity>
-          </View>
-
-          {/* MASTER PROGRAM SECTION */}
-          <View className="px-5 mb-5">
-            <View className="mb-3">
-              <Text 
-                style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(19) }}
-                className="text-slate-900 font-bold"
-              >
-                Master Program
-              </Text>
-              <Text 
-                style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(12.5) }}
-                className="text-[#00B6A6] font-semibold"
-              >
-                Long-term Comprehensive Intensive 🎯
-              </Text>
-            </View>
-
-            {/* Master Program Card */}
-            <TouchableOpacity 
-              onPress={() => navigateTo('MASTER_PROGRAM')}
-              style={styles.courseCard} 
-              className="bg-white rounded-2xl p-4 active:opacity-95"
-            >
-              <View className="flex-row justify-between items-center flex-wrap gap-2">
-                {/* Left Column content */}
-                <View className="flex-1 min-w-[200px]">
-                  <Text 
-                    style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(14.5) }}
-                    className="text-slate-800 font-bold leading-snug"
-                  >
-                    LIVE Interactive Full Syllabus Course for {selectedClass} (2026-27)
-                  </Text>
-
-                  {/* Fire bullet points */}
-                  <View className="mt-3.5 space-y-2">
-                    {[
-                      'Full Academic Year',
-                      'Full Syllabus',
-                      'Full Subjects'
-                    ].map((bullet, idx) => (
-                      <View key={idx} className="flex-row items-center">
-                        <Text className="text-[12px] mr-2">🔥</Text>
-                        <Text 
-                          style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(11.5) }}
-                          className="text-slate-655 font-medium"
-                        >
-                          {bullet}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-
-                {/* Right Column illustration */}
-                <View className="items-center justify-center">
-                  <Image 
-                    source={{ uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80' }} 
-                    className="w-16 h-16 rounded-xl bg-slate-100"
-                  />
-                </View>
-              </View>
-
-              <View className="w-full h-[1px] bg-slate-100 my-3.5" />
-
-              {/* Bottom pricing row */}
-              <View className="flex-row items-center justify-between flex-wrap gap-2">
-                <View>
-                  <Text 
-                    style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(24) }}
-                    className="text-[#00B6A6] font-bold"
-                  >
-                    ₹31,999
-                  </Text>
-                </View>
-
-                <View className="bg-[#00B6A6] py-2 px-6 rounded-full shadow-sm">
-                  <Text 
-                    style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13) }}
-                    className="text-white font-bold"
-                  >
-                    Enroll
-                  </Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-          </View>
-
-          {/* BOTTOM METRICS */}
-          <View className="items-center justify-center mt-6 px-8 opacity-40">
-            <Text style={{ fontFamily: Theme.fonts.poppinsRegular, fontSize: getFontSize(10) }} className="text-center text-slate-400">
-              © Oda Class. Trusted by 20+ Million Parents
-            </Text>
-          </View>
-        </ScrollView>
+            {/* 6. BOTTOM METRICS */}
+            {renderBottomMetrics()}
+          </ScrollView>
+        )}
       </View>
     );
   };
@@ -759,6 +907,7 @@ export const DashboardScreen: React.FC = () => {
         {/* LIST OPTIONS (ON SOLID WHITE BACKGROUND) */}
         <View className="bg-white px-6 pt-2 flex-1">
           {[
+            { label: 'Admin Portal', icon: 'shield', type: 'Feather', onPress: () => navigateTo('ADMIN_PORTAL') },
             { label: 'My Orders', icon: 'file-text', type: 'Feather', onPress: () => navigateTo('MY_ORDERS') },
             { label: 'FAQs', icon: 'help-circle', type: 'Feather', onPress: () => navigateTo('FAQ') },
             { label: 'Share App', icon: 'share', type: 'Feather', onPress: () => showToast('Link Copied!') },
@@ -1108,5 +1257,31 @@ const styles = StyleSheet.create({
   },
   bookButton: {
     backgroundColor: '#FF6600', 
+  },
+  upcomingContainer: {
+    borderWidth: 1.5,
+    borderColor: '#CCFBF1',
+    shadowColor: '#00B6A6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  upcomingGlow: {
+    position: 'absolute',
+    top: -50,
+    right: -50,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#CCFBF1',
+    opacity: 0.45,
+  },
+  joinBtn: {
+    shadowColor: '#00B6A6',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 2,
   }
 });

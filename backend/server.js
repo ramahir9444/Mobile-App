@@ -13,6 +13,7 @@ const { initCollections } = require('./db/initCollections');
 const authRoutes          = require('./routes/auth');
 const studentRoutes       = require('./routes/students');
 const orderRoutes         = require('./routes/orders');
+const homepageRoutes      = require('./routes/homepage');
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -51,6 +52,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth',     authRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/orders',   orderRoutes);
+app.use('/api/homepage-configs', homepageRoutes);
 
 // ── 404 Handler ──────────────────────────────────────────────────
 app.use((req, res) => {
