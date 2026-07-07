@@ -125,7 +125,7 @@ export const BoosterDetailsScreen: React.FC = () => {
               '50+ Core Concepts',
               '50+ Solving Skills',
               'IIT/NIT Teachers'
-            ]).map((blt, idx) => (
+            ]).map((blt: string, idx: number) => (
               <View key={idx} className="flex-row items-center">
                 <Ionicons name="caret-forward-circle" size={14} color="#FFE0B2" className="mr-2" />
                 <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13) }} className="text-white font-bold">

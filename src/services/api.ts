@@ -104,6 +104,7 @@ export interface BoosterConfig {
   cardTitle: string;
   title: string;
   subjects: string[];
+  bullets?: string[];
   price: number;
   originalPrice: number;
 }
@@ -113,6 +114,7 @@ export interface MasterConfig {
   headerSubtitle: string;
   title: string;
   bullets: string[];
+  outline?: string[];
   price: number;
 }
 

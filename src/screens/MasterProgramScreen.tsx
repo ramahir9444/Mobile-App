@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
 import { useApp } from '../context/AppContext';
+import { getHomepageConfig, HomepageConfig, getAvatarUrl } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -25,6 +26,25 @@ export const MasterProgramScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('Course');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [teacherIndex, setTeacherIndex] = useState<number>(0);
+  const [homeConfig, setHomeConfig] = useState<HomepageConfig | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+      setIsLoading(true);
+      try {
+        const res = await getHomepageConfig(selectedClass);
+        if (res.success && res.data) {
+          setHomeConfig(res.data);
+        }
+      } catch (err) {
+        console.error('Failed to load config for master program:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchConfig();
+  }, [selectedClass]);
   
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -142,7 +162,7 @@ export const MasterProgramScreen: React.FC = () => {
               style={{ fontFamily: Theme.fonts.poppinsBold }}
               className="text-white text-[28px] font-bold tracking-tight leading-none mb-4"
             >
-              2026 Master Program
+              {homeConfig?.masterProgram?.headerTitle || '2026 Master Program'}
             </Text>
 
             {/* Beige subjects card */}
@@ -175,7 +195,7 @@ export const MasterProgramScreen: React.FC = () => {
               style={{ fontFamily: Theme.fonts.poppinsBold }}
               className="text-slate-800 text-[17px] font-bold leading-snug"
             >
-              LIVE Interactive Full Syllabus Course for {selectedClass} (2026-27)
+              {homeConfig?.masterProgram?.title || `LIVE Interactive Full Syllabus Course for ${selectedClass} (2026-27)`}
             </Text>
 
             <View className="flex-row items-center mt-2">
@@ -199,16 +219,14 @@ export const MasterProgramScreen: React.FC = () => {
               style={{ fontFamily: Theme.fonts.poppinsBold }}
               className="text-[#00B6A6] text-[25px] font-bold mt-4"
             >
-              ₹31,999
+              ₹{homeConfig?.masterProgram?.price ? homeConfig.masterProgram.price.toLocaleString('en-IN') : '31,999'}
             </Text>
           </View>
 
-          <View className="w-full h-[1px] bg-slate-100 my-5" />
-
-          {/* TEACHER CAROUSEL */}
+          <View className="w-full h-[1px] bg-slate-100 my-5" />          {/* TEACHER CAROUSEL */}
           <View className="px-5">
             <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-800 text-[15px] font-bold mb-3">
-              Master Teacher (9)
+              Master Teacher Team
             </Text>
 
             {/* Slider container */}
@@ -222,86 +240,52 @@ export const MasterProgramScreen: React.FC = () => {
               }}
               contentContainerStyle={{ gap: 10 }}
             >
-              {/* Card 1: Charutha */}
-              <View style={styles.carouselCard} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex-row justify-between relative shadow-sm">
-                <View className="flex-1 pr-2">
-                  <View className="flex-row items-center">
-                    <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-800 text-base font-bold">
-                      Charutha
-                    </Text>
-                    <View className="bg-red-500 rounded px-1.5 py-0.5 ml-2">
-                      <Text className="text-white text-[8px] font-bold">92.3% Liked</Text>
+              {(homeConfig?.teachers || [
+                { name: 'Charutha', role: 'SST · Master Teacher', avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200' },
+                { name: 'Vikas Sir', role: 'Physics · NIT.S Expert', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200' }
+              ]).map((t, idx) => (
+                <View key={idx} style={styles.carouselCard} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex-row justify-between relative shadow-sm">
+                  <View className="flex-1 pr-2">
+                    <View className="flex-row items-center">
+                      <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-800 text-base font-bold">
+                        {t.name}
+                      </Text>
+                      <View className="bg-red-500 rounded px-1.5 py-0.5 ml-2">
+                        <Text className="text-white text-[8px] font-bold">Verified</Text>
+                      </View>
                     </View>
-                  </View>
-                  <Text className="text-slate-500 text-xs mt-1">SST · Master Teacher</Text>
-                  
-                  <TouchableOpacity 
-                    onPress={() => showToast("Loading Charutha biography...")}
-                    className="bg-[#EF4444] py-1.5 px-3 rounded-full items-center justify-center mt-6 w-24"
-                  >
-                    <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-white text-[10px] font-bold">
-                      Learn More &gt;
-                    </Text>
-                  </TouchableOpacity>
+                    <Text className="text-slate-505 text-xs mt-1">{t.role}</Text>
+                    
+                    <TouchableOpacity 
+                      onPress={() => showToast(`Loading ${t.name} biography...`)}
+                      className="bg-[#EF4444] py-1.5 px-3 rounded-full items-center justify-center mt-6 w-24"
+                    >
+                      <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-white text-[10px] font-bold">
+                        Learn More &gt;
+                      </Text>
+                    </TouchableOpacity>
 
-                  <View className="flex-row items-center mt-5">
-                    <View className="flex-row mr-1.5">
-                      {[1,2,3,4,5].map((s) => (
-                        <Ionicons key={s} name="star" size={10} color="#EAB308" />
-                      ))}
+                    <View className="flex-row items-center mt-5">
+                      <View className="flex-row mr-1.5">
+                        {[1,2,3,4,5].map((s) => (
+                          <Ionicons key={s} name="star" size={10} color="#EAB308" />
+                        ))}
+                      </View>
+                      <Text className="text-slate-450 text-[9px]">Rating 4.9/5</Text>
                     </View>
-                    <Text className="text-slate-450 text-[9px]">RI**en just rated 5-star</Text>
                   </View>
+
+                  <Image 
+                    source={{ uri: getAvatarUrl(t.avatar) || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200' }} 
+                    className="w-24 h-28 rounded-xl bg-slate-200"
+                  />
                 </View>
-
-                <Image 
-                  source={{ uri: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80' }} 
-                  className="w-24 h-28 rounded-xl bg-slate-200"
-                />
-              </View>
-
-              {/* Card 2: Vikas Sir */}
-              <View style={styles.carouselCard} className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex-row justify-between relative shadow-sm">
-                <View className="flex-1 pr-2">
-                  <View className="flex-row items-center">
-                    <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-800 text-base font-bold">
-                      Vikas Sir
-                    </Text>
-                    <View className="bg-teal-500 rounded px-1.5 py-0.5 ml-2">
-                      <Text className="text-white text-[8px] font-bold">99.7% Liked</Text>
-                    </View>
-                  </View>
-                  <Text className="text-slate-500 text-xs mt-1">Physics · NIT.S Expert</Text>
-                  
-                  <TouchableOpacity 
-                    onPress={() => showToast("Loading Vikas Sir biography...")}
-                    className="bg-[#EF4444] py-1.5 px-3 rounded-full items-center justify-center mt-6 w-24"
-                  >
-                    <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-white text-[10px] font-bold">
-                      Learn More &gt;
-                    </Text>
-                  </TouchableOpacity>
-
-                  <View className="flex-row items-center mt-5">
-                    <View className="flex-row mr-1.5">
-                      {[1,2,3,4,5].map((s) => (
-                        <Ionicons key={s} name="star" size={10} color="#EAB308" />
-                      ))}
-                    </View>
-                    <Text className="text-slate-450 text-[9px]">An**a just rated 5-star</Text>
-                  </View>
-                </View>
-
-                <Image 
-                  source={{ uri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80' }} 
-                  className="w-24 h-28 rounded-xl bg-slate-200"
-                />
-              </View>
+              ))}
             </ScrollView>
 
             {/* Slider Dots */}
             <View className="flex-row justify-center mt-3 gap-1.5">
-              {[0, 1].map((dot) => (
+              {(homeConfig?.teachers || [0, 1]).map((_, dot) => (
                 <View 
                   key={dot}
                   className={`w-2 h-2 rounded-full ${teacherIndex === dot ? 'bg-[#FF5E00]' : 'bg-slate-350'}`}
@@ -320,55 +304,30 @@ export const MasterProgramScreen: React.FC = () => {
             Course Outline
           </Text>
           <Text style={{ fontFamily: Theme.fonts.poppinsRegular }} className="text-slate-450 text-xs mt-1">
-            The course outline will increase gradually as the course continues
+            The course outline prepares you step-by-step from foundational topics to advanced board standard prep
           </Text>
 
           {/* List items */}
           <View className="mt-5 space-y-4">
-            {/* Outline 1 */}
-            <View className="flex-row border-b border-slate-100 pb-3">
-              <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-300 text-[20px] font-bold w-8">
-                1
-              </Text>
-              <View className="flex-1">
-                <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-800 text-[13.5px] font-bold leading-snug">
-                  Maths - Geometry | Points, Lines, Rays & Line Segments
+            {(homeConfig?.masterProgram?.outline || [
+              'Maths - Geometry | Points, Lines, Rays & Line Segments',
+              'Maths - Geometry | Measurement of Line Segments | Curves',
+              'CS - Operating System & File Management | Files and Folders'
+            ]).map((outText: string, outIdx: number) => (
+              <View key={outIdx} className="flex-row border-b border-slate-100 pb-3">
+                <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-300 text-[20px] font-bold w-8">
+                  {outIdx + 1}
                 </Text>
-                <Text className="text-slate-450 text-[11px] mt-1">
-                  7:00 pm - 7:50 pm, 15 Jun Arham
-                </Text>
+                <View className="flex-1">
+                  <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-800 text-[13.5px] font-bold leading-snug">
+                    {outText}
+                  </Text>
+                  <Text className="text-slate-450 text-[11px] mt-1">
+                    Week {outIdx + 1} Core Session Outline
+                  </Text>
+                </View>
               </View>
-            </View>
-
-            {/* Outline 2 */}
-            <View className="flex-row border-b border-slate-100 pb-3">
-              <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-300 text-[20px] font-bold w-8">
-                2
-              </Text>
-              <View className="flex-1">
-                <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-800 text-[13.5px] font-bold leading-snug">
-                  Maths - Geometry | Measurement of Line Segments | Curves
-                </Text>
-                <Text className="text-slate-450 text-[11px] mt-1">
-                  7:00 pm - 7:50 pm, 16 Jun Arham
-                </Text>
-              </View>
-            </View>
-
-            {/* Outline 3 */}
-            <View className="flex-row border-b border-slate-100 pb-3">
-              <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-300 text-[20px] font-bold w-8">
-                3
-              </Text>
-              <View className="flex-1">
-                <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-800 text-[13.5px] font-bold leading-snug">
-                  CS - Operating System & File Management | Files and Folders
-                </Text>
-                <Text className="text-slate-450 text-[11px] mt-1">
-                  8:15 pm - 9:00 pm, 16 Jun Sri Sahithi
-                </Text>
-              </View>
-            </View>
+            ))}
           </View>
 
           {/* View More outline */}
