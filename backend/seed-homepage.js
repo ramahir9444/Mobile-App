@@ -37,6 +37,12 @@ for (let i = 1; i <= 11; i++) {
       cardTitle: "Maximize Your Child's Potential 100%",
       title: 'Concept Booster Course - 5X Efficient Learning Methods by IITians',
       subjects: ['Maths', 'Science', 'English'],
+      bullets: [
+        'Maths & Science & Olympiads',
+        '50+ Core Concepts',
+        '50+ Solving Skills',
+        'IIT/NIT Teachers'
+      ],
       price: 149,
       originalPrice: 999
     },
@@ -48,6 +54,11 @@ for (let i = 1; i <= 11; i++) {
         'Full Academic Year Preparation',
         'Complete CBSE/ICSE Board Syllabus covered',
         'All Core Subjects: Maths, Science, SST & English'
+      ],
+      outline: [
+        'LIVE classes twice a week with interactive quiz challenges',
+        'Prepares students from basics to advanced board standards',
+        'Direct 1-on-1 chat doubt-solving and customized mentorship'
       ],
       price: 31999
     },

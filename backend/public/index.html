@@ -138,7 +138,6 @@
       border-color: #00D2C0;
     }
 
-    /* Custom select chevron arrow */
     .class-select-container::after {
       content: '▼';
       font-size: 10px;
@@ -420,7 +419,7 @@
 
   <div class="main-container">
     
-    <!-- Class Selector Dropdown Container -->
+    <!-- Class Selector Dropdown -->
     <div class="card class-selector-card">
       <label class="section-title" for="classSelect">Choose Student Grade to Configure</label>
       <div class="class-select-container">
@@ -495,7 +494,7 @@
 
       <!-- Booster Course Form -->
       <div class="card">
-        <h3 class="sub-card-title">2. Concept Booster Course Card Content</h3>
+        <h3 class="sub-card-title">2. Concept Booster Course Card & Details Page</h3>
         
         <div class="grid-fields-3">
           <div class="form-group">
@@ -519,6 +518,17 @@
           <input type="text" id="boosterTitle" placeholder="e.g. Concept Booster Course - 5X Efficient Learning Methods by IITians">
         </div>
 
+        <!-- Booster details page 4 bullets -->
+        <div class="form-group">
+          <label>Booster Details Page Key Bullet Highlights</label>
+          <div class="grid-fields-2">
+            <input type="text" id="boosterBullet1" placeholder="Bullet Highlight 1" style="margin-bottom: 10px;">
+            <input type="text" id="boosterBullet2" placeholder="Bullet Highlight 2" style="margin-bottom: 10px;">
+            <input type="text" id="boosterBullet3" placeholder="Bullet Highlight 3" style="margin-bottom: 10px;">
+            <input type="text" id="boosterBullet4" placeholder="Bullet Highlight 4" style="margin-bottom: 10px;">
+          </div>
+        </div>
+
         <div class="grid-fields-2">
           <div class="form-group">
             <label for="boosterPrice">Booster Enrollment Price (INR)</label>
@@ -534,7 +544,7 @@
 
       <!-- Master Program Form -->
       <div class="card">
-        <h3 class="sub-card-title">3. Master Program Card Content</h3>
+        <h3 class="sub-card-title">3. Master Program Card & Details Page</h3>
         
         <div class="grid-fields-3">
           <div class="form-group">
@@ -572,6 +582,16 @@
           <div class="form-group">
             <label for="masterBullet3">Curriculum Bullet 3</label>
             <input type="text" id="masterBullet3" placeholder="e.g. All Core Subjects covered">
+          </div>
+        </div>
+
+        <!-- Master details page outlines -->
+        <div class="form-group">
+          <label>Master Program Details Outlines (Course Outline Tab)</label>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <input type="text" id="masterOutline1" placeholder="Outline Stage 1 Description">
+            <input type="text" id="masterOutline2" placeholder="Outline Stage 2 Description">
+            <input type="text" id="masterOutline3" placeholder="Outline Stage 3 Description">
           </div>
         </div>
       </div>
@@ -625,6 +645,12 @@
         headerSubtitle: "IIT/NIT Premium BootCamp",
         cardTitle: "Maximize Your Child's Potential 100%",
         title: "Concept Booster Course - 5X Efficient Learning Methods by IITians",
+        bullets: [
+          "Maths & Science & Olympiads",
+          "50+ Core Concepts",
+          "50+ Solving Skills",
+          "IIT/NIT Teachers"
+        ],
         price: 149,
         originalPrice: 999
       },
@@ -636,6 +662,11 @@
           "Full Academic Year Preparation",
           "Complete CBSE/ICSE Board Syllabus covered",
           "All Core Subjects covered"
+        ],
+        outline: [
+          "LIVE classes twice a week with interactive quiz challenges",
+          "Prepares students from basics to advanced board standards",
+          "Direct 1-on-1 chat doubt-solving and customized mentorship"
         ],
         price: 31999
       },
@@ -715,6 +746,13 @@
       document.getElementById('boosterPrice').value = bc.price || 149;
       document.getElementById('boosterOriginalPrice').value = bc.originalPrice || 999;
 
+      // Booster details bullets
+      const boosterBullets = bc.bullets || [];
+      document.getElementById('boosterBullet1').value = boosterBullets[0] || '';
+      document.getElementById('boosterBullet2').value = boosterBullets[1] || '';
+      document.getElementById('boosterBullet3').value = boosterBullets[2] || '';
+      document.getElementById('boosterBullet4').value = boosterBullets[3] || '';
+
       // Populate Master card fields
       const mc = data.masterProgram || {};
       document.getElementById('masterHeaderTitle').value = mc.headerTitle || '';
@@ -726,6 +764,11 @@
       document.getElementById('masterBullet1').value = bullets[0] || '';
       document.getElementById('masterBullet2').value = bullets[1] || '';
       document.getElementById('masterBullet3').value = bullets[2] || '';
+
+      const outline = mc.outline || [];
+      document.getElementById('masterOutline1').value = outline[0] || '';
+      document.getElementById('masterOutline2').value = outline[1] || '';
+      document.getElementById('masterOutline3').value = outline[2] || '';
 
       // Render teachers list
       const container = document.getElementById('teachersContainer');
@@ -841,6 +884,12 @@
         cardTitle: document.getElementById('boosterCardTitle').value,
         title: document.getElementById('boosterTitle').value,
         subjects: currentConfigData.boosterCourse.subjects || ['Maths', 'Science', 'English'],
+        bullets: [
+          document.getElementById('boosterBullet1').value,
+          document.getElementById('boosterBullet2').value,
+          document.getElementById('boosterBullet3').value,
+          document.getElementById('boosterBullet4').value
+        ],
         price: Number(document.getElementById('boosterPrice').value) || 149,
         originalPrice: Number(document.getElementById('boosterOriginalPrice').value) || 999
       };
@@ -853,6 +902,11 @@
           document.getElementById('masterBullet1').value,
           document.getElementById('masterBullet2').value,
           document.getElementById('masterBullet3').value
+        ],
+        outline: [
+          document.getElementById('masterOutline1').value,
+          document.getElementById('masterOutline2').value,
+          document.getElementById('masterOutline3').value
         ],
         price: Number(document.getElementById('masterPrice').value) || 31999
       };
