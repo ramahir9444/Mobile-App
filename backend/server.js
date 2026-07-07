@@ -5,6 +5,7 @@
 require('dotenv').config();
 
 const express = require('express');
+const path    = require('path');
 const helmet  = require('helmet');
 const cors    = require('cors');
 
@@ -36,8 +37,8 @@ app.use(cors({
   origin: '*',                     // restrict to your domain in production
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
 }));
-const path = require('path');
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/admin', express.static(path.join(__dirname, 'public')));
 
 // ── Routes ───────────────────────────────────────────────────────
 app.get('/health', (req, res) => {

@@ -29,7 +29,6 @@ import { DashboardScreen } from './src/screens/DashboardScreen';
 import { WhyOdaScreen } from './src/screens/WhyOdaScreen';
 import { ProfileScreen } from './src/screens/ProfileScreen';
 import { MasterProgramScreen } from './src/screens/MasterProgramScreen';
-import { AdminPortalScreen } from './src/screens/AdminPortalScreen';
 import { OrderLoadingScreen, OrderPaymentScreen } from './src/screens/CheckoutScreens';
 import { BoosterDetailsScreen, BoosterSelectClassScreen } from './src/screens/BoosterScreens';
 import { CourseDetailsScreen } from './src/screens/CourseDetailsScreen';
@@ -89,8 +88,6 @@ const RootApp: React.FC = () => {
         return <WhyOdaScreen />;
       case 'PROFILE':
         return <ProfileScreen />;
-      case 'ADMIN_PORTAL':
-        return <AdminPortalScreen />;
       case 'MASTER_PROGRAM':
         return <MasterProgramScreen />;
       case 'ORDER_LOADING':

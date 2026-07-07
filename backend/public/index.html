@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oda Class — Admin Panel</title>
+  <!-- Google Fonts Poppins -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-color: #0B132B;
+      --card-bg: rgba(28, 37, 65, 0.6);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --teal: #00B6A6;
+      --teal-hover: #009385;
+      --orange: #FF5E00;
+      --text-main: #F8FAFC;
+      --text-muted: #94A3B8;
+      --success: #10B981;
+      --error: #EF4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-image: radial-gradient(circle at 10% 20%, rgba(0, 182, 166, 0.08) 0%, transparent 45%),
+                        radial-gradient(circle at 90% 80%, rgba(255, 94, 0, 0.06) 0%, transparent 40%);
+      background-attachment: fixed;
+    }
+
+    header {
+      backdrop-filter: blur(12px);
+      background-color: rgba(11, 19, 43, 0.85);
+      border-bottom: 1px solid var(--card-border);
+      padding: 18px 5%;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      justify-between: space-between;
+      align-items: center;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-badge {
+      background-color: var(--teal);
+      color: white;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+    }
+
+    header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.5px;
+    }
+
+    .main-container {
+      max-width: 1200px;
+      width: 90%;
+      margin: 30px auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 24px;
+      backdrop-filter: blur(10px);
+    }
+
+    .class-selector-card {
+      padding: 20px;
+    }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 15px;
+    }
+
+    .class-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .class-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      padding: 8px 18px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 13px;
+      transition: all 0.25s ease;
+    }
+
+    .class-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-main);
+    }
+
+    .class-btn.active {
+      background: rgba(0, 182, 166, 0.15);
+      border-color: var(--teal);
+      color: var(--teal);
+      font-weight: 600;
+    }
+
+    .editor-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 25px;
+    }
+
+    @media (max-width: 900px) {
+      .editor-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .form-group input, .form-group textarea {
+      width: 100%;
+      background: rgba(11, 19, 43, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: var(--text-main);
+      font-size: 13.5px;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+
+    .form-group input:focus, .form-group textarea:focus {
+      border-color: var(--teal);
+    }
+
+    .sub-card-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 18px;
+      color: var(--text-main);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 8px;
+    }
+
+    .teacher-item-group {
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      background: rgba(255, 255, 255, 0.01);
+      padding: 15px;
+      border-radius: 12px;
+      margin-bottom: 15px;
+    }
+
+    .teacher-title-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(255, 94, 0, 0.1);
+      color: var(--orange);
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+
+    .save-btn {
+      width: 100%;
+      background: var(--teal);
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 4px 15px rgba(0, 182, 166, 0.2);
+      transition: all 0.25s ease;
+      margin-top: 10px;
+    }
+
+    .save-btn:hover {
+      background: var(--teal-hover);
+      box-shadow: 0 6px 20px rgba(0, 182, 166, 0.35);
+    }
+
+    .loader-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(11, 19, 43, 0.7);
+      backdrop-filter: blur(5px);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 15px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .loader-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .spinner {
+      width: 45px;
+      height: 45px;
+      border: 3.5px solid rgba(0, 182, 166, 0.2);
+      border-top-color: var(--teal);
+      border-radius: 50%;
+      animation: spin 1s infinite linear;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Custom Toast notification */
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      background: #1e293b;
+      border-left: 4px solid var(--success);
+      padding: 15px 25px;
+      border-radius: 8px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 1001;
+    }
+
+    .toast.active {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .toast-icon {
+      color: var(--success);
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo-container">
+      <span class="logo-badge">ODA</span>
+      <h1>Class Administration</h1>
+    </div>
+    <div style="font-size: 13px; color: var(--text-muted);">
+      Connected to MongoDB Atlas
+    </div>
+  </header>
+
+  <div class="main-container">
+    
+    <!-- Class selector -->
+    <div class="card class-selector-card">
+      <h2 class="section-title">Select Class to Configure</h2>
+      <div class="class-grid" id="classGrid">
+        <!-- populated dynamically -->
+      </div>
+    </div>
+
+    <!-- Layout forms -->
+    <div class="editor-layout">
+      
+      <!-- Left cards -->
+      <div style="display: flex; flex-direction: column; gap: 25px;">
+        <!-- Banner card -->
+        <div class="card">
+          <h3 class="sub-card-title">1. Brand Value Banner</h3>
+          <div class="form-group">
+            <label for="bannerText">Marketing Subtitle Banner Text</label>
+            <input type="text" id="bannerText" placeholder="e.g. Best with 20 Million Users' Trust">
+          </div>
+        </div>
+
+        <!-- Upcoming Live Class Card -->
+        <div class="card">
+          <h3 class="sub-card-title">2. Upcoming Live Class Info</h3>
+          
+          <div class="form-group">
+            <label for="upcomingTitle">Class Lecture Title</label>
+            <input type="text" id="upcomingTitle" placeholder="e.g. Fun with Numbers & Shapes - Lesson 1">
+          </div>
+
+          <div class="form-group">
+            <label for="upcomingSubject">Subject</label>
+            <input type="text" id="upcomingSubject" placeholder="e.g. Mathematics">
+          </div>
+
+          <div class="form-group">
+            <label for="upcomingTime">Schedule / Time Label</label>
+            <input type="text" id="upcomingTime" placeholder="e.g. Today, 6:00 PM">
+          </div>
+
+          <div class="form-group">
+            <label for="upcomingTeacherName">Teacher Name</label>
+            <input type="text" id="upcomingTeacherName" placeholder="e.g. Sonia Verma">
+          </div>
+
+          <div class="form-group">
+            <label for="upcomingTeacherAvatar">Teacher Photo URL (Unsplash/HTTP)</label>
+            <input type="text" id="upcomingTeacherAvatar" placeholder="Photo URL">
+          </div>
+        </div>
+      </div>
+
+      <!-- Right card: Teachers list -->
+      <div class="card">
+        <h3 class="sub-card-title">3. Main Teachers Roster</h3>
+        
+        <div id="teachersContainer">
+          <!-- 3 teachers cards loaded here -->
+        </div>
+
+        <button class="save-btn" onclick="saveConfiguration()">
+          <svg style="width:16px; height:16px; fill:currentColor" viewBox="0 0 24 24"><path d="M15 9H5V5H15M12 19A3 3 0 0 1 9 16A3 3 0 0 1 12 13A3 3 0 0 1 15 16A3 3 0 0 1 12 19M17 3H5C3.89 3 3 3.9 3 5V19A2 2 0 0 0 5 21H19A2 2 0 0 0 21 19V7L17 3Z"/></svg>
+          Save Homepage Configurations
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Loading overlay -->
+  <div class="loader-overlay" id="loadingOverlay">
+    <div class="spinner"></div>
+    <div style="font-weight: 500; font-size: 14px;">Syncing with MongoDB Atlas...</div>
+  </div>
+
+  <!-- Toast notification -->
+  <div class="toast" id="toast">
+    <span class="toast-icon">✓</span>
+    <span id="toastMessage">Configurations successfully saved!</span>
+  </div>
+
+  <script>
+    const CLASSES = [
+      'Class 1', 'Class 2', 'Class 3',
+      'Class 4', 'Class 5', 'Class 6',
+      'Class 7', 'Class 8', 'Class 9',
+      'Class 10', 'Class 11'
+    ];
+
+    let currentClass = 'Class 6';
+    let currentConfigData = null;
+
+    // Initialize Page
+    document.addEventListener('DOMContentLoaded', () => {
+      buildClassSelectors();
+      loadConfig(currentClass);
+    });
+
+    function buildClassSelectors() {
+      const grid = document.getElementById('classGrid');
+      grid.innerHTML = '';
+      
+      CLASSES.forEach(cls => {
+        const btn = document.createElement('button');
+        btn.className = `class-btn ${cls === currentClass ? 'active' : ''}`;
+        btn.textContent = cls;
+        btn.onclick = () => selectClass(cls, btn);
+        grid.appendChild(btn);
+      });
+    }
+
+    function selectClass(cls, element) {
+      if (currentClass === cls) return;
+      
+      // Update active styling
+      document.querySelectorAll('.class-btn').forEach(btn => btn.classList.remove('active'));
+      element.classList.add('active');
+      
+      currentClass = cls;
+      loadConfig(cls);
+    }
+
+    // Load configs from API
+    async function loadConfig(classId) {
+      showLoader(true);
+      try {
+        const response = await fetch(`/api/homepage-configs/${classId}`);
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+          currentConfigData = result.data;
+          populateForm(result.data);
+        } else {
+          alert('Failed to retrieve configurations for this class.');
+        }
+      } catch (err) {
+        console.error('Error fetching config:', err);
+        alert('Server connection failed. Is the API server running?');
+      } finally {
+        showLoader(false);
+      }
+    }
+
+    function populateForm(data) {
+      document.getElementById('bannerText').value = data.bannerText || '';
+      
+      const uc = data.upcomingClass || {};
+      document.getElementById('upcomingTitle').value = uc.title || '';
+      document.getElementById('upcomingSubject').value = uc.subject || '';
+      document.getElementById('upcomingTime').value = uc.time || '';
+      document.getElementById('upcomingTeacherName').value = uc.teacherName || '';
+      document.getElementById('upcomingTeacherAvatar').value = uc.teacherAvatar || '';
+
+      const container = document.getElementById('teachersContainer');
+      container.innerHTML = '';
+
+      const teachers = data.teachers || [];
+      // Ensure we always edit 3 teachers
+      while (teachers.length < 3) {
+        teachers.push({ name: '', role: '', avatar: '' });
+      }
+
+      teachers.forEach((t, index) => {
+        const group = document.createElement('div');
+        group.className = 'teacher-item-group';
+        group.innerHTML = `
+          <div class="teacher-title-badge">Teacher #${index + 1}</div>
+          <div class="form-group">
+            <label>Name</label>
+            <input type="text" class="t-name" value="${t.name || ''}" placeholder="e.g. Sonia Verma">
+          </div>
+          <div class="form-group">
+            <label>Role / Specialty</label>
+            <input type="text" class="t-role" value="${t.role || ''}" placeholder="e.g. Maths Master (IITian)">
+          </div>
+          <div class="form-group">
+            <label>Photo Avatar URL</label>
+            <input type="text" class="t-avatar" value="${t.avatar || ''}" placeholder="Avatar URL">
+          </div>
+        `;
+        container.appendChild(group);
+      });
+    }
+
+    // Save configurations back to MongoDB
+    async function saveConfiguration() {
+      if (!currentConfigData) return;
+      showLoader(true);
+
+      const bannerText = document.getElementById('bannerText').value;
+      const upcomingClass = {
+        title: document.getElementById('upcomingTitle').value,
+        subject: document.getElementById('upcomingSubject').value,
+        time: document.getElementById('upcomingTime').value,
+        teacherName: document.getElementById('upcomingTeacherName').value,
+        teacherAvatar: document.getElementById('upcomingTeacherAvatar').value
+      };
+
+      const teachers = [];
+      const groups = document.querySelectorAll('.teacher-item-group');
+      groups.forEach(g => {
+        teachers.push({
+          name: g.querySelector('.t-name').value,
+          role: g.querySelector('.t-role').value,
+          avatar: g.querySelector('.t-avatar').value
+        });
+      });
+
+      const bodyData = {
+        bannerText,
+        upcomingClass,
+        teachers,
+        boosterCourse: currentConfigData.boosterCourse,
+        masterProgram: currentConfigData.masterProgram
+      };
+
+      try {
+        const response = await fetch(`/api/homepage-configs/${currentClass}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(bodyData)
+        });
+
+        const result = await response.json();
+        if (result.success) {
+          showToast(`Configurations for ${currentClass} updated! ✨`);
+        } else {
+          alert('Failed to save settings: ' + (result.error || 'Unknown error'));
+        }
+      } catch (err) {
+        console.error('Error saving config:', err);
+        alert('Failed to connect to API server.');
+      } finally {
+        showLoader(false);
+      }
+    }
+
+    function showLoader(show) {
+      const loader = document.getElementById('loadingOverlay');
+      if (show) loader.classList.add('active');
+      else loader.classList.remove('active');
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMessage').textContent = message;
+      toast.classList.add('active');
+      setTimeout(() => {
+        toast.classList.remove('active');
+      }, 3000);
+    }
+  </script>
+</body>
+</html>

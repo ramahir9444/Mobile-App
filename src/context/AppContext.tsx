@@ -25,7 +25,6 @@ export type AppScreen =
   | 'CLASS_DETAILS'
   | 'HOMEWORK_QUIZ'
   | 'HOMEWORK_REPORT'
-  | 'ADMIN_PORTAL'
   | 'FAQ'
   | 'MY_ORDERS'
   | 'ABOUT_ODA';

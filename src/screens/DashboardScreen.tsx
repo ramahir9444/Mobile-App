@@ -907,7 +907,6 @@ export const DashboardScreen: React.FC = () => {
         {/* LIST OPTIONS (ON SOLID WHITE BACKGROUND) */}
         <View className="bg-white px-6 pt-2 flex-1">
           {[
-            { label: 'Admin Portal', icon: 'shield', type: 'Feather', onPress: () => navigateTo('ADMIN_PORTAL') },
             { label: 'My Orders', icon: 'file-text', type: 'Feather', onPress: () => navigateTo('MY_ORDERS') },
             { label: 'FAQs', icon: 'help-circle', type: 'Feather', onPress: () => navigateTo('FAQ') },
             { label: 'Share App', icon: 'share', type: 'Feather', onPress: () => showToast('Link Copied!') },
