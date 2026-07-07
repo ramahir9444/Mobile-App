@@ -101,45 +101,33 @@
     }
 
     .section-title {
-      font-size: 14px;
-      font-weight: 600;
+      font-size: 12px;
+      font-weight: 750;
       text-transform: uppercase;
       letter-spacing: 1.5px;
       color: var(--teal);
-      margin-bottom: 15px;
+      margin-bottom: 10px;
     }
 
-    .class-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 10px;
-    }
-
-    .class-btn {
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: var(--text-muted);
-      padding: 10px 20px;
+    .class-select-dropdown {
+      width: 100%;
+      max-width: 320px;
+      background: #1E293B;
+      border: 1.5px solid rgba(255, 255, 255, 0.15);
       border-radius: var(--border-radius-md);
+      padding: 12px 18px;
+      color: var(--text-main);
+      font-size: 14.5px;
+      font-weight: 600;
+      outline: none;
       cursor: pointer;
-      font-weight: 500;
-      font-size: 13.5px;
+      margin-top: 6px;
       transition: all 0.25s ease;
     }
 
-    .class-btn:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: var(--text-main);
-      border-color: rgba(255, 255, 255, 0.2);
-    }
-
-    .class-btn.active {
-      background: rgba(0, 182, 166, 0.12);
+    .class-select-dropdown:focus {
       border-color: var(--teal);
-      color: var(--teal);
-      font-weight: 600;
-      box-shadow: 0 0 15px rgba(0, 182, 166, 0.15);
+      box-shadow: 0 0 10px rgba(0, 182, 166, 0.15);
     }
 
     .editor-layout {
@@ -179,7 +167,6 @@
       box-shadow: 0 0 10px rgba(0, 182, 166, 0.1);
     }
 
-    /* Media Upload Roster styling */
     .media-upload-row {
       display: flex;
       align-items: center;
@@ -352,7 +339,6 @@
       to { transform: rotate(360deg); }
     }
 
-    /* Custom Toast notification */
     .toast {
       position: fixed;
       bottom: 30px;
@@ -396,12 +382,22 @@
 
   <div class="main-container">
     
-    <!-- Class Selector Grid (Extremely Visible) -->
+    <!-- Class Selector Dropdown (Extremely Visible Select Option) -->
     <div class="card class-selector-card">
       <h2 class="section-title">Select Student Grade to Configure</h2>
-      <div class="class-grid" id="classGrid">
-        <!-- class buttons injected dynamically -->
-      </div>
+      <select id="classSelect" onchange="selectClass(this.value)" class="class-select-dropdown">
+        <option value="Class 1">Class 1</option>
+        <option value="Class 2">Class 2</option>
+        <option value="Class 3">Class 3</option>
+        <option value="Class 4">Class 4</option>
+        <option value="Class 5">Class 5</option>
+        <option value="Class 6" selected>Class 6</option>
+        <option value="Class 7">Class 7</option>
+        <option value="Class 8">Class 8</option>
+        <option value="Class 9">Class 9</option>
+        <option value="Class 10">Class 10</option>
+        <option value="Class 11">Class 11</option>
+      </select>
     </div>
 
     <!-- Layout Forms -->
@@ -488,44 +484,17 @@
   </div>
 
   <script>
-    const CLASSES = [
-      'Class 1', 'Class 2', 'Class 3',
-      'Class 4', 'Class 5', 'Class 6',
-      'Class 7', 'Class 8', 'Class 9',
-      'Class 10', 'Class 11'
-    ];
-
     let currentClass = 'Class 6';
     let currentConfigData = null;
 
     // Initialize Page
     document.addEventListener('DOMContentLoaded', () => {
-      buildClassSelectors();
       loadConfig(currentClass);
     });
 
-    function buildClassSelectors() {
-      const grid = document.getElementById('classGrid');
-      grid.innerHTML = '';
-      
-      CLASSES.forEach(cls => {
-        const btn = document.createElement('button');
-        btn.className = `class-btn ${cls === currentClass ? 'active' : ''}`;
-        btn.textContent = cls;
-        btn.onclick = () => selectClass(cls, btn);
-        grid.appendChild(btn);
-      });
-    }
-
-    function selectClass(cls, element) {
-      if (currentClass === cls) return;
-      
-      // Update active styling
-      document.querySelectorAll('.class-btn').forEach(btn => btn.classList.remove('active'));
-      element.classList.add('active');
-      
-      currentClass = cls;
-      loadConfig(cls);
+    function selectClass(classId) {
+      currentClass = classId;
+      loadConfig(classId);
     }
 
     // Load configs from API
@@ -610,8 +579,7 @@
       const img = document.getElementById(imgId);
       const placeholder = document.getElementById(placeholderId);
       if (url) {
-        // Resolve url if relative
-        img.src = url.startsWith('/') ? url : url;
+        img.src = url;
         img.style.display = 'block';
         placeholder.style.display = 'none';
       } else {
