@@ -3,6 +3,36 @@ const { getDB } = require('../db/mongo');
 
 const router = express.Router();
 
+// POST /api/homepage-configs/upload — upload helper for homepage configurations
+router.post('/upload', async (req, res) => {
+  try {
+    const { base64 } = req.body;
+    if (!base64) {
+      return res.status(400).json({ success: false, error: 'base64 image data required' });
+    }
+
+    const fs = require('fs');
+    const path = require('path');
+    const uploadsDir = path.join(__dirname, '../uploads');
+    
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    const filename = `homepage-image-${Date.now()}-${Math.floor(Math.random() * 1000)}.png`;
+    const filePath = path.join(uploadsDir, filename);
+
+    const buffer = Buffer.from(base64, 'base64');
+    fs.writeFileSync(filePath, buffer);
+
+    // Return the uploads path
+    const fileUrl = `/uploads/${filename}`;
+    res.json({ success: true, url: fileUrl });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // GET /api/homepage-configs/:classId
 router.get('/:classId', async (req, res) => {
   try {
