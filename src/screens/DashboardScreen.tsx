@@ -211,7 +211,7 @@ export const DashboardScreen: React.FC = () => {
         <View className="flex-row items-center justify-between mt-1 pt-3 border-t border-slate-100/60 z-10">
           <View className="flex-row items-center">
             <Image 
-              source={{ uri: upcoming.teacherAvatar }} 
+              source={{ uri: getAvatarUrl(upcoming.teacherAvatar) || undefined }} 
               className="w-9 h-9 rounded-full bg-slate-200 mr-2.5 border border-slate-100"
             />
             <View>
@@ -293,7 +293,7 @@ export const DashboardScreen: React.FC = () => {
               {teacherAvatars.slice(0, 2).map((t, idx) => (
                 <View key={idx} className="border-[2.5px] border-white rounded-full overflow-hidden shadow-sm">
                   <Image 
-                    source={{ uri: t.avatar }} 
+                    source={{ uri: getAvatarUrl(t.avatar) || undefined }} 
                     className="w-12 h-12 bg-slate-200"
                   />
                 </View>
