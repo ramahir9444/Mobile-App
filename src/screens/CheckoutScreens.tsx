@@ -17,7 +17,7 @@ import { Theme } from '../constants/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useApp } from '../context/AppContext';
-import { createOrder } from '../services/api';
+import { createOrder, updateOrderStatus, getHomepageConfig, HomepageConfig } from '../services/api';
 
 
 const { width, height } = Dimensions.get('window');
@@ -28,6 +28,27 @@ const { width, height } = Dimensions.get('window');
 export const OrderLoadingScreen: React.FC = () => {
   const { navigateTo, goBack, selectedClass } = useApp();
   const progressAnim = useRef(new Animated.Value(0.1)).current;
+  const [homeConfig, setHomeConfig] = useState<HomepageConfig | null>(null);
+  const [isConfigLoading, setIsConfigLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    const fetchConfig = async () => {
+      setIsConfigLoading(true);
+      try {
+        const res = await getHomepageConfig(selectedClass);
+        if (res.success && res.data) {
+          setHomeConfig(res.data);
+        }
+      } catch (err) {
+        console.error('Failed to load class configuration:', err);
+      } finally {
+        setIsConfigLoading(false);
+      }
+    };
+    fetchConfig();
+  }, [selectedClass]);
+
+  const masterPrice = homeConfig?.masterProgram?.price ?? 31999;
 
   useEffect(() => {
     // Animate the progress bar from 10% to 80% over 3 seconds
@@ -104,7 +125,7 @@ export const OrderLoadingScreen: React.FC = () => {
               LIVE Interactive Full Syllabus Course for {selectedClass} (2026-27)
             </Text>
             <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-800 text-[15px] font-bold">
-              ₹ 31999
+              ₹ {masterPrice}
             </Text>
           </View>
           
@@ -126,7 +147,7 @@ export const OrderLoadingScreen: React.FC = () => {
             </View>
             
             <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-[#00B6A6] text-xl font-bold">
-              ₹ 31999.00
+              ₹ {masterPrice}.00
             </Text>
           </View>
         </View>
@@ -145,6 +166,29 @@ export const OrderPaymentScreen: React.FC = () => {
   const [isProcessingPayment, setIsProcessingPayment] = useState<boolean>(false);
   const [paymentFinished, setPaymentFinished] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
+  const [homeConfig, setHomeConfig] = useState<HomepageConfig | null>(null);
+  const [isConfigLoading, setIsConfigLoading] = useState<boolean>(false);
+
+  // Fetch configs dynamically upon selectedClass changes
+  useEffect(() => {
+    const fetchConfig = async () => {
+      setIsConfigLoading(true);
+      try {
+        const res = await getHomepageConfig(selectedClass);
+        if (res.success && res.data) {
+          setHomeConfig(res.data);
+        }
+      } catch (err) {
+        console.error('Failed to load class configuration:', err);
+      } finally {
+        setIsConfigLoading(false);
+      }
+    };
+    fetchConfig();
+  }, [selectedClass]);
+
+  const masterPrice = homeConfig?.masterProgram?.price ?? 31999;
 
   // Timer tick
   useEffect(() => {
@@ -160,6 +204,32 @@ export const OrderPaymentScreen: React.FC = () => {
 
     return () => clearInterval(interval);
   }, []);
+
+  // Create pending order immediately when payment screen opens
+  useEffect(() => {
+    async function initPendingOrder() {
+      try {
+        const savedPhone = await AsyncStorage.getItem('@user_phone');
+        const phone = savedPhone || authPhone;
+        if (phone) {
+          const res = await createOrder({
+            studentPhone: phone,
+            courseTitle: `LIVE Interactive Full Syllabus Course for ${selectedClass} (2026-27)`,
+            classInfo: `${selectedClass} | 15 Jun, 2026 - 6 Mar, 2027`,
+            amount: String(masterPrice),
+            couponDiscount: '0',
+            status: 'pending',
+          });
+          if (res.success && res.data && res.data._id) {
+            setCurrentOrderId(res.data._id);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to create pending order:', err);
+      }
+    }
+    initPendingOrder();
+  }, [selectedClass, masterPrice, authPhone]);
 
   const formatTimer = () => {
     if (timeLeft <= 0) return '00 : 00.0';
@@ -186,17 +256,21 @@ export const OrderPaymentScreen: React.FC = () => {
   const triggerPaymentProcess = async (gateway: string) => {
     setIsProcessingPayment(true);
     try {
-      const savedPhone = await AsyncStorage.getItem('@user_phone');
-      const phone = savedPhone || authPhone;
-      if (phone) {
-        await createOrder({
-          studentPhone: phone,
-          courseTitle: `LIVE Interactive Full Syllabus Course for ${selectedClass} (2026-27)`,
-          classInfo: `${selectedClass} | 15 Jun, 2026 - 6 Mar, 2027`,
-          amount: '31999',
-          couponDiscount: '0',
-          status: 'paid',
-        });
+      if (currentOrderId) {
+        await updateOrderStatus(currentOrderId, 'paid');
+      } else {
+        const savedPhone = await AsyncStorage.getItem('@user_phone');
+        const phone = savedPhone || authPhone;
+        if (phone) {
+          await createOrder({
+            studentPhone: phone,
+            courseTitle: `LIVE Interactive Full Syllabus Course for ${selectedClass} (2026-27)`,
+            classInfo: `${selectedClass} | 15 Jun, 2026 - 6 Mar, 2027`,
+            amount: String(masterPrice),
+            couponDiscount: '0',
+            status: 'paid',
+          });
+        }
       }
     } catch (err) {
       console.error('Failed to save order to database:', err);
@@ -260,7 +334,7 @@ export const OrderPaymentScreen: React.FC = () => {
               LIVE Interactive Full Syllabus Course for {selectedClass} (2026-27)
             </Text>
             <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-800 text-[15px] font-bold">
-              ₹ 31999
+              ₹ {masterPrice}
             </Text>
           </View>
           
@@ -282,7 +356,7 @@ export const OrderPaymentScreen: React.FC = () => {
             </View>
             
             <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-[#00B6A6] text-xl font-bold">
-              ₹ 31999.00
+              ₹ {masterPrice}.00
             </Text>
           </View>
         </View>
@@ -351,7 +425,7 @@ export const OrderPaymentScreen: React.FC = () => {
               </View>
               <View className="items-end">
                 <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-800 text-lg font-bold">
-                  ₹31,999.00
+                  ₹{masterPrice.toLocaleString('en-IN')}.00
                 </Text>
               </View>
             </View>

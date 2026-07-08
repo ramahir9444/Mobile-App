@@ -15,7 +15,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, MaterialCommunityIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
 import { useApp } from '../context/AppContext';
-import { createOrder, getHomepageConfig, HomepageConfig, getAvatarUrl } from '../services/api';
+import { createOrder, updateOrderStatus, getHomepageConfig, HomepageConfig, BoosterConfig, getAvatarUrl } from '../services/api';
+
 
 
 const { width } = Dimensions.get('window');
@@ -59,20 +60,39 @@ export const BoosterDetailsScreen: React.FC = () => {
     }, 2000);
   };
 
-  const booster = homeConfig?.boosterCourse || {
+  const booster: BoosterConfig = homeConfig?.boosterCourse ?? {
     headerTitle: '6-Day Head Start Course',
     headerSubtitle: 'IIT/NIT Premium BootCamp',
     cardTitle: "Maximize Your Child's Potential 100%",
     title: 'Concept Booster Course - 5X Efficient Learning Methods by IITians',
-    bullets: [
-      'Maths & Science & Olympiads',
-      '50+ Core Concepts',
-      '50+ Solving Skills',
-      'IIT/NIT Teachers'
-    ],
+    subjects: ['Maths', 'Science', 'English'],
+    heroChipText: 'Active Enrollment Period Open',
+    parentsBadgeText: "🏆 10,000,000+ Parents' Choice",
+    bullets: ['Maths & Science & Olympiads', '50+ Core Concepts', '50+ Solving Skills', 'IIT/NIT Teachers'],
+    reviewSectionTitle: 'Highly Rated by Parents & Students',
+    review1Name: 'Kabir', review1Date: '16 May 2026', review1Text: 'It is really good...',
+    review1Avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80',
+    review2Name: 'Aadhya', review2Date: '11 May 2026', review2Text: "It's very good learning app...",
+    review2Avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=80&auto=format&fit=crop&q=80',
+    score100Title: 'Score 100% and Become Topper',
+    subjectsLine: 'Maths & Science (All core concepts)',
+    grid1Badge: 'Secret of 83%', grid1Title: 'Higher Score',
+    grid2Title: '50+ Core Concepts', grid2Subtitle: 'Most asked concepts and topics',
+    grid3Title: '50+ Solving Skills', grid3Subtitle: 'Summarized by IIT/NIT teachers',
+    grid4Title: '300+ Quizzes', grid4Subtitle: 'Practice to master concepts',
+    liveSectionTitle: 'Immersive & Interactive LIVE Course',
+    trustMetric1Title: 'LIVE Course', trustMetric1Subtitle: 'Immersive Replay',
+    trustMetric2Title: '1 on 1 Service', trustMetric2Subtitle: 'Mentor Support',
+    trustMetric3Title: 'Quality Guaranteed', trustMetric3Subtitle: 'Best Educators',
+    heroBannerImage: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&auto=format&fit=crop&q=80',
+    teacherCardImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
+    teacher1Avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
+    teacher2Avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=80',
+    teacher3Avatar: 'https://images.unsplash.com/photo-1503919545889-aef636e10ad4?w=100&auto=format&fit=crop&q=80',
     price: 149,
     originalPrice: 999
   };
+
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }} edges={['top', 'left', 'right', 'bottom']}>
@@ -114,7 +134,7 @@ export const BoosterDetailsScreen: React.FC = () => {
           <View className="bg-black/15 py-1.5 px-3.5 rounded-full self-start mt-4 flex-row items-center">
             <View className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-2" />
             <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(10) }} className="text-white font-medium">
-              Active Enrollment Period Open
+              {booster.heroChipText || 'Active Enrollment Period Open'}
             </Text>
           </View>
 
@@ -138,7 +158,7 @@ export const BoosterDetailsScreen: React.FC = () => {
           {/* Parents Choice badge */}
           <View className="mt-8 border-t border-white/20 pt-4 items-center justify-center">
             <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13.5) }} className="text-[#FFE0B2] font-bold text-center uppercase tracking-widest">
-              🏆 10,000,000+ Parents' Choice
+              {booster.parentsBadgeText || "🏆 10,000,000+ Parents' Choice"}
             </Text>
           </View>
         </View>
@@ -148,49 +168,49 @@ export const BoosterDetailsScreen: React.FC = () => {
           {/* Header Banner */}
           <View style={styles.sectionHeaderBadge} className="py-2.5 px-4 rounded-xl mb-5">
             <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12.5) }} className="text-white font-bold text-center uppercase tracking-wider">
-              Highly Rated by Parents & Students
+              {booster.reviewSectionTitle || 'Highly Rated by Parents & Students'}
             </Text>
           </View>
 
           {/* Review items */}
           <View className="space-y-4">
-            {/* Kabir */}
+            {/* Review 1 */}
             <View className="bg-slate-50 border border-slate-100 p-4 rounded-2xl">
               <View className="flex-row justify-between items-center mb-2">
                 <View className="flex-row items-center">
                   <Image 
-                    source={{ uri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80' }} 
+                    source={{ uri: getAvatarUrl(booster.review1Avatar) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80' }} 
                     className="w-8 h-8 rounded-full bg-slate-200 mr-2"
                   />
-                  <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12.5) }} className="text-slate-800 font-bold">Kabir</Text>
+                  <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12.5) }} className="text-slate-800 font-bold">{booster.review1Name || 'Kabir'}</Text>
                 </View>
                 <View className="flex-row">
                   {[1,2,3,4,5].map((s) => <Ionicons key={s} name="star" size={12} color="#EAB308" className="mr-0.5" />)}
                 </View>
               </View>
-              <Text className="text-slate-400 text-[9.5px]">16 May 2026</Text>
+              <Text className="text-slate-400 text-[9.5px]">{booster.review1Date || '16 May 2026'}</Text>
               <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(11.5) }} className="text-slate-650 mt-2.5 leading-relaxed">
-                It is really good because you have the best teacher and they explain really nicely and energetic!!! Best Choice ever to join Oda!!
+                {booster.review1Text || 'It is really good because you have the best teacher and they explain really nicely and energetic!!! Best Choice ever to join Oda!!'}
               </Text>
             </View>
 
-            {/* Aadhya */}
+            {/* Review 2 */}
             <View className="bg-slate-50 border border-slate-100 p-4 rounded-2xl">
               <View className="flex-row justify-between items-center mb-2">
                 <View className="flex-row items-center">
                   <Image 
-                    source={{ uri: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=80&auto=format&fit=crop&q=80' }} 
+                    source={{ uri: getAvatarUrl(booster.review2Avatar) || 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=80&auto=format&fit=crop&q=80' }} 
                     className="w-8 h-8 rounded-full bg-slate-200 mr-2"
                   />
-                  <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12.5) }} className="text-slate-800 font-bold">Aadhya</Text>
+                  <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12.5) }} className="text-slate-800 font-bold">{booster.review2Name || 'Aadhya'}</Text>
                 </View>
                 <View className="flex-row">
                   {[1,2,3,4,5].map((s) => <Ionicons key={s} name="star" size={12} color="#EAB308" className="mr-0.5" />)}
                 </View>
               </View>
-              <Text className="text-slate-400 text-[9.5px]">11 May 2026</Text>
+              <Text className="text-slate-400 text-[9.5px]">{booster.review2Date || '11 May 2026'}</Text>
               <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(11.5) }} className="text-slate-650 mt-2.5 leading-relaxed">
-                It's very good learning app for children.. the teacher inspired our children and topics are also too good .... I think it is best learning app 💖😊
+                {booster.review2Text || "It's very good learning app for children.. the teacher inspired our children and topics are also too good ...."}
               </Text>
             </View>
           </View>
@@ -200,50 +220,48 @@ export const BoosterDetailsScreen: React.FC = () => {
         <View className="mx-4 mt-4 bg-white rounded-3xl p-5 border border-slate-100 shadow-sm">
           <View style={styles.sectionHeaderBadge} className="py-2.5 px-4 rounded-xl mb-4">
             <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12.5) }} className="text-white font-bold text-center uppercase tracking-wider">
-              Score 100% and Become Topper
+              {booster.score100Title || 'Score 100% and Become Topper'}
             </Text>
           </View>
 
           {/* Subjects and indicators */}
-          <View className="flex-row justify-center items-center py-2 mb-4">
-            <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(15) }} className="text-[#FF5E00] font-bold">Maths</Text>
-            <Text className="text-slate-450 text-[11px] ml-1.5 mr-3">(All core concepts)</Text>
-            <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(14) }} className="text-[#FF5E00] font-bold mr-3">&amp;</Text>
-            <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(15) }} className="text-[#FF5E00] font-bold">Science</Text>
-            <Text className="text-slate-450 text-[11px] ml-1.5">(Include Phys/Chem/Biol)</Text>
+          <View className="flex-row justify-center items-center py-2 mb-4 flex-wrap">
+            <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13) }} className="text-[#FF5E00] font-bold text-center">
+              {booster.subjectsLine || 'Maths & Science (All core concepts)'}
+            </Text>
           </View>
 
           {/* Grid Layout */}
           <View className="flex-row flex-wrap justify-between gap-y-3">
-            {/* Box 1 (Secret with 83% bubble) */}
+            {/* Box 1 */}
             <View className="w-[48%] bg-orange-50/50 border border-orange-100 rounded-2xl p-3.5 relative overflow-hidden h-[96px] justify-between">
               <View className="flex-row justify-between items-center">
                 <View className="bg-orange-500 rounded-lg px-2 py-0.5 shadow-sm">
-                  <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(8) }} className="text-white font-bold">Secret of 83%</Text>
+                  <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(8) }} className="text-white font-bold">{booster.grid1Badge || 'Secret of 83%'}</Text>
                 </View>
                 <FontAwesome5 name="chart-line" size={14} color="#EA580C" />
               </View>
               <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12.5) }} className="text-slate-800 font-bold mt-1.5">
-                Higher Score
+                {booster.grid1Title || 'Higher Score'}
               </Text>
             </View>
 
             {/* Box 2 */}
             <View className="w-[48%] bg-[#F8FAFC] border border-slate-100 rounded-2xl p-3.5 h-[96px] justify-between">
-              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13) }} className="text-slate-800 font-bold">50+ Core Concepts</Text>
-              <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(9.5) }} className="text-slate-400 font-medium">Most asked concepts and topics</Text>
+              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13) }} className="text-slate-800 font-bold">{booster.grid2Title || '50+ Core Concepts'}</Text>
+              <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(9.5) }} className="text-slate-400 font-medium">{booster.grid2Subtitle || 'Most asked concepts and topics'}</Text>
             </View>
 
             {/* Box 3 */}
             <View className="w-[48%] bg-[#F8FAFC] border border-slate-100 rounded-2xl p-3.5 h-[96px] justify-between">
-              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13) }} className="text-slate-800 font-bold">50+ Solving Skills</Text>
-              <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(9.5) }} className="text-slate-400 font-medium">Summarized by IIT/NIT teachers</Text>
+              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13) }} className="text-slate-800 font-bold">{booster.grid3Title || '50+ Solving Skills'}</Text>
+              <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(9.5) }} className="text-slate-400 font-medium">{booster.grid3Subtitle || 'Summarized by IIT/NIT teachers'}</Text>
             </View>
 
             {/* Box 4 */}
             <View className="w-[48%] bg-[#F8FAFC] border border-slate-100 rounded-2xl p-3.5 h-[96px] justify-between">
-              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13) }} className="text-slate-800 font-bold">300+ Quizzes</Text>
-              <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(9.5) }} className="text-slate-400 font-medium">Practice to master concepts</Text>
+              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13) }} className="text-slate-800 font-bold">{booster.grid4Title || '300+ Quizzes'}</Text>
+              <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(9.5) }} className="text-slate-400 font-medium">{booster.grid4Subtitle || 'Practice to master concepts'}</Text>
             </View>
           </View>
         </View>
@@ -259,7 +277,7 @@ export const BoosterDetailsScreen: React.FC = () => {
           {/* Composite layout representing teacher team banner */}
           <View className="bg-slate-50 border border-slate-100 rounded-2xl p-4 items-center overflow-hidden">
             <Image 
-              source={{ uri: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&auto=format&fit=crop&q=80' }} 
+              source={{ uri: getAvatarUrl(booster.heroBannerImage) || 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&auto=format&fit=crop&q=80' }} 
               className="w-full h-40 rounded-xl bg-slate-200"
             />
             <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(11.5) }} className="text-slate-500 font-bold text-center mt-3">
@@ -283,7 +301,7 @@ export const BoosterDetailsScreen: React.FC = () => {
               {/* Master Teacher Card */}
               <View className="border border-orange-200 rounded-2xl bg-orange-50/20 p-2 items-center w-[40%]">
                 <Image 
-                  source={{ uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80' }} 
+                  source={{ uri: getAvatarUrl(booster.teacher1Avatar) || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80' }} 
                   className="w-12 h-12 rounded-full bg-slate-200"
                 />
                 <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(10.5) }} className="text-slate-800 font-bold mt-1.5">
@@ -294,7 +312,7 @@ export const BoosterDetailsScreen: React.FC = () => {
               {/* Mentor Teacher Card */}
               <View className="border border-orange-200 rounded-2xl bg-orange-50/20 p-2 items-center w-[40%]">
                 <Image 
-                  source={{ uri: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=80' }} 
+                  source={{ uri: getAvatarUrl(booster.teacher2Avatar) || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=80' }} 
                   className="w-12 h-12 rounded-full bg-slate-200"
                 />
                 <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(10.5) }} className="text-slate-800 font-bold mt-1.5">
@@ -306,7 +324,7 @@ export const BoosterDetailsScreen: React.FC = () => {
             {/* Student Bottom Card */}
             <View className="border border-orange-300 rounded-2xl bg-orange-50/40 p-2 items-center w-[45%]">
               <Image 
-                source={{ uri: 'https://images.unsplash.com/photo-1503919545889-aef636e10ad4?w=100&auto=format&fit=crop&q=80' }} 
+                source={{ uri: getAvatarUrl(booster.teacher3Avatar) || 'https://images.unsplash.com/photo-1503919545889-aef636e10ad4?w=100&auto=format&fit=crop&q=80' }} 
                 className="w-12 h-12 rounded-full bg-slate-200"
               />
               <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(10.5) }} className="text-[#FF5E00] font-bold mt-1.5">
@@ -374,7 +392,7 @@ export const BoosterDetailsScreen: React.FC = () => {
         <View className="mx-4 mt-4 bg-white rounded-3xl p-5 border border-slate-100 shadow-sm">
           <View style={styles.sectionHeaderBadge} className="py-2.5 px-4 rounded-xl mb-5">
             <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12.5) }} className="text-white font-bold text-center uppercase tracking-wider">
-              Immersive &amp; Interactive LIVE Course
+              {booster.liveSectionTitle || 'Immersive & Interactive LIVE Course'}
             </Text>
           </View>
 
@@ -430,11 +448,11 @@ export const BoosterDetailsScreen: React.FC = () => {
                 {/* Teacher Video Box */}
                 <View className="h-[75px] bg-slate-800 rounded-lg overflow-hidden border border-slate-700 relative">
                   <Image 
-                    source={{ uri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80' }} 
+                    source={{ uri: getAvatarUrl(booster.teacherCardImage) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80' }} 
                     className="w-full h-full bg-slate-600"
                   />
                   <View className="absolute bottom-1 left-1 bg-black/40 px-1 rounded">
-                    <Text className="text-white text-[7px]">vikas</Text>
+                    <Text className="text-white text-[7px]">{booster.teacher1Name || 'vikas'}</Text>
                   </View>
                 </View>
 
@@ -470,24 +488,24 @@ export const BoosterDetailsScreen: React.FC = () => {
               <View className="w-10 h-10 rounded-full bg-orange-50 items-center justify-center border border-orange-100">
                 <Ionicons name="play-circle" size={18} color="#FF5E00" />
               </View>
-              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9.5) }} className="text-slate-800 font-bold text-center mt-1.5">LIVE Course</Text>
-              <Text className="text-slate-400 text-[8px] text-center mt-0.5">Immersive Replay</Text>
+              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9.5) }} className="text-slate-800 font-bold text-center mt-1.5">{booster.trustMetric1Title || 'LIVE Course'}</Text>
+              <Text className="text-slate-400 text-[8px] text-center mt-0.5">{booster.trustMetric1Subtitle || 'Immersive Replay'}</Text>
             </View>
 
             <View className="items-center w-[30%]">
               <View className="w-10 h-10 rounded-full bg-orange-50 items-center justify-center border border-orange-100">
                 <Ionicons name="people" size={16} color="#FF5E00" />
               </View>
-              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9.5) }} className="text-slate-800 font-bold text-center mt-1.5">1 on 1 Service</Text>
-              <Text className="text-slate-400 text-[8px] text-center mt-0.5">Mentor Support</Text>
+              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9.5) }} className="text-slate-800 font-bold text-center mt-1.5">{booster.trustMetric2Title || '1 on 1 Service'}</Text>
+              <Text className="text-slate-400 text-[8px] text-center mt-0.5">{booster.trustMetric2Subtitle || 'Mentor Support'}</Text>
             </View>
 
             <View className="items-center w-[30%]">
               <View className="w-10 h-10 rounded-full bg-orange-50 items-center justify-center border border-orange-100">
                 <Ionicons name="shield-checkmark" size={16} color="#FF5E00" />
               </View>
-              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9.5) }} className="text-slate-800 font-bold text-center mt-1.5">Quality Guaranteed</Text>
-              <Text className="text-slate-400 text-[8px] text-center mt-0.5">Best Educators</Text>
+              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9.5) }} className="text-slate-800 font-bold text-center mt-1.5">{booster.trustMetric3Title || 'Quality Guaranteed'}</Text>
+              <Text className="text-slate-400 text-[8px] text-center mt-0.5">{booster.trustMetric3Subtitle || 'Best Educators'}</Text>
             </View>
           </View>
         </View>
@@ -538,6 +556,55 @@ export const BoosterSelectClassScreen: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [paySuccess, setPaySuccess] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
+  const [homeConfig, setHomeConfig] = useState<HomepageConfig | null>(null);
+  const [isConfigLoading, setIsConfigLoading] = useState<boolean>(false);
+
+  // Fetch configs dynamically upon selectedClass changes
+  useEffect(() => {
+    const fetchConfig = async () => {
+      setIsConfigLoading(true);
+      try {
+        const res = await getHomepageConfig(selectedClass);
+        if (res.success && res.data) {
+          setHomeConfig(res.data);
+        }
+      } catch (err) {
+        console.error('Failed to load class configuration:', err);
+      } finally {
+        setIsConfigLoading(false);
+      }
+    };
+    fetchConfig();
+  }, [selectedClass]);
+
+  const boosterPrice = homeConfig?.boosterCourse?.price ?? 49;
+  const boosterOriginalPrice = homeConfig?.boosterCourse?.originalPrice ?? 499;
+  const discount = Math.max(0, boosterOriginalPrice - boosterPrice);
+
+  // Create pending order when payment modal opens
+  useEffect(() => {
+    async function createPendingBoosterOrder() {
+      if (paySheetVisible && authPhone) {
+        try {
+          const res = await createOrder({
+            studentPhone: authPhone,
+            courseTitle: `Concept Booster Course – 5X Efficient Learning Methods by IITians`,
+            classInfo: `${selectedClass} | 6 Jul – 11 Jul`,
+            amount: String(boosterPrice),
+            couponDiscount: String(discount),
+            status: 'pending',
+          });
+          if (res.success && res.data && res.data._id) {
+            setCurrentOrderId(res.data._id);
+          }
+        } catch (err) {
+          console.error('Failed to create pending booster order:', err);
+        }
+      }
+    }
+    createPendingBoosterOrder();
+  }, [paySheetVisible, authPhone, selectedClass, boosterPrice, discount]);
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -555,13 +622,15 @@ export const BoosterSelectClassScreen: React.FC = () => {
   const triggerBoosterPayment = async () => {
     setIsProcessing(true);
     try {
-      if (authPhone) {
+      if (currentOrderId) {
+        await updateOrderStatus(currentOrderId, 'paid');
+      } else if (authPhone) {
         await createOrder({
           studentPhone: authPhone,
           courseTitle: `Concept Booster Course – 5X Efficient Learning Methods by IITians`,
           classInfo: `${selectedClass} | 6 Jul – 11 Jul`,
-          amount: '9',
-          couponDiscount: '20',
+          amount: String(boosterPrice),
+          couponDiscount: String(discount),
           status: 'paid',
         });
       }
@@ -714,9 +783,9 @@ export const BoosterSelectClassScreen: React.FC = () => {
         <View>
           <View className="flex-row items-baseline">
             <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(22) }} className="text-[#FF5E00] font-bold">
-              ₹49
+              ₹{boosterPrice}
             </Text>
-            <Text className="text-slate-400 text-[12px] line-through ml-2">₹499</Text>
+            <Text className="text-slate-400 text-[12px] line-through ml-2">₹{boosterOriginalPrice}</Text>
           </View>
           <Text className="text-slate-400 text-[9.5px]">Include taxes</Text>
         </View>
@@ -731,7 +800,7 @@ export const BoosterSelectClassScreen: React.FC = () => {
           </Text>
         </TouchableOpacity>
       </View>
-
+ 
       {/* SECURE PAYMENT MODAL */}
       <Modal
         visible={paySheetVisible}
@@ -756,7 +825,7 @@ export const BoosterSelectClassScreen: React.FC = () => {
               </View>
               <View className="items-end">
                 <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-800 text-lg font-bold">
-                  ₹49.00
+                  ₹{boosterPrice}.00
                 </Text>
               </View>
             </View>

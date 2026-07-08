@@ -104,7 +104,41 @@ export interface BoosterConfig {
   cardTitle: string;
   title: string;
   subjects: string[];
+  heroChipText?: string;
+  parentsBadgeText?: string;
   bullets?: string[];
+  reviewSectionTitle?: string;
+  review1Name?: string;
+  review1Date?: string;
+  review1Text?: string;
+  review2Name?: string;
+  review2Date?: string;
+  review2Text?: string;
+  score100Title?: string;
+  subjectsLine?: string;
+  grid1Badge?: string;
+  grid1Title?: string;
+  grid2Title?: string;
+  grid2Subtitle?: string;
+  grid3Title?: string;
+  grid3Subtitle?: string;
+  grid4Title?: string;
+  grid4Subtitle?: string;
+  liveSectionTitle?: string;
+  trustMetric1Title?: string;
+  trustMetric1Subtitle?: string;
+  trustMetric2Title?: string;
+  trustMetric2Subtitle?: string;
+  trustMetric3Title?: string;
+  trustMetric3Subtitle?: string;
+  review1Avatar?: string;
+  review2Avatar?: string;
+  heroBannerImage?: string;
+  teacherCardImage?: string;
+  teacher1Name?: string;
+  teacher1Avatar?: string;
+  teacher2Avatar?: string;
+  teacher3Avatar?: string;
   price: number;
   originalPrice: number;
 }
@@ -114,7 +148,51 @@ export interface MasterConfig {
   headerSubtitle: string;
   title: string;
   bullets: string[];
+  subjectsCardLabel?: string;
+  subjectsCardText?: string;
+  metricCourses?: string;
+  metricConcepts?: string;
+  metricQuizzes?: string;
+  scheduleText?: string;
+  subjectPillText?: string;
   outline?: string[];
+  outlineSubtitle?: string;
+  ratingsTitle?: string;
+  ratingsCount?: string;
+  ratingScore?: string;
+  ratingChip1?: string;
+  ratingChip2?: string;
+  ratingChip3?: string;
+  testimonialName?: string;
+  testimonialDate?: string;
+  testimonialText?: string;
+  testimonialSessionTag?: string;
+  testimonialTags?: string[];
+  facultyTitle?: string;
+  facultySubtitle?: string;
+  featuredTeacherName?: string;
+  featuredTeacherRole?: string;
+  featuredTeacherRating?: string;
+  featuredTeacherAvatar?: string;
+  teamSectionTitle?: string;
+  teamBadge1?: string;
+  teamBadge2?: string;
+  resultsSectionTitle?: string;
+  resultsSectionSubtitle?: string;
+  studentResult1Name?: string;
+  studentResult1Pct?: string;
+  studentResult1Avatar?: string;
+  studentResult2Name?: string;
+  studentResult2Pct?: string;
+  studentResult2Avatar?: string;
+  studentResult3Name?: string;
+  studentResult3Pct?: string;
+  studentResult3Avatar?: string;
+  chatBubble1?: string;
+  chatBubble2?: string;
+  chatBubble3?: string;
+  trustNumber?: string;
+  trustLabel?: string;
   price: number;
 }
 
@@ -203,6 +281,13 @@ export async function createOrder(
   order: Omit<OrderItem, '_id' | 'createdAt'>
 ): Promise<{ success: boolean; data: OrderItem }> {
   return apiCall('POST', '/api/orders', order);
+}
+
+export async function updateOrderStatus(
+  id: string,
+  status: 'pending' | 'paid'
+): Promise<{ success: boolean; message: string }> {
+  return apiCall('PUT', `/api/orders/${id}`, { status });
 }
 
 // ─── HEALTH ──────────────────────────────────────────────────────

@@ -4,6 +4,52 @@ const { getDB } = require('../db/mongo');
 
 const router = express.Router();
 
+// GET /api/students (fetch all students for admin panel)
+router.get('/', async (req, res) => {
+  try {
+    const db = getDB();
+    const students = await db.collection('students')
+      .find({})
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    // Fetch all paid orders to compute enrollment status dynamically
+    const paidOrders = await db.collection('orders')
+      .find({ status: 'paid' })
+      .toArray();
+
+    // Map computed enrollmentType to students list
+    const computedStudents = students.map(student => {
+      const studentPaidOrders = paidOrders.filter(o => o.studentPhone === student.phone);
+      
+      const hasMaster = studentPaidOrders.some(o => 
+        o.courseTitle.toLowerCase().includes('master') || 
+        o.courseTitle.toLowerCase().includes('syllabus') || 
+        Number(o.amount) >= 500
+      );
+      
+      const hasBooster = studentPaidOrders.some(o => 
+        o.courseTitle.toLowerCase().includes('booster') || 
+        o.courseTitle.toLowerCase().includes('demo') || 
+        o.courseTitle.toLowerCase().includes('6-day') || 
+        o.courseTitle.toLowerCase().includes('6 day') || 
+        Number(o.amount) < 500
+      );
+
+      const computedEnrollment = hasMaster ? 'master' : (hasBooster ? 'demo' : 'none');
+
+      return {
+        ...student,
+        enrollmentType: computedEnrollment
+      };
+    });
+
+    res.json({ success: true, count: computedStudents.length, data: computedStudents });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // GET /api/students/phone/:phone
 router.get('/phone/:phone', async (req, res) => {
   try {

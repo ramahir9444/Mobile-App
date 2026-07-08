@@ -3,6 +3,20 @@ const { getDB } = require('../db/mongo');
 
 const router = express.Router();
 
+// GET /api/orders (all orders for admin tracker)
+router.get('/', async (req, res) => {
+  try {
+    const db = getDB();
+    const orders = await db.collection('orders')
+      .find({})
+      .sort({ createdAt: -1 })
+      .toArray();
+    res.json({ success: true, count: orders.length, data: orders });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // GET /api/orders/:phone
 router.get('/:phone', async (req, res) => {
   try {
@@ -20,8 +34,12 @@ router.get('/:phone', async (req, res) => {
 // Helper function to update student enrollmentType in MongoDB
 async function updateStudentEnrollment(db, phone, courseTitle, amount) {
   try {
-    const isMaster = courseTitle.includes('Master') || String(amount) === '31999';
-    const enrollmentType = isMaster ? 'master' : 'demo';
+    const isBooster = courseTitle.toLowerCase().includes('booster') || 
+                      courseTitle.toLowerCase().includes('demo') || 
+                      courseTitle.toLowerCase().includes('6-day') || 
+                      courseTitle.toLowerCase().includes('6 day') || 
+                      Number(amount) < 500;
+    const enrollmentType = isBooster ? 'demo' : 'master';
     await db.collection('students').updateOne(
       { phone },
       { $set: { enrollmentType, updatedAt: new Date() } }

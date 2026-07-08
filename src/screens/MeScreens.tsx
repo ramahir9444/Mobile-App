@@ -180,19 +180,20 @@ const pastOrders = [
 ];
 
 export const MyOrdersScreen: React.FC = () => {
-  const { navigateTo, authPhone } = useApp();
+  const { navigateTo, authPhone, user } = useApp();
   const [showOther, setShowOther] = useState(false);
   const [dbOrders, setDbOrders] = useState<OrderItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchOrders = async () => {
-      if (!authPhone) {
+      const phone = authPhone || user.phone;
+      if (!phone) {
         setLoading(false);
         return;
       }
       try {
-        const res = await getOrdersByPhone(authPhone);
+        const res = await getOrdersByPhone(phone);
         if (res.success && res.data) {
           setDbOrders(res.data);
         }
@@ -203,7 +204,7 @@ export const MyOrdersScreen: React.FC = () => {
       }
     };
     fetchOrders();
-  }, [authPhone]);
+  }, [authPhone, user.phone]);
 
   // Filter pending and paid lists
   const pendingList = (dbOrders.length > 0
@@ -282,7 +283,10 @@ export const MyOrdersScreen: React.FC = () => {
                     </Text>
                   </Text>
                   <TouchableOpacity
-                    onPress={() => navigateTo('BOOSTER_DETAILS')}
+                    onPress={() => {
+                      const isMaster = order.courseTitle.includes('Master') || String(order.amount) === '31999';
+                      navigateTo(isMaster ? 'ORDER_PAYMENT' : 'BOOSTER_DETAILS');
+                    }}
                     style={styles.payNowBtn}
                     activeOpacity={0.85}
                   >

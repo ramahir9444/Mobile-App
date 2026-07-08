@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
 import { useApp } from '../context/AppContext';
-import { getAvatarUrl, getHomepageConfig, HomepageConfig } from '../services/api';
+import { getAvatarUrl, getHomepageConfig, HomepageConfig, getOrdersByPhone, OrderItem } from '../services/api';
 
 
 const { width, height } = Dimensions.get('window');
@@ -69,12 +69,39 @@ export const DashboardScreen: React.FC = () => {
     fetchConfig();
   }, [selectedClass]);
 
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Dynamic MongoDB Enrolled Courses states & real-time loading
+  const [dbOrders, setDbOrders] = useState<OrderItem[]>([]);
+  const [isOrdersLoading, setIsOrdersLoading] = useState<boolean>(false);
+
+  const fetchUserOrders = async () => {
+    if (!user.phone) return;
+    setIsOrdersLoading(true);
+    try {
+      const res = await getOrdersByPhone(user.phone);
+      if (res.success && res.data) {
+        setDbOrders(res.data);
+        const hasPaid = res.data.some((o: any) => o.status === 'paid');
+        setIsEnrolled(hasPaid);
+      }
+    } catch (err) {
+      console.error('Failed to fetch user enrolled courses:', err);
+    } finally {
+      setIsOrdersLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user.phone) {
+      fetchUserOrders();
+    }
+  }, [user.phone]);
+
   // Pop-up states (Show only once per app session using context)
   const [isPopupVisible, setIsPopupVisible] = useState<boolean>(!hasSeenPopup);
   const popupScale = useState(new Animated.Value(0.85))[0];
   const popupFade = useState(new Animated.Value(0))[0];
-
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (isPopupVisible) {
@@ -483,7 +510,20 @@ export const DashboardScreen: React.FC = () => {
 
   // HOME SCREEN LAYOUT
   const renderHomeScreen = () => {
-    const enrollmentType = user.enrollmentType || 'none';
+    // Parse live enrollment configuration from MongoDB orders list
+    const paidBoosterCount = dbOrders.filter((o: any) => 
+      o.status === 'paid' && 
+      (o.courseTitle.toLowerCase().includes('booster') || o.courseTitle.toLowerCase().includes('demo') || o.amount === '49' || o.amount === '9')
+    ).length;
+
+    const paidMasterCount = dbOrders.filter((o: any) => 
+      o.status === 'paid' && 
+      (o.courseTitle.toLowerCase().includes('master') || o.courseTitle.toLowerCase().includes('syllabus') || o.amount === '31999')
+    ).length;
+
+    const liveEnrollmentType = paidMasterCount > 0 
+      ? 'master' 
+      : (paidBoosterCount > 0 ? 'demo' : (user.enrollmentType || 'none'));
 
     return (
       <View style={{ flex: 1 }}>
@@ -513,32 +553,27 @@ export const DashboardScreen: React.FC = () => {
             contentContainerStyle={{ paddingBottom: 130 }}
             className="flex-1 bg-[#F8FAFC]"
           >
-            {/* 1. BRAND BANNER (TOP FOR GUESTS & DEMO STUDENTS) */}
-            {enrollmentType !== 'master' && renderWhyOdaBanner()}
+            {/* 1. UPCOMING CLASS (TOP FOR MASTER & DEMO STUDENTS) */}
+            {liveEnrollmentType !== 'none' && renderUpcomingClassCard()}
 
-            {/* 2. UPCOMING CLASS (TOP FOR MASTER, SUB-TOP FOR DEMO STUDENTS) */}
-            {enrollmentType !== 'none' && renderUpcomingClassCard()}
+            {/* 2. 6-DAY HEAD START COURSE CARD (DYNAMIC BOOSTER CARD) */}
+            {renderBoosterCourseCard()}
 
-            {/* 3. 6-DAY HEAD START COURSE CARD (GUEST & DEMO ONLY) */}
-            {enrollmentType !== 'master' && renderBoosterCourseCard()}
-
-            {/* 4. MASTER PROGRAM SECTION (ALL) */}
+            {/* 3. MASTER PROGRAM SECTION (DYNAMIC MASTER CARD) */}
             {renderMasterProgramCard()}
 
-            {/* 5. BRAND BANNER AT BOTTOM (FOR MASTER PROGRAM STUDENTS ONLY) */}
-            {enrollmentType === 'master' && (
-              <View className="mt-4 border-t border-slate-100 pt-2">
-                <Text 
-                  style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(15) }}
-                  className="text-slate-600 font-bold mx-5 mt-3 mb-1"
-                >
-                  About Our Academy
-                </Text>
-                {renderWhyOdaBanner()}
-              </View>
-            )}
+            {/* 4. BRAND BANNER AT BOTTOM (ABOUT OUR ACADEMY) */}
+            <View className="mt-4 border-t border-slate-100 pt-2">
+              <Text 
+                style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(15) }}
+                className="text-slate-600 font-bold mx-5 mt-3 mb-1"
+              >
+                About Our Academy
+              </Text>
+              {renderWhyOdaBanner()}
+            </View>
 
-            {/* 6. BOTTOM METRICS */}
+            {/* 5. BOTTOM METRICS */}
             {renderBottomMetrics()}
           </ScrollView>
         )}
@@ -549,6 +584,44 @@ export const DashboardScreen: React.FC = () => {
   // MY STUDY SCREEN LAYOUT
   const renderMyStudyScreen = () => {
     const isBridgeActive = studyTab === 'Bridge';
+
+    // Parse real-time paid orders from MongoDB Atlas
+    const paidBoosterOrders = dbOrders.filter((o: any) => 
+      o.status === 'paid' && 
+      (o.courseTitle.toLowerCase().includes('booster') || o.courseTitle.toLowerCase().includes('demo') || o.amount === '49' || o.amount === '9')
+    );
+
+    const paidMasterOrders = dbOrders.filter((o: any) => 
+      o.status === 'paid' && 
+      (o.courseTitle.toLowerCase().includes('master') || o.courseTitle.toLowerCase().includes('syllabus') || o.amount === '31999')
+    );
+
+    // Mock fallbacks if simulator toggle was clicked but MongoDB is empty
+    const displayBoosterList = (paidBoosterOrders.length === 0 && isEnrolled) ? [
+      {
+        _id: 'mock_booster_default',
+        studentPhone: user.phone || '9999999999',
+        courseTitle: `Concept Booster Course - ${selectedClass} Headstart`,
+        classInfo: `${selectedClass} | 6 Jul - 11 Jul`,
+        amount: '49',
+        couponDiscount: '0',
+        status: 'paid',
+        createdAt: new Date().toISOString()
+      } as OrderItem
+    ] : paidBoosterOrders;
+
+    const displayMasterList = (paidMasterOrders.length === 0 && isEnrolled) ? [
+      {
+        _id: 'mock_master_default',
+        studentPhone: user.phone || '9999999999',
+        courseTitle: `LIVE Interactive Full Syllabus Course for ${selectedClass} (2026-27)`,
+        classInfo: `${selectedClass} | 15 Jun, 2026 - 6 Mar, 2027`,
+        amount: '31999',
+        couponDiscount: '0',
+        status: 'paid',
+        createdAt: new Date().toISOString()
+      } as OrderItem
+    ] : paidMasterOrders;
 
     return (
       <View className="flex-1 bg-white">
@@ -645,7 +718,19 @@ export const DashboardScreen: React.FC = () => {
             <TouchableOpacity 
               onPress={() => {
                 setIsEnrolled(true);
-                showToast("Simulator: Enrolled State Activated!");
+                setDbOrders([
+                  {
+                    _id: 'mock_booster_toggle',
+                    studentPhone: user.phone || '9999999999',
+                    courseTitle: `Concept Booster Course - ${selectedClass} Headstart`,
+                    classInfo: `${selectedClass} | 6 Jul - 11 Jul`,
+                    amount: '49',
+                    couponDiscount: '0',
+                    status: 'paid',
+                    createdAt: new Date().toISOString()
+                  } as OrderItem
+                ]);
+                showToast("Simulator: Enrolled state activated!");
               }}
               className="bg-slate-100 border border-slate-200 py-2.5 px-6 rounded-full"
             >
@@ -665,16 +750,63 @@ export const DashboardScreen: React.FC = () => {
               /* BRIDGE COURSE TAB */
               <View className="space-y-4">
                 <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(16) }} className="text-slate-800 font-bold mb-2">
-                  Upcoming
+                  Enrolled Demo Classes
                 </Text>
 
-                {/* Card 1: Welcome Test */}
+                {/* Map dynamic Booster/Demo course registrations */}
+                {displayBoosterList.map((order: any, idx: number) => (
+                  <TouchableOpacity 
+                    key={order._id || idx}
+                    onPress={() => navigateTo('CLASS_DETAILS')}
+                    className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm"
+                  >
+                    <View className="flex-row justify-between items-start">
+                      <View className="flex-1 pr-3">
+                        <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(14.5) }} className="text-slate-800 font-bold leading-snug">
+                          {order.courseTitle}
+                        </Text>
+                        <View className="flex-row items-center mt-2.5 space-x-2">
+                          <View className="bg-[#E0F7F6] py-0.5 px-2 rounded">
+                            <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9) }} className="text-[#00B6A6] uppercase tracking-wider font-bold">
+                              {order.classInfo?.split('|')[0]?.trim() || selectedClass}
+                            </Text>
+                          </View>
+                          <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(11) }} className="text-slate-400 font-medium">
+                            {order.classInfo?.split('|')[1]?.trim() || '6 Jul - 11 Jul'}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <Image 
+                        source={{ uri: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&auto=format&fit=crop&q=80' }} 
+                        className="w-12 h-12 rounded-full bg-slate-100 border border-slate-100"
+                      />
+                    </View>
+
+                    <View className="flex-row justify-between items-center mt-5 pt-3 border-t border-slate-50">
+                      <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(11.5) }} className="text-orange-500 font-bold">
+                        LIVE Bridge Sessions
+                      </Text>
+                      <TouchableOpacity 
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          showToast("Entering Live interactive Class...");
+                        }}
+                        className="bg-[#00B6A6] py-1 px-4 rounded-full active:bg-teal-650"
+                      >
+                        <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12) }} className="text-white font-bold">Join Class</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+
+                {/* Card 1: Default Welcome Test */}
                 <TouchableOpacity 
                   onPress={() => navigateTo('TEST_INTRO')}
-                  className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm"
+                  className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm mt-2"
                 >
                   <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(16) }} className="text-slate-800 font-bold">
-                    Welcome Test
+                    Welcome Diagnostic Test
                   </Text>
                   
                   <View className="bg-slate-100 py-0.5 px-2 rounded self-start mt-2">
@@ -691,43 +823,6 @@ export const DashboardScreen: React.FC = () => {
                   </View>
                 </TouchableOpacity>
 
-                {/* Card 2: Beyond Zero (Today's Class) */}
-                <TouchableOpacity 
-                  onPress={() => navigateTo('CLASS_DETAILS')}
-                  className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm"
-                >
-                  <View className="flex-row justify-between items-start">
-                    <View className="flex-1 pr-3">
-                      <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(14.5) }} className="text-slate-800 font-bold leading-snug">
-                        Beyond Zero : The World of Integers with Ninja Mam!
-                      </Text>
-                      <View className="bg-slate-100 py-0.5 px-2 rounded self-start mt-2">
-                        <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9) }} className="text-slate-500 uppercase font-bold">Maths</Text>
-                      </View>
-                    </View>
-
-                    <Image 
-                      source={{ uri: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&auto=format&fit=crop&q=80' }} 
-                      className="w-14 h-14 rounded-full bg-slate-100 border border-slate-100"
-                    />
-                  </View>
-
-                  <View className="flex-row justify-between items-center mt-5 pt-3 border-t border-slate-50">
-                    <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(12) }} className="text-slate-500 font-medium">
-                      8:10 pm - 9:10 pm, 6 Jul
-                    </Text>
-                    <TouchableOpacity 
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        showToast("Entering Live interactive Class...");
-                      }}
-                      className="bg-[#00B6A6] py-1 px-4 rounded-full active:bg-teal-650"
-                    >
-                      <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12) }} className="text-white font-bold">Join Class</Text>
-                    </TouchableOpacity>
-                  </View>
-                </TouchableOpacity>
-
                 {/* Course Schedule Button */}
                 <TouchableOpacity 
                   onPress={() => navigateTo('COURSE_DETAILS')}
@@ -741,33 +836,81 @@ export const DashboardScreen: React.FC = () => {
             ) : (
               /* ALL COURSES TAB */
               <View className="space-y-4">
-                {/* Concept Booster card */}
-                <TouchableOpacity 
-                  onPress={() => navigateTo('COURSE_DETAILS')}
-                  className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm"
-                >
-                  <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(15) }} className="text-slate-800 font-bold leading-snug">
-                    Concept Booster Course - 5X Efficient Learning Methods by IITians
-                  </Text>
-                  
-                  <View className="flex-row items-center mt-3 gap-2">
-                    <View className="bg-slate-100 py-0.5 px-2 rounded">
-                      <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9) }} className="text-slate-500 uppercase tracking-wider font-bold">Bridge Course</Text>
-                    </View>
-                    <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(12) }} className="text-slate-400 font-medium">6 Jul - 11 Jul</Text>
-                  </View>
+                <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(16) }} className="text-slate-800 font-bold mb-2">
+                  Master Program Enrollments
+                </Text>
 
-                  {/* Teacher circle roster row */}
-                  <View className="flex-row items-center mt-5 pt-3 border-t border-slate-50 space-x-2">
-                    {['https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=80', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80'].map((av, id) => (
-                      <Image 
-                        key={id}
-                        source={{ uri: av }} 
-                        className="w-7 h-7 rounded-full bg-slate-200 border border-white shadow-sm"
-                      />
-                    ))}
+                {/* Map dynamic Master Program registrations */}
+                {displayMasterList.map((order: any, idx: number) => (
+                  <TouchableOpacity 
+                    key={order._id || idx}
+                    onPress={() => navigateTo('COURSE_DETAILS')}
+                    className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm mb-4"
+                  >
+                    <View className="flex-row justify-between items-start">
+                      <View className="flex-1 pr-3">
+                        <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(14.5) }} className="text-slate-800 font-bold leading-snug">
+                          {order.courseTitle}
+                        </Text>
+                        <View className="flex-row items-center mt-3 space-x-2">
+                          <View className="bg-orange-50 py-0.5 px-2 rounded border border-orange-100">
+                            <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9) }} className="text-[#FF5E00] uppercase tracking-wider font-bold">
+                              {order.classInfo?.split('|')[0]?.trim() || selectedClass}
+                            </Text>
+                          </View>
+                          <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(11.5) }} className="text-slate-400 font-medium">
+                            {order.classInfo?.split('|')[1]?.trim() || '15 Jun, 2026 - 6 Mar, 2027'}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Teacher circle roster row */}
+                      <View className="flex-row items-center space-x-[-8px]">
+                        {['https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=80', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80'].map((av, id) => (
+                          <Image 
+                            key={id}
+                            source={{ uri: av }} 
+                            className="w-7 h-7 rounded-full bg-slate-200 border border-white shadow-sm"
+                          />
+                        ))}
+                      </View>
+                    </View>
+
+                    <View className="flex-row justify-between items-center mt-5 pt-3 border-t border-slate-50">
+                      <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(11.5) }} className="text-slate-450">
+                        Full Year Long-Term Syllabus
+                      </Text>
+                      <TouchableOpacity 
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          showToast("Entering Live Master Class...");
+                        }}
+                        className="bg-[#00B6A6] py-1 px-4 rounded-full active:bg-teal-650"
+                      >
+                        <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12) }} className="text-white font-bold">Enter</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+
+                {displayMasterList.length === 0 && (
+                  <View className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm items-center py-10">
+                    <MaterialCommunityIcons name="school-outline" size={40} color="#CBD5E1" />
+                    <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-700 text-sm font-bold mt-3">No Master Programs Active</Text>
+                    <Text style={{ fontFamily: Theme.fonts.poppinsMedium }} className="text-slate-400 text-xs text-center mt-1 px-4">
+                      Upgrade to long-term classes to unlock full syllabus coverage and study report access!
+                    </Text>
+                    <TouchableOpacity 
+                      onPress={() => {
+                        setActiveTab('Home');
+                        navigateTo('DASHBOARD');
+                      }}
+                      className="bg-[#00B6A6] py-2 px-6 rounded-full mt-5"
+                    >
+                      <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-white text-xs font-bold">Explore Courses</Text>
+                    </TouchableOpacity>
                   </View>
-                </TouchableOpacity>
+                )}
 
                 {/* Completed Courses Dropdown toggle */}
                 <TouchableOpacity 
@@ -1075,7 +1218,7 @@ export const DashboardScreen: React.FC = () => {
 
       {/* POP-UP OVERLAY (1-WEEK BOOSTER PLAN - FULLY RESPONSIVE) */}
       <Modal
-        visible={isPopupVisible}
+        visible={isPopupVisible && !isEnrolled}
         transparent={true}
         animationType="fade"
         onRequestClose={closePopup}

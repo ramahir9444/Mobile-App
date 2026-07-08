@@ -168,23 +168,23 @@ export const MasterProgramScreen: React.FC = () => {
             {/* Beige subjects card */}
             <View className="bg-[#FFFBF0] rounded-xl p-3 border border-[#FDE68A] shadow-sm mb-4">
               <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-[#9A3412] text-xs font-bold uppercase tracking-wider">
-                Full Subjects:
+                {homeConfig?.masterProgram?.subjectsCardLabel || 'Full Subjects:'}
               </Text>
               <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-[#1E293B] text-[13.5px] font-bold mt-0.5">
-                Maths, Science, English, MAT, CS
+                {homeConfig?.masterProgram?.subjectsCardText || 'Maths, Science, English, MAT, CS'}
               </Text>
             </View>
 
             {/* Metrics horizontal bar */}
             <View className="flex-row justify-between items-center bg-black/10 py-2.5 px-4 rounded-xl mt-2">
               <Text className="text-white text-[11px] font-semibold">
-                <Text className="text-yellow-300 font-bold">400+</Text> Courses
+                <Text className="text-yellow-300 font-bold">{(homeConfig?.masterProgram?.metricCourses || '400+ Courses').split(' ')[0]}</Text> {(homeConfig?.masterProgram?.metricCourses || '400+ Courses').split(' ').slice(1).join(' ')}
               </Text>
               <Text className="text-white text-[11px] font-semibold">
-                <Text className="text-yellow-300 font-bold">200+</Text> Concepts
+                <Text className="text-yellow-300 font-bold">{(homeConfig?.masterProgram?.metricConcepts || '200+ Concepts').split(' ')[0]}</Text> {(homeConfig?.masterProgram?.metricConcepts || '200+ Concepts').split(' ').slice(1).join(' ')}
               </Text>
               <Text className="text-white text-[11px] font-semibold">
-                <Text className="text-yellow-300 font-bold">5000+</Text> Quizzes
+                <Text className="text-yellow-300 font-bold">{(homeConfig?.masterProgram?.metricQuizzes || '5000+ Quizzes').split(' ')[0]}</Text> {(homeConfig?.masterProgram?.metricQuizzes || '5000+ Quizzes').split(' ').slice(1).join(' ')}
               </Text>
             </View>
           </View>
@@ -201,7 +201,7 @@ export const MasterProgramScreen: React.FC = () => {
             <View className="flex-row items-center mt-2">
               <Feather name="clock" size={13} color="#64748B" />
               <Text style={{ fontFamily: Theme.fonts.poppinsMedium }} className="text-slate-500 text-xs ml-1">
-                LIVE at 7:00 pm, Tomorrow
+                {homeConfig?.masterProgram?.scheduleText || 'LIVE at 7:00 pm, Tomorrow'}
               </Text>
             </View>
 
@@ -209,7 +209,7 @@ export const MasterProgramScreen: React.FC = () => {
             <View className="flex-row flex-wrap mt-3.5 gap-1.5">
               <View className="bg-teal-50 border border-teal-100 rounded-md px-2 py-0.5">
                 <Text style={{ fontFamily: Theme.fonts.poppinsMedium }} className="text-[#00B6A6] text-[10px] font-medium">
-                  Maths & English & Science & MAT & CS
+                  {homeConfig?.masterProgram?.subjectPillText || 'Maths & English & Science & MAT & CS'}
                 </Text>
               </View>
             </View>
@@ -304,7 +304,7 @@ export const MasterProgramScreen: React.FC = () => {
             Course Outline
           </Text>
           <Text style={{ fontFamily: Theme.fonts.poppinsRegular }} className="text-slate-450 text-xs mt-1">
-            The course outline prepares you step-by-step from foundational topics to advanced board standard prep
+            {homeConfig?.masterProgram?.outlineSubtitle || 'The course outline prepares you step-by-step from foundational topics to advanced board standard prep'}
           </Text>
 
           {/* List items */}
@@ -348,25 +348,25 @@ export const MasterProgramScreen: React.FC = () => {
         <View className="bg-white py-6 px-5">
           <View className="flex-row items-center justify-between">
             <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-800 text-[18px] font-bold">
-              Ratings (2169812)
+              {homeConfig?.masterProgram?.ratingsTitle || 'Ratings'} ({homeConfig?.masterProgram?.ratingsCount || '2169812'})
             </Text>
             {/* Rating count pill */}
             <View className="bg-[#00B6A6] px-2 py-0.5 rounded flex-row items-center">
               <Ionicons name="star" size={10} color="white" />
-              <Text className="text-white text-[11px] font-bold ml-1">4.7</Text>
+              <Text className="text-white text-[11px] font-bold ml-1">{homeConfig?.masterProgram?.ratingScore || '4.7'}</Text>
             </View>
           </View>
 
           {/* Horizontal scroll selection tags */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-4 gap-2">
             <View className="bg-slate-50 border border-slate-100 rounded-full px-3 py-1.5 mr-2">
-              <Text className="text-slate-655 text-[10.5px]">Energetic Teaching(556133)</Text>
+              <Text className="text-slate-655 text-[10.5px]">{homeConfig?.masterProgram?.ratingChip1 || 'Energetic Teaching(556133)'}</Text>
             </View>
             <View className="bg-slate-50 border border-slate-100 rounded-full px-3 py-1.5 mr-2">
-              <Text className="text-slate-655 text-[10.5px]">Super Worthy(513807)</Text>
+              <Text className="text-slate-655 text-[10.5px]">{homeConfig?.masterProgram?.ratingChip2 || 'Super Worthy(513807)'}</Text>
             </View>
             <View className="bg-slate-50 border border-slate-100 rounded-full px-3 py-1.5 mr-2">
-              <Text className="text-slate-655 text-[10.5px]">Highly Recommended(496025)</Text>
+              <Text className="text-slate-655 text-[10.5px]">{homeConfig?.masterProgram?.ratingChip3 || 'Highly Recommended(496025)'}</Text>
             </View>
           </ScrollView>
 
@@ -379,9 +379,9 @@ export const MasterProgramScreen: React.FC = () => {
                 </View>
                 <View>
                   <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-800 text-[12px] font-bold">
-                    Not_Dumb_girl_Ananya
+                    {homeConfig?.masterProgram?.testimonialName || 'Not_Dumb_girl_Ananya'}
                   </Text>
-                  <Text className="text-slate-400 text-[8.5px] mt-0.5">30 Jun, 2026</Text>
+                  <Text className="text-slate-400 text-[8.5px] mt-0.5">{homeConfig?.masterProgram?.testimonialDate || '30 Jun, 2026'}</Text>
                 </View>
               </View>
 
@@ -393,8 +393,8 @@ export const MasterProgramScreen: React.FC = () => {
             </View>
 
             {/* Testimonial Tag Row */}
-            <View className="flex-row mt-2 gap-1.5">
-              {['Highly Recommended', 'Calm & Rigorous', 'Inspirational'].map((tg, idx) => (
+            <View className="flex-row mt-2 gap-1.5 flex-wrap">
+              {(homeConfig?.masterProgram?.testimonialTags || ['Highly Recommended', 'Calm & Rigorous', 'Inspirational']).map((tg: string, idx: number) => (
                 <View key={idx} className="bg-white border border-slate-150 px-2 py-0.5 rounded-full">
                   <Text className="text-slate-500 text-[8.5px]">{tg}</Text>
                 </View>
@@ -405,11 +405,11 @@ export const MasterProgramScreen: React.FC = () => {
               style={{ fontFamily: Theme.fonts.poppinsMedium }}
               className="text-slate-700 text-xs mt-3 leading-relaxed"
             >
-              Very fun class. I have a mini game for you play. Keep scrolling and keep your finger on the dashboard.
+              {homeConfig?.masterProgram?.testimonialText || 'Very fun class. I have a mini game for you play.'}
             </Text>
             
             <View className="flex-row items-center justify-between mt-4">
-              <Text className="text-[#00B6A6] text-[10px]">Session: Robotics | Light it UP in Patterns!</Text>
+              <Text className="text-[#00B6A6] text-[10px]">{homeConfig?.masterProgram?.testimonialSessionTag || 'Session: Robotics | Light it UP in Patterns!'}</Text>
               <View className="flex-row items-center">
                 <Ionicons name="thumbs-up-outline" size={12} color="#00B6A6" />
                 <Text className="text-[#00B6A6] text-[10px] ml-1">8</Text>
@@ -467,40 +467,40 @@ export const MasterProgramScreen: React.FC = () => {
           {/* IIT FACULTY BLOCK */}
           <View className="px-5">
             <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-[#FF5E00] text-[18px] font-bold text-center leading-tight">
-              Turbocharged Faculty Than Ever
+              {homeConfig?.masterProgram?.facultyTitle || 'Turbocharged Faculty Than Ever'}
             </Text>
             <Text style={{ fontFamily: Theme.fonts.poppinsMedium }} className="text-slate-600 text-xs text-center mt-1">
-              Brand-New IIT/NIT Star Experts
+              {homeConfig?.masterProgram?.facultySubtitle || 'Brand-New IIT/NIT Star Experts'}
             </Text>
 
-            {/* Vikas Sir profile showcase card */}
+            {/* Featured Teacher showcase card */}
             <View className="bg-slate-50 border border-slate-100 rounded-3xl p-5 mt-5 items-center">
               <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-800 text-[20px] font-bold mt-1">
-                Vikas Sir
+                {homeConfig?.masterProgram?.featuredTeacherName || 'Vikas Sir'}
               </Text>
               
               <View className="bg-orange-100 border border-orange-200 px-3 py-0.5 rounded-full mt-1.5">
                 <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-[#FF5E00] text-[9.5px] font-bold uppercase tracking-wider">
-                  NIT.S Expert
+                  {homeConfig?.masterProgram?.featuredTeacherRole || 'NIT.S Expert'}
                 </Text>
               </View>
 
               <Image 
-                source={{ uri: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80' }} 
+                source={{ uri: getAvatarUrl(homeConfig?.masterProgram?.featuredTeacherAvatar) || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80' }} 
                 className="w-48 h-52 bg-slate-200 rounded-2xl mt-4"
               />
 
               <View className="flex-row items-center mt-4 bg-white/80 py-1.5 px-4 rounded-full border border-slate-100">
                 <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-emerald-500 text-base font-bold">
-                  99.7% 👍
+                  {homeConfig?.masterProgram?.featuredTeacherRating || '99.7% 👍'}
                 </Text>
               </View>
             </View>
 
-            {/* Group Photo of 20+ IIT/NIT Teachers */}
+            {/* Team Section */}
             <View className="bg-slate-50 border border-slate-100 rounded-3xl p-5 mt-6 items-center">
               <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-800 text-[16px] font-bold">
-                Superior Teaching Team
+                {homeConfig?.masterProgram?.teamSectionTitle || 'Superior Teaching Team'}
               </Text>
               
               {/* Group avatar stack mockup */}
@@ -514,10 +514,10 @@ export const MasterProgramScreen: React.FC = () => {
 
               <View className="flex-row justify-center gap-2 mt-2">
                 <View className="bg-purple-100 px-3 py-1 rounded-full">
-                  <Text className="text-purple-700 text-[10px] font-bold">20+ IIT/NIT Teachers</Text>
+                  <Text className="text-purple-700 text-[10px] font-bold">{homeConfig?.masterProgram?.teamBadge1 || '20+ IIT/NIT Teachers'}</Text>
                 </View>
                 <View className="bg-pink-100 px-3 py-1 rounded-full">
-                  <Text className="text-pink-700 text-[10px] font-bold">Good Rate Avg. 98.6%</Text>
+                  <Text className="text-pink-700 text-[10px] font-bold">{homeConfig?.masterProgram?.teamBadge2 || 'Good Rate Avg. 98.6%'}</Text>
                 </View>
               </View>
             </View>
@@ -818,25 +818,27 @@ export const MasterProgramScreen: React.FC = () => {
           {/* SEPARATOR */}
           <View className="w-full h-[1px] bg-slate-100 my-8" />
 
-          {/* TOP TEACHING RESULTS & Summit Award */}
+          {/* TOP TEACHING RESULTS */}
           <View className="px-5">
             <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-[#FF5E00] text-[18px] font-bold text-center leading-tight">
-              Top Teaching Results {"\n"} Top Student Reviews
+              {homeConfig?.masterProgram?.resultsSectionTitle || 'Top Teaching Results'}{"\n"}Top Student Reviews
             </Text>
             <Text style={{ fontFamily: Theme.fonts.poppinsMedium }} className="text-slate-500 text-center text-xs mt-1.5">
-              Over 10 million students {"\n"}
-              Average score increase of <Text className="text-[#FF5E00] font-bold">46.7%</Text>
+              {homeConfig?.masterProgram?.resultsSectionSubtitle || 'Over 10 million students \nAverage score increase of 46.7%'}
             </Text>
 
             {/* Student grid reviews list */}
             <View className="flex-row justify-between mt-5 flex-wrap gap-2">
               {[
-                { name: 'Aarav', pct: '+71%' },
-                { name: 'Anaya', pct: '+37%' },
-                { name: 'Rohan', pct: '+51%' }
+                { name: homeConfig?.masterProgram?.studentResult1Name || 'Aarav', pct: homeConfig?.masterProgram?.studentResult1Pct || '+71%', avatar: homeConfig?.masterProgram?.studentResult1Avatar || 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=100&auto=format&fit=crop&q=80' },
+                { name: homeConfig?.masterProgram?.studentResult2Name || 'Anaya', pct: homeConfig?.masterProgram?.studentResult2Pct || '+37%', avatar: homeConfig?.masterProgram?.studentResult2Avatar || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80' },
+                { name: homeConfig?.masterProgram?.studentResult3Name || 'Rohan', pct: homeConfig?.masterProgram?.studentResult3Pct || '+51%', avatar: homeConfig?.masterProgram?.studentResult3Avatar || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80' }
               ].map((stud, idx) => (
                 <View key={idx} className="bg-slate-50 border border-slate-100 rounded-2xl p-3 items-center w-[30%]">
-                  <View className="w-10 h-10 rounded-full bg-slate-200 border border-slate-300" />
+                  <Image 
+                    source={{ uri: getAvatarUrl(stud.avatar) || undefined }} 
+                    className="w-10 h-10 rounded-full bg-slate-200 border border-slate-300"
+                  />
                   <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-800 text-[10.5px] font-bold mt-1.5">{stud.name}</Text>
                   <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-[#FF5E00] text-xs font-bold mt-0.5">{stud.pct}</Text>
                 </View>
@@ -846,13 +848,13 @@ export const MasterProgramScreen: React.FC = () => {
             {/* Chat Bubble feedback */}
             <View className="mt-5 space-y-2">
               <View className="bg-slate-50 border border-slate-100 rounded-2xl p-3 self-start mr-8">
-                <Text className="text-slate-600 text-[10.5px]">Oda is revolutionizing online learning!</Text>
+                <Text className="text-slate-600 text-[10.5px]">{homeConfig?.masterProgram?.chatBubble1 || 'Oda is revolutionizing online learning!'}</Text>
               </View>
               <View className="bg-slate-50 border border-slate-100 rounded-2xl p-3 self-end ml-8">
-                <Text className="text-slate-600 text-[10.5px]">Incredible courses! Oda makes learning fun!</Text>
+                <Text className="text-slate-600 text-[10.5px]">{homeConfig?.masterProgram?.chatBubble2 || 'Incredible courses! Oda makes learning fun!'}</Text>
               </View>
               <View className="bg-slate-50 border border-slate-100 rounded-2xl p-3 self-start mr-8">
-                <Text className="text-slate-600 text-[10.5px]">Seriously, learning has never been easier!</Text>
+                <Text className="text-slate-600 text-[10.5px]">{homeConfig?.masterProgram?.chatBubble3 || 'Seriously, learning has never been easier!'}</Text>
               </View>
             </View>
 
@@ -882,10 +884,10 @@ export const MasterProgramScreen: React.FC = () => {
                 style={{ fontFamily: Theme.fonts.poppinsBold }}
                 className="text-[#D97706] text-[34px] font-bold leading-none my-1"
               >
-                20,103,026
+                {homeConfig?.masterProgram?.trustNumber || '20,103,026'}
               </Text>
               <Text className="text-slate-600 text-xs font-semibold text-center leading-snug">
-                parents and students {"\n"} oda class
+                {homeConfig?.masterProgram?.trustLabel || 'parents and students\n oda class'}
               </Text>
             </View>
           </View>
