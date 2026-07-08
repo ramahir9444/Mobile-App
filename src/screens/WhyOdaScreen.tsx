@@ -7,7 +7,8 @@ import {
   TouchableOpacity, 
   StyleSheet, 
   Dimensions, 
-  StatusBar 
+  StatusBar,
+  Linking
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -44,7 +45,7 @@ const FACULTY_LIST = [
 ];
 
 export const WhyOdaScreen: React.FC = () => {
-  const { goBack } = useApp();
+  const { goBack, navigateTo } = useApp();
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const showToast = (message: string) => {
@@ -79,7 +80,7 @@ export const WhyOdaScreen: React.FC = () => {
       {/* SUB-HEADER ACTIONS */}
       <View className="flex-row items-center px-5 py-3.5 bg-slate-50 border-b border-slate-100 space-x-3">
         <TouchableOpacity 
-          onPress={() => showToast("Navigating to enrollment...")}
+          onPress={() => navigateTo('BOOSTER_DETAILS')}
           className="bg-[#FF6600] py-2 px-5 rounded-full active:scale-[0.98]"
         >
           <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-white text-xs font-bold">
@@ -88,7 +89,9 @@ export const WhyOdaScreen: React.FC = () => {
         </TouchableOpacity>
 
         <TouchableOpacity 
-          onPress={() => showToast("Opening details brochure...")}
+          onPress={() => {
+            Linking.openURL('https://www.odaclass.com').catch(err => console.error("Failed to open URL:", err));
+          }}
           className="border border-[#00B6A6] py-2 px-5 rounded-full active:scale-[0.98]"
         >
           <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-[#00B6A6] text-xs font-bold">
@@ -99,7 +102,7 @@ export const WhyOdaScreen: React.FC = () => {
 
       <ScrollView 
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: 180 }}
         className="flex-1 bg-white"
       >
         {/* SECTION 1: ELITE FACULTY */}
@@ -690,7 +693,7 @@ export const WhyOdaScreen: React.FC = () => {
       )}
 
       {/* STICKY BOTTOM ACTION BAR - Anchored gradient mock */}
-      <View style={styles.bottomStickyBar} className="absolute bottom-0 left-0 right-0 py-3.5 px-5 flex-row items-center justify-between z-40">
+      <View style={styles.bottomStickyBar} className="absolute bottom-[65] left-0 right-0 py-3.5 px-5 flex-row items-center justify-between z-40">
         <View className="flex-1 pr-3">
           <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-white text-[13.5px] font-bold">
             6 Days Concept Booster Course
@@ -720,7 +723,7 @@ export const WhyOdaScreen: React.FC = () => {
           </View>
 
           <TouchableOpacity 
-            onPress={() => showToast("Enrolling in 6-Day Booster course!")}
+            onPress={() => navigateTo('BOOSTER_DETAILS')}
             className="bg-white py-2 px-4 rounded-full shadow-sm active:scale-[0.97]"
           >
             <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-[#00B6A6] text-xs font-bold">
