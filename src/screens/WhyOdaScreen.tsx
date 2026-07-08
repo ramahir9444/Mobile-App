@@ -727,7 +727,7 @@ export const WhyOdaScreen: React.FC = () => {
             className="bg-white py-2 px-4 rounded-full shadow-sm active:scale-[0.97]"
           >
             <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-[#00B6A6] text-xs font-bold">
-              Learn more
+              Reserve Now
             </Text>
           </TouchableOpacity>
         </View>

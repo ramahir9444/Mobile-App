@@ -1192,7 +1192,7 @@ export const DashboardScreen: React.FC = () => {
       </Modal>
 
       {/* FLOATING ACTION ENROLL BADGE */}
-      {activeTab === 'Home' && (
+      {activeTab === 'Home' && !(isEnrolled || dbOrders.some((o: any) => o.status === 'paid')) && (
         <TouchableOpacity 
           onPress={() => navigateTo('BOOSTER_DETAILS')}
           style={styles.floatingBadge}
