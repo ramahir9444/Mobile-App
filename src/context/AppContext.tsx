@@ -139,6 +139,8 @@ interface AppContextType {
   setActiveCourseClass: (cls: string) => void;
   activeCourseType: 'booster' | 'master';
   setActiveCourseType: (type: 'booster' | 'master') => void;
+  activeClassSchedule: any;
+  setActiveClassSchedule: (schedule: any) => void;
 }
 
 const defaultUser: UserProfile = {
@@ -212,6 +214,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Active course info for dynamic content routing
   const [activeCourseClass, setActiveCourseClass] = useState<string>('Class 6');
   const [activeCourseType, setActiveCourseType] = useState<'booster' | 'master'>('booster');
+  const [activeClassSchedule, setActiveClassSchedule] = useState<any>(null);
 
   // Selected report period
   const [selectedReportPeriod, setSelectedReportPeriod] = useState<string>('Weekly');
@@ -401,6 +404,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setActiveCourseClass,
         activeCourseType,
         setActiveCourseType,
+        activeClassSchedule,
+        setActiveClassSchedule,
       }}
     >
       {children}

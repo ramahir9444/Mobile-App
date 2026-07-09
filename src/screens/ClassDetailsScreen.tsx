@@ -24,7 +24,7 @@ const getFontSize = (baseSize: number) => {
 // 1. CLASS DETAILS SCREEN
 // ==========================================
 export const ClassDetailsScreen: React.FC = () => {
-  const { navigateTo, goBack, setSelectedReportPeriod } = useApp();
+  const { navigateTo, goBack, setSelectedReportPeriod, activeClassSchedule } = useApp();
   const [activeSection, setActiveSection] = useState<'Materials' | 'Report' | 'Homework'>('Homework');
   const [downloadingFile, setDownloadingFile] = useState<string | null>(null);
   const [downloadProgress, setDownloadProgress] = useState<number>(0);
@@ -88,29 +88,33 @@ export const ClassDetailsScreen: React.FC = () => {
             <View className="flex-row justify-between items-start">
               <View className="flex-1 pr-3">
                 <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(14.5) }} className="text-slate-800 font-bold leading-snug">
-                  Beyond Zero : The World of Integers with Ninja Mam!
+                  {activeClassSchedule?.title || "Beyond Zero : The World of Integers with Ninja Mam!"}
                 </Text>
-                <View className="bg-slate-105 py-0.5 px-2.5 rounded self-start mt-2.5">
-                  <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(10) }} className="text-slate-500 font-bold">Maths</Text>
+                <View className="bg-slate-100 py-0.5 px-2.5 rounded self-start mt-2.5">
+                  <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(10) }} className="text-slate-500 font-bold">
+                    {activeClassSchedule?.subject || "Maths"}
+                  </Text>
                 </View>
               </View>
 
               <Image 
-                source={{ uri: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&auto=format&fit=crop&q=80' }} 
+                source={{ uri: activeClassSchedule?.teacherAvatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&auto=format&fit=crop&q=80' }} 
                 className="w-14 h-14 rounded-full bg-slate-100 border border-slate-100"
               />
             </View>
 
             <View className="flex-row justify-between items-center mt-5 pt-3.5 border-t border-slate-50">
               <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(12.5) }} className="text-slate-500 font-medium">
-                8:10 pm - 9:10 pm, 6 Jul
+                {activeClassSchedule ? `${activeClassSchedule.time}, ${activeClassSchedule.dateText}` : "8:10 pm - 9:10 pm, 6 Jul"}
               </Text>
               
               <TouchableOpacity 
-                onPress={() => showToast("Entering Live interactive Class...")}
+                onPress={() => showToast(activeClassSchedule?.status === 'Finished' ? "Opening replay recording..." : "Entering Live interactive Class...")}
                 className="bg-[#00B6A6] py-1 px-4.5 rounded-full"
               >
-                <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(11.5) }} className="text-white font-bold">Join Class</Text>
+                <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(11.5) }} className="text-white font-bold">
+                  {activeClassSchedule?.status === 'Finished' ? 'Watch Replay' : 'Join Class'}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>

@@ -652,7 +652,7 @@ export const DashboardScreen: React.FC = () => {
                 }} 
                 className={isBridgeActive ? 'text-slate-800 font-bold' : 'text-slate-400'}
               >
-                Bridge Course
+                Demo Class
               </Text>
               {isBridgeActive && <View className="w-10 h-[2.5px] bg-slate-900 rounded-full mt-1.5" />}
             </TouchableOpacity>
@@ -679,7 +679,7 @@ export const DashboardScreen: React.FC = () => {
                 }} 
                 className={!isBridgeActive ? 'text-slate-800 font-bold' : 'text-slate-400'}
               >
-                All Courses
+                Full Year Course
               </Text>
               {!isBridgeActive && <View className="w-10 h-[2.5px] bg-slate-900 rounded-full mt-1.5" />}
             </TouchableOpacity>
@@ -756,12 +756,18 @@ export const DashboardScreen: React.FC = () => {
                 </Text>
 
                 {/* Map dynamic Booster/Demo course registrations */}
-                {displayBoosterList.map((order: any, idx: number) => (
-                  <TouchableOpacity 
-                    key={order._id || idx}
-                    onPress={() => navigateTo('CLASS_DETAILS')}
-                    className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm"
-                  >
+                {displayBoosterList.map((order: any, idx: number) => {
+                  const orderClass = order.classInfo?.split('|')[0]?.trim() || selectedClass;
+                  return (
+                    <TouchableOpacity 
+                      key={order._id || idx}
+                      onPress={() => {
+                        setActiveCourseClass(orderClass);
+                        setActiveCourseType('booster');
+                        navigateTo('COURSE_DETAILS');
+                      }}
+                      className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm"
+                    >
                     <View className="flex-row justify-between items-start">
                       <View className="flex-1 pr-3">
                         <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(14.5) }} className="text-slate-800 font-bold leading-snug">
@@ -800,7 +806,8 @@ export const DashboardScreen: React.FC = () => {
                       </TouchableOpacity>
                     </View>
                   </TouchableOpacity>
-                ))}
+                );
+              })}
 
                 {/* Card 1: Default Welcome Test */}
                 <TouchableOpacity 
@@ -843,7 +850,7 @@ export const DashboardScreen: React.FC = () => {
               /* ALL COURSES TAB */
               <View className="space-y-4">
                 <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(16) }} className="text-slate-800 font-bold mb-2">
-                  Master Program Enrollments
+                  Full Year Course Enrollments
                 </Text>
 
                 {/* Map dynamic Master Program registrations */}

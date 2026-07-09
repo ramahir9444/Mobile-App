@@ -23,7 +23,7 @@ const getFontSize = (baseSize: number) => {
 };
 
 export const CourseDetailsScreen: React.FC = () => {
-  const { navigateTo, goBack, activeCourseClass, activeCourseType } = useApp();
+  const { navigateTo, goBack, activeCourseClass, activeCourseType, setActiveClassSchedule } = useApp();
   const [activeTab, setActiveTab] = useState<'Scheduled' | 'Finished'>('Scheduled');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [schedules, setSchedules] = useState<any[]>([]);
@@ -234,7 +234,10 @@ export const CourseDetailsScreen: React.FC = () => {
                     {groupedScheduled[date].map((item: any) => (
                       <TouchableOpacity 
                         key={item._id}
-                        onPress={() => navigateTo('CLASS_DETAILS')}
+                        onPress={() => {
+                          setActiveClassSchedule(item);
+                          navigateTo('CLASS_DETAILS');
+                        }}
                         className="bg-white rounded-2xl p-4.5 border border-slate-100 shadow-sm flex-row justify-between active:opacity-95 mb-3"
                       >
                         <View className="flex-1 pr-3 justify-between">
@@ -296,7 +299,14 @@ export const CourseDetailsScreen: React.FC = () => {
                     </Text>
 
                     {groupedFinished[date].map((item: any) => (
-                      <View key={item._id} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm mb-3">
+                      <TouchableOpacity 
+                        key={item._id} 
+                        onPress={() => {
+                          setActiveClassSchedule(item);
+                          navigateTo('CLASS_DETAILS');
+                        }}
+                        className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm mb-3 active:opacity-95"
+                      >
                         <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(14.5) }} className="text-slate-800 font-bold">
                           {item.title}
                         </Text>
@@ -318,7 +328,7 @@ export const CourseDetailsScreen: React.FC = () => {
                             </Text>
                           </TouchableOpacity>
                         </View>
-                      </View>
+                      </TouchableOpacity>
                     ))}
                   </View>
                 ))
