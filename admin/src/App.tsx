@@ -3,6 +3,7 @@ import {
   fetchHomepageConfig, 
   saveHomepageConfig, 
   uploadImage, 
+  uploadFile,
   fetchOrders, 
   fetchStudents,
   fetchSchedules,
@@ -153,7 +154,8 @@ export default function App() {
     materials: [],
     homework: []
   });
-  const [tempMaterial, setTempMaterial] = useState({ title: '', size: '1.2 MB' });
+  const [tempMaterial, setTempMaterial] = useState({ title: '', size: '0.0 MB', url: '' });
+  const [isUploadingMaterial, setIsUploadingMaterial] = useState(false);
   const [tempHomework, setTempHomework] = useState({ text: '', optA: '', optB: '', optC: '', optD: '', correct: 'A' });
   const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
 
@@ -845,34 +847,70 @@ export default function App() {
                 📂 Attach Study Materials / Notes for this Class
               </label>
               
-              <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
-                <input 
-                  type="text" 
-                  placeholder="Material File Title (e.g. [Lecture-Notes] Fractions.pdf)"
-                  value={tempMaterial.title}
-                  onChange={(e) => setTempMaterial({...tempMaterial, title: e.target.value})}
-                  style={{ flex: 2, padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
-                />
-                <input 
-                  type="text" 
-                  placeholder="Size (e.g. 1.2 MB)"
-                  value={tempMaterial.size}
-                  onChange={(e) => setTempMaterial({...tempMaterial, size: e.target.value})}
-                  style={{ flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
-                />
-                <button 
-                  type="button" 
-                  onClick={() => {
-                    if (!tempMaterial.title.trim()) return alert('Type a file title!');
-                    const updated = [...(newSchedule.materials || []), { title: tempMaterial.title, size: tempMaterial.size }];
-                    setNewSchedule({...newSchedule, materials: updated});
-                    setTempMaterial({ title: '', size: '1.2 MB' });
-                  }}
-                  className="save-btn" 
-                  style={{ padding: '10px 16px', background: '#00B6A6' }}
-                >
-                  ➕ Add File
-                </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <input 
+                    type="text" 
+                    placeholder="Material File Title (filled on upload or type manually)"
+                    value={tempMaterial.title}
+                    onChange={(e) => setTempMaterial({...tempMaterial, title: e.target.value})}
+                    style={{ flex: 2, padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
+                  />
+                  <input 
+                    type="text" 
+                    placeholder="Size (e.g. 1.2 MB)"
+                    value={tempMaterial.size}
+                    onChange={(e) => setTempMaterial({...tempMaterial, size: e.target.value})}
+                    style={{ flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                  <label className="image-upload-btn-label" style={{ padding: '8px 14px', background: '#475569', color: 'white', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', display: 'inline-block', textAlign: 'center', margin: 0 }}>
+                    {isUploadingMaterial ? 'Uploading File...' : '📁 Upload Notes/Workbook File'}
+                    <input 
+                      type="file" 
+                      accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.txt,.ppt,.pptx"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setIsUploadingMaterial(true);
+                        try {
+                          const reader = new FileReader();
+                          reader.onload = async () => {
+                            const base64 = (reader.result as string).split(',')[1];
+                            const url = await uploadFile(base64, file.name);
+                            setTempMaterial({
+                              title: file.name,
+                              size: (file.size / (1024 * 1024)).toFixed(1) + ' MB',
+                              url: url
+                            });
+                          };
+                          reader.readAsDataURL(file);
+                        } catch (err: any) {
+                          alert('File upload failed: ' + err.message);
+                        } finally {
+                          setIsUploadingMaterial(false);
+                        }
+                      }}
+                      style={{ display: 'none' }}
+                      disabled={isUploadingMaterial}
+                    />
+                  </label>
+                  
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      if (!tempMaterial.title.trim()) return alert('Type a title or upload a file first!');
+                      const updated = [...(newSchedule.materials || []), { title: tempMaterial.title, size: tempMaterial.size, url: tempMaterial.url }];
+                      setNewSchedule({...newSchedule, materials: updated});
+                      setTempMaterial({ title: '', size: '0.0 MB', url: '' });
+                    }}
+                    className="save-btn" 
+                    style={{ padding: '8px 16px', background: '#00B6A6', color: 'white', borderRadius: '6px' }}
+                  >
+                    ➕ Add to Materials List
+                  </button>
+                </div>
               </div>
 
               {/* Render lists of attached materials */}

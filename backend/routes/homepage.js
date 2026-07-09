@@ -6,7 +6,7 @@ const router = express.Router();
 // POST /api/homepage-configs/upload — upload helper for homepage configurations
 router.post('/upload', async (req, res) => {
   try {
-    const { base64 } = req.body;
+    const { base64, filename: reqFilename } = req.body;
     if (!base64) {
       return res.status(400).json({ success: false, error: 'base64 image data required' });
     }
@@ -19,7 +19,8 @@ router.post('/upload', async (req, res) => {
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
 
-    const filename = `homepage-image-${Date.now()}-${Math.floor(Math.random() * 1000)}.png`;
+    const ext = reqFilename ? path.extname(reqFilename) : '.png';
+    const filename = `homepage-file-${Date.now()}-${Math.floor(Math.random() * 1000)}${ext}`;
     const filePath = path.join(uploadsDir, filename);
 
     const buffer = Buffer.from(base64, 'base64');

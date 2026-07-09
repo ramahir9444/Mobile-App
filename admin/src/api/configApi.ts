@@ -29,7 +29,19 @@ export async function uploadImage(base64: string) {
   if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
   const json = await res.json();
   if (!json.success) throw new Error(json.error || 'Upload failed');
-  return json.url; // Returns e.g. '/uploads/image-xxx.png'
+  return json.url;
+}
+
+export async function uploadFile(base64: string, filename: string) {
+  const res = await fetch(`${API_BASE}/api/homepage-configs/upload`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ base64, filename })
+  });
+  if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error || 'Upload failed');
+  return json.url;
 }
 
 export async function fetchOrders() {
