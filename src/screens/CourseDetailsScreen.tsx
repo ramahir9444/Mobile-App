@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
 import { useApp } from '../context/AppContext';
+import { getAvatarUrl } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -258,7 +259,7 @@ export const CourseDetailsScreen: React.FC = () => {
                         <View className="items-end justify-between">
                           {item.teacherAvatar ? (
                             <Image 
-                              source={{ uri: item.teacherAvatar }} 
+                              source={{ uri: getAvatarUrl(item.teacherAvatar) || item.teacherAvatar }} 
                               className="w-14 h-14 rounded-full bg-slate-200"
                             />
                           ) : (

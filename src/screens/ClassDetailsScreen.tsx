@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
 import { useApp } from '../context/AppContext';
+import { getAvatarUrl } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -98,7 +99,7 @@ export const ClassDetailsScreen: React.FC = () => {
               </View>
 
               <Image 
-                source={{ uri: activeClassSchedule?.teacherAvatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&auto=format&fit=crop&q=80' }} 
+                source={{ uri: getAvatarUrl(activeClassSchedule?.teacherAvatar) || activeClassSchedule?.teacherAvatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&auto=format&fit=crop&q=80' }} 
                 className="w-14 h-14 rounded-full bg-slate-100 border border-slate-100"
               />
             </View>
