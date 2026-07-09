@@ -111,10 +111,14 @@ export const CourseDetailsScreen: React.FC = () => {
             {activeCourseType === 'booster' ? 'Bridge Course' : 'Master Program'} - {activeCourseClass}
           </Text>
           <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(13) }} className="text-slate-600 mt-1.5">
-            Concept Booster Course - 5X Efficient Learning Methods by IITians
+            {activeCourseType === 'booster' 
+              ? 'Concept Booster Course - 5X Efficient Learning Methods by IITians' 
+              : 'Long-Term Full Year Syllabus Program by Senior IITian Teachers'}
           </Text>
           <Text style={{ fontFamily: Theme.fonts.poppinsRegular, fontSize: getFontSize(11.5) }} className="text-slate-400 mt-1">
-            6 Jul - 11 Jul
+            {activeCourseType === 'booster' 
+              ? '6 Jul - 11 Jul' 
+              : 'Full Year Academic Program (15 Jun - 6 Mar)'}
           </Text>
 
           {/* Teacher row and Contact Mentor */}
