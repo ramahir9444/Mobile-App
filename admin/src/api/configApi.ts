@@ -47,3 +47,75 @@ export async function fetchStudents() {
   if (!json.success) throw new Error(json.error || 'Failed to fetch students');
   return json.data;
 }
+
+export async function fetchSchedules() {
+  const res = await fetch(`${API_BASE}/api/schedules`);
+  if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to fetch schedules');
+  return json.data;
+}
+
+export async function createSchedule(data: any) {
+  const res = await fetch(`${API_BASE}/api/schedules`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to create schedule');
+  return json.data;
+}
+
+export async function updateSchedule(id: string, data: any) {
+  const res = await fetch(`${API_BASE}/api/schedules/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to update schedule');
+  return json.data;
+}
+
+export async function deleteSchedule(id: string) {
+  const res = await fetch(`${API_BASE}/api/schedules/${id}`, {
+    method: 'DELETE'
+  });
+  if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to delete schedule');
+  return json.data;
+}
+
+export async function fetchMaterials() {
+  const res = await fetch(`${API_BASE}/api/materials`);
+  if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to fetch materials');
+  return json.data;
+}
+
+export async function createMaterial(data: any) {
+  const res = await fetch(`${API_BASE}/api/materials`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to create material');
+  return json.data;
+}
+
+export async function deleteMaterial(id: string) {
+  const res = await fetch(`${API_BASE}/api/materials/${id}`, {
+    method: 'DELETE'
+  });
+  if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to delete material');
+  return json.data;
+}

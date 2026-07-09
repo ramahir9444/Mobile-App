@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -7,7 +7,8 @@ import {
   Image, 
   StyleSheet, 
   Dimensions, 
-  StatusBar 
+  StatusBar,
+  ActivityIndicator
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -22,9 +23,11 @@ const getFontSize = (baseSize: number) => {
 };
 
 export const CourseDetailsScreen: React.FC = () => {
-  const { navigateTo, goBack, selectedClass } = useApp();
+  const { navigateTo, goBack, activeCourseClass, activeCourseType } = useApp();
   const [activeTab, setActiveTab] = useState<'Scheduled' | 'Finished'>('Scheduled');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [schedules, setSchedules] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -33,7 +36,49 @@ export const CourseDetailsScreen: React.FC = () => {
     }, 2000);
   };
 
+  useEffect(() => {
+    const fetchSchedules = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`http://localhost:3001/api/schedules`);
+        const json = await res.json();
+        if (json.success && json.data) {
+          const filtered = json.data.filter((s: any) => 
+            s.gradeClass === activeCourseClass && 
+            s.courseType === activeCourseType
+          );
+          setSchedules(filtered);
+        }
+      } catch (err) {
+        console.error('Failed to load schedules in student app:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSchedules();
+  }, [activeCourseClass, activeCourseType]);
+
   const isScheduled = activeTab === 'Scheduled';
+  const scheduledList = schedules.filter((s: any) => s.status === 'Scheduled');
+  const finishedList = schedules.filter((s: any) => s.status === 'Finished');
+
+  // Group scheduled list by dateText
+  const groupedScheduled: { [key: string]: any[] } = {};
+  scheduledList.forEach(item => {
+    if (!groupedScheduled[item.dateText]) {
+      groupedScheduled[item.dateText] = [];
+    }
+    groupedScheduled[item.dateText].push(item);
+  });
+
+  // Group finished list by dateText
+  const groupedFinished: { [key: string]: any[] } = {};
+  finishedList.forEach(item => {
+    if (!groupedFinished[item.dateText]) {
+      groupedFinished[item.dateText] = [];
+    }
+    groupedFinished[item.dateText].push(item);
+  });
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }} edges={['top', 'left', 'right', 'bottom']}>
@@ -61,9 +106,9 @@ export const CourseDetailsScreen: React.FC = () => {
         className="flex-1 bg-white"
       >
         {/* COURSE META SECTION */}
-        <View className="px-5 pt-4 pb-5 border-b border-slate-50">
+        <View className="px-5 pt-4 pb-5 border-b border-slate-55">
           <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(21) }} className="text-slate-800 font-bold leading-tight">
-            Bridge Course - {selectedClass}
+            {activeCourseType === 'booster' ? 'Bridge Course' : 'Master Program'} - {activeCourseClass}
           </Text>
           <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(13) }} className="text-slate-600 mt-1.5">
             Concept Booster Course - 5X Efficient Learning Methods by IITians
@@ -169,151 +214,111 @@ export const CourseDetailsScreen: React.FC = () => {
           {isScheduled ? (
             /* SCHEDULED LIST */
             <View className="space-y-6">
-              {/* 6 Jul, Mon */}
-              <View>
-                <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12.5) }} className="text-slate-800 font-bold mb-3 pl-1">
-                  6 Jul, Mon
-                </Text>
-
-                {/* Card */}
-                <TouchableOpacity 
-                  onPress={() => navigateTo('CLASS_DETAILS')}
-                  className="bg-white rounded-2xl p-4.5 border border-slate-100 shadow-sm flex-row justify-between active:opacity-95"
-                >
-                  <View className="flex-1 pr-3 justify-between">
-                    <View>
-                      <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13.5) }} className="text-slate-850 font-bold leading-snug">
-                        Beyond Zero : The World of Integers with Ninja Mam!
-                      </Text>
-                      <View className="bg-slate-100 py-0.5 px-2 rounded self-start mt-2">
-                        <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-500 text-[8.5px] uppercase font-bold">Maths</Text>
-                      </View>
-                    </View>
-                    
-                    <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(11.5) }} className="text-[#FF5E00] font-bold mt-4">
-                      8:10 pm - 9:10 pm
-                    </Text>
-                  </View>
-
-                  <View className="items-end justify-between">
-                    <Image 
-                      source={{ uri: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&auto=format&fit=crop&q=80' }} 
-                      className="w-14 h-14 rounded-full bg-slate-200"
-                    />
-                    <TouchableOpacity 
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        showToast("Entering Live interactive Class...");
-                      }}
-                      className="bg-[#00B6A6] py-1 px-3.5 rounded-full active:bg-teal-650 mt-3"
-                    >
-                      <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(10.5) }} className="text-white font-bold">Join Class</Text>
-                    </TouchableOpacity>
-                  </View>
-                </TouchableOpacity>
-              </View>
-
-              {/* 7 Jul, Tue */}
-              <View className="space-y-4">
-                <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12.5) }} className="text-slate-800 font-bold pl-1">
-                  7 Jul, Tue
-                </Text>
-
-                {/* Card 1: Vedic Maths */}
-                <View className="bg-white rounded-2xl p-4.5 border border-slate-100 shadow-sm flex-row justify-between">
-                  <View className="flex-1 pr-3 justify-between">
-                    <View>
-                      <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13.5) }} className="text-slate-850 font-bold leading-snug">
-                        Vedic Maths !!
-                      </Text>
-                      <View className="bg-slate-100 py-0.5 px-2 rounded self-start mt-2">
-                        <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-500 text-[8.5px] uppercase font-bold">Maths</Text>
-                      </View>
-                    </View>
-                    
-                    <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(11.5) }} className="text-slate-500 mt-4">
-                      5:30 pm - 6:00 pm
-                    </Text>
-                  </View>
-
-                  <View className="items-end justify-between">
-                    <Image 
-                      source={{ uri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80' }} 
-                      className="w-14 h-14 rounded-full bg-slate-200"
-                    />
-                    <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(11) }} className="text-slate-450 italic mt-3">
-                      Not Started
-                    </Text>
-                  </View>
+              {loading ? (
+                <ActivityIndicator size="small" color="#00B6A6" style={{ marginTop: 20 }} />
+              ) : Object.keys(groupedScheduled).length === 0 ? (
+                <View className="items-center py-10">
+                  <Text style={{ fontFamily: Theme.fonts.poppinsMedium }} className="text-slate-400 text-xs">No scheduled classes</Text>
                 </View>
-
-                {/* Card 2: PTM */}
-                <View className="bg-white rounded-2xl p-4.5 border border-slate-100 shadow-sm flex-row justify-between">
-                  <View className="flex-1 pr-3 justify-between">
-                    <View>
-                      <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13.5) }} className="text-slate-855 font-bold leading-snug">
-                        PTM : Join with Parents for Surprise{"\n"}Olympiad Level Mastery With Ninja Mam!
-                      </Text>
-                      <View className="bg-slate-100 py-0.5 px-2 rounded self-start mt-2">
-                        <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-500 text-[8.5px] uppercase font-bold">Maths</Text>
-                      </View>
-                    </View>
-                    
-                    <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(11.5) }} className="text-slate-500 mt-4">
-                      8:10 pm - 9:10 pm
+              ) : (
+                Object.keys(groupedScheduled).map((date) => (
+                  <View key={date} className="mb-4">
+                    <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12.5) }} className="text-slate-800 font-bold mb-3 pl-1">
+                      {date}
                     </Text>
-                  </View>
 
-                  <View className="items-end justify-between">
-                    <Image 
-                      source={{ uri: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&auto=format&fit=crop&q=80' }} 
-                      className="w-14 h-14 rounded-full bg-slate-200"
-                    />
-                    <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(11) }} className="text-slate-455 italic mt-3">
-                      Not Started
-                    </Text>
+                    {groupedScheduled[date].map((item: any) => (
+                      <TouchableOpacity 
+                        key={item._id}
+                        onPress={() => navigateTo('CLASS_DETAILS')}
+                        className="bg-white rounded-2xl p-4.5 border border-slate-100 shadow-sm flex-row justify-between active:opacity-95 mb-3"
+                      >
+                        <View className="flex-1 pr-3 justify-between">
+                          <View>
+                            <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13.5) }} className="text-slate-850 font-bold leading-snug">
+                              {item.title}
+                            </Text>
+                            <View className="bg-slate-100 py-0.5 px-2 rounded self-start mt-2">
+                              <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-500 text-[8.5px] uppercase font-bold">{item.subject}</Text>
+                            </View>
+                          </View>
+                          
+                          <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(11.5) }} className="text-[#FF5E00] font-bold mt-4">
+                            {item.time}
+                          </Text>
+                        </View>
+
+                        <View className="items-end justify-between">
+                          {item.teacherAvatar ? (
+                            <Image 
+                              source={{ uri: item.teacherAvatar }} 
+                              className="w-14 h-14 rounded-full bg-slate-200"
+                            />
+                          ) : (
+                            <View className="w-14 h-14 rounded-full bg-slate-200 items-center justify-center">
+                              <Text>👩‍🏫</Text>
+                            </View>
+                          )}
+                          <TouchableOpacity 
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              showToast("Entering Live interactive Class...");
+                            }}
+                            className="bg-[#00B6A6] py-1 px-3.5 rounded-full active:bg-teal-650 mt-3"
+                          >
+                            <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(10.5) }} className="text-white font-bold">Join Class</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
                   </View>
-                </View>
-              </View>
+                ))
+              )}
             </View>
           ) : (
             /* FINISHED LIST */
             <View className="space-y-4">
-              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12.5) }} className="text-slate-800 font-bold pl-1 mb-2">
-                29 Jun, Mon
-              </Text>
-
-              {/* Finished Card: Welcome Test */}
-              <View className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-                <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(14.5) }} className="text-slate-800 font-bold">
-                  Welcome Test
-                </Text>
-                
-                <View className="bg-slate-100 py-0.5 px-2 rounded self-start mt-2">
-                  <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-500 text-[8.5px] uppercase font-bold">Test</Text>
+              {loading ? (
+                <ActivityIndicator size="small" color="#00B6A6" style={{ marginTop: 20 }} />
+              ) : Object.keys(groupedFinished).length === 0 ? (
+                <View className="items-center py-10">
+                  <Text style={{ fontFamily: Theme.fonts.poppinsMedium }} className="text-slate-400 text-xs">No finished classes</Text>
                 </View>
-
-                <View className="flex-row justify-between items-center mt-5 pt-3 border-t border-slate-55">
-                  <Text style={{ fontFamily: Theme.fonts.poppinsMedium }} className="text-slate-505 text-xs font-medium">
-                    30 minutes
-                  </Text>
-                  <TouchableOpacity 
-                    onPress={() => navigateTo('TEST_REPORT')}
-                    className="bg-[#E0F7F6] py-1 px-4.5 rounded-full active:bg-[#B2DFDB]"
-                  >
-                    <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(11.5) }} className="text-[#00B6A6] font-bold">
-                      View Report
+              ) : (
+                Object.keys(groupedFinished).map((date) => (
+                  <View key={date} className="mb-4">
+                    <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12.5) }} className="text-slate-800 font-bold pl-1 mb-2">
+                      {date}
                     </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
 
-              {/* Watermark divider */}
-              <View className="items-center py-6 opacity-30">
-                <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(10) }} className="text-slate-400">
-                  — Oda Class —
-                </Text>
-              </View>
+                    {groupedFinished[date].map((item: any) => (
+                      <View key={item._id} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm mb-3">
+                        <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(14.5) }} className="text-slate-800 font-bold">
+                          {item.title}
+                        </Text>
+                        
+                        <View className="bg-slate-100 py-0.5 px-2 rounded self-start mt-2">
+                          <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-500 text-[8.5px] uppercase font-bold">{item.subject}</Text>
+                        </View>
+
+                        <View className="flex-row justify-between items-center mt-5 pt-3 border-t border-slate-55">
+                          <Text style={{ fontFamily: Theme.fonts.poppinsMedium }} className="text-slate-505 text-xs font-medium">
+                            {item.time}
+                          </Text>
+                          <TouchableOpacity 
+                            onPress={() => navigateTo('TEST_REPORT')}
+                            className="bg-[#E0F7F6] py-1 px-4.5 rounded-full active:bg-[#B2DFDB]"
+                          >
+                            <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(11.5) }} className="text-[#00B6A6] font-bold">
+                              View Report
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                ))
+              )}
             </View>
           )}
         </View>

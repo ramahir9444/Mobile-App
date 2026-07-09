@@ -44,7 +44,9 @@ export const DashboardScreen: React.FC = () => {
     setIsEnrolled,
     activeTab,
     setActiveTab,
-    user
+    user,
+    setActiveCourseClass,
+    setActiveCourseType
   } = useApp();
   const [isClassSheetVisible, setIsClassSheetVisible] = useState<boolean>(false);
   const [studyTab, setStudyTab] = useState<'Bridge' | 'All'>('Bridge');
@@ -825,7 +827,11 @@ export const DashboardScreen: React.FC = () => {
 
                 {/* Course Schedule Button */}
                 <TouchableOpacity 
-                  onPress={() => navigateTo('COURSE_DETAILS')}
+                  onPress={() => {
+                    setActiveCourseClass(selectedClass);
+                    setActiveCourseType('booster');
+                    navigateTo('COURSE_DETAILS');
+                  }}
                   className="bg-slate-100 py-2.5 px-6 rounded-full self-center mt-6"
                 >
                   <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12) }} className="text-slate-600 font-bold">
@@ -841,13 +847,19 @@ export const DashboardScreen: React.FC = () => {
                 </Text>
 
                 {/* Map dynamic Master Program registrations */}
-                {displayMasterList.map((order: any, idx: number) => (
-                  <TouchableOpacity 
-                    key={order._id || idx}
-                    onPress={() => navigateTo('COURSE_DETAILS')}
-                    className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm mb-4"
-                  >
-                    <View className="flex-row justify-between items-start">
+                {displayMasterList.map((order: any, idx: number) => {
+                  const orderClass = order.classInfo?.split('|')[0]?.trim() || selectedClass;
+                  return (
+                    <TouchableOpacity 
+                      key={order._id || idx}
+                      onPress={() => {
+                        setActiveCourseClass(orderClass);
+                        setActiveCourseType('master');
+                        navigateTo('COURSE_DETAILS');
+                      }}
+                      className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm mb-4"
+                    >
+                      <View className="flex-row justify-between items-start">
                       <View className="flex-1 pr-3">
                         <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(14.5) }} className="text-slate-800 font-bold leading-snug">
                           {order.courseTitle}
@@ -891,7 +903,8 @@ export const DashboardScreen: React.FC = () => {
                       </TouchableOpacity>
                     </View>
                   </TouchableOpacity>
-                ))}
+                );
+              })}
 
                 {displayMasterList.length === 0 && (
                   <View className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm items-center py-10">

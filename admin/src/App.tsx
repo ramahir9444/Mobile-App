@@ -1,5 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { fetchHomepageConfig, saveHomepageConfig, uploadImage, fetchOrders, fetchStudents } from './api/configApi';
+import { 
+  fetchHomepageConfig, 
+  saveHomepageConfig, 
+  uploadImage, 
+  fetchOrders, 
+  fetchStudents,
+  fetchSchedules,
+  createSchedule,
+  updateSchedule,
+  deleteSchedule,
+  fetchMaterials,
+  createMaterial,
+  deleteMaterial
+} from './api/configApi';
 
 // Reusable Section Component
 const FormSection: React.FC<{
@@ -110,11 +123,11 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'config' | 'orders' | 'students'>('config');
+  const [activeTab, setActiveTab] = useState<'config' | 'orders' | 'students' | 'schedules' | 'materials'>('config');
   const [orders, setOrders] = useState<any[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'paid'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'paid' | 'booster' | 'master' | 'scheduled' | 'finished'>('all');
   const [ordersClassFilter, setOrdersClassFilter] = useState('all');
 
   // Students list states
@@ -123,6 +136,33 @@ export default function App() {
   const [studentsSearchQuery, setStudentsSearchQuery] = useState('');
   const [studentsClassFilter, setStudentsClassFilter] = useState('all');
   const [studentsEnrollFilter, setStudentsEnrollFilter] = useState('all');
+
+  // Schedules states
+  const [schedules, setSchedules] = useState<any[]>([]);
+  const [schedulesLoading, setSchedulesLoading] = useState(false);
+  const [newSchedule, setNewSchedule] = useState({
+    title: '',
+    subject: 'Maths',
+    time: '8:10 pm - 9:10 pm',
+    dateText: '6 Jul, Mon',
+    gradeClass: 'Class 6',
+    courseType: 'booster',
+    teacherName: 'Ninja Mam (Priyanka)',
+    teacherAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100',
+    status: 'Scheduled'
+  });
+  const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
+
+  // Materials states
+  const [materials, setMaterials] = useState<any[]>([]);
+  const [materialsLoading, setMaterialsLoading] = useState(false);
+  const [newMaterial, setNewMaterial] = useState({
+    fileName: '',
+    fileSize: '1.0M',
+    gradeClass: 'Class 6',
+    courseType: 'booster',
+    fileUrl: ''
+  });
 
   const loadOrders = async () => {
     setOrdersLoading(true);
@@ -150,11 +190,41 @@ export default function App() {
     }
   };
 
+  const loadSchedules = async () => {
+    setSchedulesLoading(true);
+    try {
+      const data = await fetchSchedules();
+      setSchedules(data || []);
+    } catch (err: any) {
+      console.error(err);
+      showToast('Failed to load schedules.');
+    } finally {
+      setSchedulesLoading(false);
+    }
+  };
+
+  const loadMaterials = async () => {
+    setMaterialsLoading(true);
+    try {
+      const data = await fetchMaterials();
+      setMaterials(data || []);
+    } catch (err: any) {
+      console.error(err);
+      showToast('Failed to load materials.');
+    } finally {
+      setMaterialsLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'orders') {
       loadOrders();
     } else if (activeTab === 'students') {
       loadStudents();
+    } else if (activeTab === 'schedules') {
+      loadSchedules();
+    } else if (activeTab === 'materials') {
+      loadMaterials();
     }
   }, [activeTab]);
 
@@ -572,6 +642,547 @@ export default function App() {
     );
   };
 
+  const renderSchedulesManager = () => {
+    const filteredSchedules = schedules.filter((s: any) => {
+      const matchesSearch = s.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        s.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.teacherName.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesClass = ordersClassFilter === 'all' || s.gradeClass === ordersClassFilter;
+      const matchesType = statusFilter === 'all' || s.courseType === statusFilter || s.status.toLowerCase() === statusFilter.toLowerCase();
+      return matchesSearch && matchesClass && matchesType;
+    });
+
+    const handleCreateOrUpdateSchedule = async (e: React.FormEvent) => {
+      e.preventDefault();
+      try {
+        if (editingScheduleId) {
+          await updateSchedule(editingScheduleId, newSchedule);
+          showToast('Schedule updated successfully! 📅');
+        } else {
+          await createSchedule(newSchedule);
+          showToast('Schedule created successfully! 📅');
+        }
+        setNewSchedule({
+          title: '',
+          subject: 'Maths',
+          time: '8:10 pm - 9:10 pm',
+          dateText: '6 Jul, Mon',
+          gradeClass: 'Class 6',
+          courseType: 'booster',
+          teacherName: 'Ninja Mam (Priyanka)',
+          teacherAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100',
+          status: 'Scheduled'
+        });
+        setEditingScheduleId(null);
+        loadSchedules();
+      } catch (err: any) {
+        alert('Failed to save schedule: ' + err.message);
+      }
+    };
+
+    const handleToggleStatus = async (item: any) => {
+      try {
+        const nextStatus = item.status === 'Scheduled' ? 'Finished' : 'Scheduled';
+        await updateSchedule(item._id, { status: nextStatus });
+        showToast(`Class status updated to ${nextStatus}!`);
+        loadSchedules();
+      } catch (err: any) {
+        alert('Failed to toggle status: ' + err.message);
+      }
+    };
+
+    const handleDeleteSchedule = async (id: string) => {
+      if (!confirm('Are you sure you want to delete this class schedule?')) return;
+      try {
+        await deleteSchedule(id);
+        showToast('Schedule deleted.');
+        loadSchedules();
+      } catch (err: any) {
+        alert('Failed to delete: ' + err.message);
+      }
+    };
+
+    const handleEditClick = (item: any) => {
+      setEditingScheduleId(item._id);
+      setNewSchedule({
+        title: item.title,
+        subject: item.subject,
+        time: item.time,
+        dateText: item.dateText,
+        gradeClass: item.gradeClass,
+        courseType: item.courseType,
+        teacherName: item.teacherName,
+        teacherAvatar: item.teacherAvatar,
+        status: item.status
+      });
+    };
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <header>
+          <div>
+            <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'white' }}>Live Class Scheduling</h1>
+            <p style={{ margin: '4px 0 0', color: '#94A3B8', fontSize: '13px' }}>
+              Schedule new lectures or tests, update content, and toggle live/finished states.
+            </p>
+          </div>
+          <button type="button" onClick={loadSchedules} className="save-btn" style={{ padding: '8px 16px', fontSize: '12px' }} disabled={schedulesLoading}>
+            {schedulesLoading ? 'Refreshing...' : '🔄 Refresh Data'}
+          </button>
+        </header>
+
+        {/* CRUD Form */}
+        <div className="card">
+          <h2 style={{ fontSize: '16px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '10px' }}>
+            {editingScheduleId ? '✏️ Edit Class Schedule' : '➕ Schedule a New Live Class'}
+          </h2>
+          <form onSubmit={handleCreateOrUpdateSchedule} className="form-grid" style={{ gap: '15px' }}>
+            <div className="form-group span-2">
+              <label>Lecture Title</label>
+              <input 
+                type="text" 
+                required
+                value={newSchedule.title} 
+                onChange={(e) => setNewSchedule({...newSchedule, title: e.target.value})} 
+                placeholder="e.g. Beyond Zero : The World of Integers with Ninja Mam!"
+              />
+            </div>
+            <div className="form-group">
+              <label>Subject</label>
+              <select 
+                value={newSchedule.subject} 
+                onChange={(e) => setNewSchedule({...newSchedule, subject: e.target.value})}
+                style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)' }}
+              >
+                <option value="Maths">Maths</option>
+                <option value="Science">Science</option>
+                <option value="PTM">PTM</option>
+                <option value="Test">Test</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Grade Class</label>
+              <select 
+                value={newSchedule.gradeClass} 
+                onChange={(e) => setNewSchedule({...newSchedule, gradeClass: e.target.value})}
+                style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)' }}
+              >
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(n => (
+                  <option key={n} value={`Class ${n}`}>Grade Class {n}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Course Type</label>
+              <select 
+                value={newSchedule.courseType} 
+                onChange={(e) => setNewSchedule({...newSchedule, courseType: e.target.value})}
+                style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)' }}
+              >
+                <option value="booster">Booster Course (6 Days)</option>
+                <option value="master">Long-term Master Program</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Class Status</label>
+              <select 
+                value={newSchedule.status} 
+                onChange={(e) => setNewSchedule({...newSchedule, status: e.target.value})}
+                style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)' }}
+              >
+                <option value="Scheduled">Scheduled</option>
+                <option value="Finished">Finished</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Date (Text Display)</label>
+              <input 
+                type="text" 
+                required
+                value={newSchedule.dateText} 
+                onChange={(e) => setNewSchedule({...newSchedule, dateText: e.target.value})} 
+                placeholder="e.g. 6 Jul, Mon"
+              />
+            </div>
+            <div className="form-group">
+              <label>Time (Text Display)</label>
+              <input 
+                type="text" 
+                required
+                value={newSchedule.time} 
+                onChange={(e) => setNewSchedule({...newSchedule, time: e.target.value})} 
+                placeholder="e.g. 8:10 pm - 9:10 pm"
+              />
+            </div>
+            <div className="form-group">
+              <label>Teacher Name</label>
+              <input 
+                type="text" 
+                value={newSchedule.teacherName} 
+                onChange={(e) => setNewSchedule({...newSchedule, teacherName: e.target.value})} 
+                placeholder="e.g. Ninja Mam (Priyanka)"
+              />
+            </div>
+            <div className="form-group">
+              <ImageField 
+                label="Teacher Avatar URL" 
+                value={newSchedule.teacherAvatar} 
+                onChange={(url) => setNewSchedule({...newSchedule, teacherAvatar: url})} 
+              />
+            </div>
+            <div className="form-group span-2" style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+              <button type="submit" className="save-btn" style={{ flex: 1, padding: '12px' }}>
+                {editingScheduleId ? '💾 Save Schedule Changes' : '➕ Create Class Schedule'}
+              </button>
+              {editingScheduleId && (
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setEditingScheduleId(null);
+                    setNewSchedule({
+                      title: '',
+                      subject: 'Maths',
+                      time: '8:10 pm - 9:10 pm',
+                      dateText: '6 Jul, Mon',
+                      gradeClass: 'Class 6',
+                      courseType: 'booster',
+                      teacherName: 'Ninja Mam (Priyanka)',
+                      teacherAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100',
+                      status: 'Scheduled'
+                    });
+                  }} 
+                  className="save-btn" 
+                  style={{ padding: '12px 20px', background: '#475569' }}
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
+
+        {/* Filters */}
+        <div className="search-container" style={{ marginTop: '10px' }}>
+          <div className="search-input-wrap">
+            <span>🔍</span>
+            <input 
+              type="text" 
+              placeholder="Search schedules by title, subject..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <select 
+            value={ordersClassFilter} 
+            onChange={(e) => setOrdersClassFilter(e.target.value)}
+            style={{ width: '180px', padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
+          >
+            <option value="all">All Grades</option>
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(n => (
+              <option key={n} value={`Class ${n}`}>Grade Class {n}</option>
+            ))}
+          </select>
+          <select 
+            value={statusFilter} 
+            onChange={(e) => setStatusFilter(e.target.value as any)}
+            style={{ width: '180px', padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
+          >
+            <option value="all">All Types/Statuses</option>
+            <option value="booster">Booster Course Only</option>
+            <option value="master">Master Program Only</option>
+            <option value="scheduled">Scheduled Status Only</option>
+            <option value="finished">Finished Status Only</option>
+          </select>
+        </div>
+
+        {/* List View */}
+        <div className="table-wrap">
+          {schedulesLoading ? (
+            <div style={{ padding: '40px', textAlign: 'center', color: '#94A3B8' }}>Loading schedules...</div>
+          ) : filteredSchedules.length === 0 ? (
+            <div style={{ padding: '40px', textAlign: 'center', color: '#94A3B8' }}>No class schedules found.</div>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>Class Details</th>
+                  <th>Grade / Course</th>
+                  <th>Date &amp; Time</th>
+                  <th>Teacher</th>
+                  <th>Status</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredSchedules.map((item) => (
+                  <tr key={item._id}>
+                    <td>
+                      <div style={{ fontWeight: 650, color: 'white' }}>{item.title}</div>
+                      <div style={{ fontSize: '11px', color: '#00B6A6', marginTop: '2px', fontWeight: 500 }}>{item.subject}</div>
+                    </td>
+                    <td>
+                      <div style={{ fontSize: '12px' }}>{item.gradeClass}</div>
+                      <div style={{ fontSize: '11px', color: '#94A3B8', textTransform: 'capitalize' }}>{item.courseType}</div>
+                    </td>
+                    <td>
+                      <div style={{ fontSize: '12px' }}>{item.dateText}</div>
+                      <div style={{ fontSize: '11.5px', color: '#FF5E00' }}>{item.time}</div>
+                    </td>
+                    <td style={{ verticalAlign: 'middle' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {item.teacherAvatar && (
+                          <img src={item.teacherAvatar} alt="" style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }} />
+                        )}
+                        <span style={{ fontSize: '12px' }}>{item.teacherName}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`badge ${item.status === 'Finished' ? 'paid' : 'pending'}`} style={{
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        fontWeight: 650,
+                        border: '1px solid',
+                        borderColor: item.status === 'Finished' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(251, 191, 36, 0.3)',
+                        background: item.status === 'Finished' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(251, 191, 36, 0.1)',
+                        color: item.status === 'Finished' ? '#10B981' : '#FBBF24'
+                      }}>
+                        {item.status}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'inline-flex', gap: '8px' }}>
+                        <button 
+                          type="button" 
+                          onClick={() => handleToggleStatus(item)}
+                          className="action-btn"
+                          style={{ background: item.status === 'Finished' ? '#64748B' : '#10B981', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '5px', fontSize: '11.5px', cursor: 'pointer', fontWeight: 600 }}
+                        >
+                          {item.status === 'Finished' ? 'Mark Live' : 'Mark Finished'}
+                        </button>
+                        <button 
+                          type="button" 
+                          onClick={() => handleEditClick(item)}
+                          className="action-btn"
+                          style={{ background: '#3B82F6', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '5px', fontSize: '11.5px', cursor: 'pointer', fontWeight: 600 }}
+                        >
+                          Edit
+                        </button>
+                        <button 
+                          type="button" 
+                          onClick={() => handleDeleteSchedule(item._id)}
+                          className="action-btn"
+                          style={{ background: '#EF4444', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '5px', fontSize: '11.5px', cursor: 'pointer', fontWeight: 600 }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderMaterialsManager = () => {
+    const filteredMaterials = materials.filter((m: any) => {
+      const matchesSearch = m.fileName.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesClass = ordersClassFilter === 'all' || m.gradeClass === ordersClassFilter;
+      const matchesType = statusFilter === 'all' || m.courseType === statusFilter;
+      return matchesSearch && matchesClass && matchesType;
+    });
+
+    const handleCreateMaterial = async (e: React.FormEvent) => {
+      e.preventDefault();
+      try {
+        await createMaterial(newMaterial);
+        showToast('Study Material uploaded successfully! 📚');
+        setNewMaterial({
+          fileName: '',
+          fileSize: '1.0M',
+          gradeClass: 'Class 6',
+          courseType: 'booster',
+          fileUrl: ''
+        });
+        loadMaterials();
+      } catch (err: any) {
+        alert('Failed to upload material: ' + err.message);
+      }
+    };
+
+    const handleDeleteMaterial = async (id: string) => {
+      if (!confirm('Are you sure you want to delete this study material file?')) return;
+      try {
+        await deleteMaterial(id);
+        showToast('Material deleted.');
+        loadMaterials();
+      } catch (err: any) {
+        alert('Failed to delete: ' + err.message);
+      }
+    };
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <header>
+          <div>
+            <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'white' }}>Study Materials &amp; Notes CRUD</h1>
+            <p style={{ margin: '4px 0 0', color: '#94A3B8', fontSize: '13px' }}>
+              Upload notes, homework files, and modular textbooks for students to download.
+            </p>
+          </div>
+          <button type="button" onClick={loadMaterials} className="save-btn" style={{ padding: '8px 16px', fontSize: '12px' }} disabled={materialsLoading}>
+            {materialsLoading ? 'Refreshing...' : '🔄 Refresh Data'}
+          </button>
+        </header>
+
+        {/* CRUD Form */}
+        <div className="card">
+          <h2 style={{ fontSize: '16px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '10px' }}>
+            ➕ Upload Study Material PDF / Note File
+          </h2>
+          <form onSubmit={handleCreateMaterial} className="form-grid" style={{ gap: '15px' }}>
+            <div className="form-group span-2">
+              <label>File Name</label>
+              <input 
+                type="text" 
+                required
+                value={newMaterial.fileName} 
+                onChange={(e) => setNewMaterial({...newMaterial, fileName: e.target.value})} 
+                placeholder="e.g. [E-Module]Motion.pdf"
+              />
+            </div>
+            <div className="form-group">
+              <label>File Size (Display string)</label>
+              <input 
+                type="text" 
+                required
+                value={newMaterial.fileSize} 
+                onChange={(e) => setNewMaterial({...newMaterial, fileSize: e.target.value})} 
+                placeholder="e.g. 1.6M or 900K"
+              />
+            </div>
+            <div className="form-group">
+              <label>Grade Class</label>
+              <select 
+                value={newMaterial.gradeClass} 
+                onChange={(e) => setNewMaterial({...newMaterial, gradeClass: e.target.value})}
+                style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)' }}
+              >
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(n => (
+                  <option key={n} value={`Class ${n}`}>Grade Class {n}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Course Type</label>
+              <select 
+                value={newMaterial.courseType} 
+                onChange={(e) => setNewMaterial({...newMaterial, courseType: e.target.value})}
+                style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)' }}
+              >
+                <option value="booster">Booster Course (6 Days)</option>
+                <option value="master">Long-term Master Program</option>
+              </select>
+            </div>
+            <div className="form-group">
+              <label>File Resource URL (Optional)</label>
+              <input 
+                type="text" 
+                value={newMaterial.fileUrl} 
+                onChange={(e) => setNewMaterial({...newMaterial, fileUrl: e.target.value})} 
+                placeholder="e.g. https://domain.com/notes.pdf"
+              />
+            </div>
+            <div className="form-group span-2" style={{ marginTop: '10px' }}>
+              <button type="submit" className="save-btn" style={{ width: '100%', padding: '12px' }}>
+                ➕ Register Study Material PDF
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* Filters */}
+        <div className="search-container" style={{ marginTop: '10px' }}>
+          <div className="search-input-wrap">
+            <span>🔍</span>
+            <input 
+              type="text" 
+              placeholder="Search materials by file name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          <select 
+            value={ordersClassFilter} 
+            onChange={(e) => setOrdersClassFilter(e.target.value)}
+            style={{ width: '180px', padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
+          >
+            <option value="all">All Grades</option>
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(n => (
+              <option key={n} value={`Class ${n}`}>Grade Class {n}</option>
+            ))}
+          </select>
+          <select 
+            value={statusFilter} 
+            onChange={(e) => setStatusFilter(e.target.value as any)}
+            style={{ width: '180px', padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
+          >
+            <option value="all">All Types</option>
+            <option value="booster">Booster Course Only</option>
+            <option value="master">Master Program Only</option>
+          </select>
+        </div>
+
+        {/* List View */}
+        <div className="table-wrap">
+          {materialsLoading ? (
+            <div style={{ padding: '40px', textAlign: 'center', color: '#94A3B8' }}>Loading materials...</div>
+          ) : filteredMaterials.length === 0 ? (
+            <div style={{ padding: '40px', textAlign: 'center', color: '#94A3B8' }}>No study materials found.</div>
+          ) : (
+            <table>
+              <thead>
+                <tr>
+                  <th>File Name</th>
+                  <th>Size</th>
+                  <th>Grade Class</th>
+                  <th>Course Type</th>
+                  <th>Uploaded Date</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredMaterials.map((item) => (
+                  <tr key={item._id}>
+                    <td style={{ fontWeight: 650, color: 'white' }}>{item.fileName}</td>
+                    <td style={{ fontSize: '12px', color: '#FF5E00', fontWeight: 600 }}>{item.fileSize}</td>
+                    <td style={{ fontSize: '12px' }}>{item.gradeClass}</td>
+                    <td style={{ fontSize: '11px', textTransform: 'capitalize', color: '#00B6A6', fontWeight: 500 }}>{item.courseType}</td>
+                    <td style={{ fontSize: '11px', color: '#94A3B8' }}>{new Date(item.createdAt).toLocaleDateString()}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button 
+                        type="button" 
+                        onClick={() => handleDeleteMaterial(item._id)}
+                        className="action-btn"
+                        style={{ background: '#EF4444', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '5px', fontSize: '11.5px', cursor: 'pointer', fontWeight: 600 }}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   if (loading && activeTab === 'config') {
     return (
       <div style={{ display: 'flex', flex: 1, height: '100vh', justifyContent: 'center', alignItems: 'center', background: '#0F172A', color: 'white' }}>
@@ -613,6 +1224,20 @@ export default function App() {
           >
             👥 Enrolled Students
           </button>
+          <button 
+            type="button" 
+            className={`nav-item ${activeTab === 'schedules' ? 'active' : ''}`}
+            onClick={() => setActiveTab('schedules')}
+          >
+            📅 Class Scheduling
+          </button>
+          <button 
+            type="button" 
+            className={`nav-item ${activeTab === 'materials' ? 'active' : ''}`}
+            onClick={() => setActiveTab('materials')}
+          >
+            📚 Study Materials
+          </button>
         </div>
 
         {activeTab === 'config' && (
@@ -641,6 +1266,10 @@ export default function App() {
           renderOrdersTracker()
         ) : activeTab === 'students' ? (
           renderStudentsTracker()
+        ) : activeTab === 'schedules' ? (
+          renderSchedulesManager()
+        ) : activeTab === 'materials' ? (
+          renderMaterialsManager()
         ) : (
           <>
             <header>

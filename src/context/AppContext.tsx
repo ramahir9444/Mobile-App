@@ -135,6 +135,10 @@ interface AppContextType {
   // Active Tab state for global navigation tab bar
   activeTab: 'Home' | 'My Study' | 'Genie' | 'Me';
   setActiveTab: (tab: 'Home' | 'My Study' | 'Genie' | 'Me') => void;
+  activeCourseClass: string;
+  setActiveCourseClass: (cls: string) => void;
+  activeCourseType: 'booster' | 'master';
+  setActiveCourseType: (type: 'booster' | 'master') => void;
 }
 
 const defaultUser: UserProfile = {
@@ -204,6 +208,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Enrollment state tracker
   const [isEnrolled, setIsEnrolled] = useState<boolean>(false);
+
+  // Active course info for dynamic content routing
+  const [activeCourseClass, setActiveCourseClass] = useState<string>('Class 6');
+  const [activeCourseType, setActiveCourseType] = useState<'booster' | 'master'>('booster');
 
   // Selected report period
   const [selectedReportPeriod, setSelectedReportPeriod] = useState<string>('Weekly');
@@ -389,6 +397,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setSelectedReportPeriod,
         activeTab,
         setActiveTab,
+        activeCourseClass,
+        setActiveCourseClass,
+        activeCourseType,
+        setActiveCourseType,
       }}
     >
       {children}

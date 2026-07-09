@@ -420,7 +420,31 @@ export const TestReportScreen: React.FC = () => {
 // 4. MATERIALS MODULES SCREEN
 // ==========================================
 export const MaterialsModulesScreen: React.FC = () => {
-  const { navigateTo, goBack } = useApp();
+  const { navigateTo, goBack, activeCourseClass, activeCourseType } = useApp();
+  const [materials, setMaterials] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    const fetchMaterials = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`http://localhost:3001/api/materials`);
+        const json = await res.json();
+        if (json.success && json.data) {
+          const filtered = json.data.filter((m: any) => 
+            m.gradeClass === activeCourseClass && 
+            m.courseType === activeCourseType
+          );
+          setMaterials(filtered);
+        }
+      } catch (err) {
+        console.error('Failed to load materials in student app:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchMaterials();
+  }, [activeCourseClass, activeCourseType]);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }} edges={['top', 'left', 'right', 'bottom']}>
@@ -453,7 +477,7 @@ export const MaterialsModulesScreen: React.FC = () => {
               E-Module
             </Text>
             <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(11.5) }} className="text-slate-400 mt-0.5">
-              Total 19 files
+              Total {loading ? '...' : materials.length} files
             </Text>
           </View>
 
@@ -468,10 +492,12 @@ export const MaterialsModulesScreen: React.FC = () => {
 // 5. MATERIALS FILES SCREEN
 // ==========================================
 export const MaterialsFilesScreen: React.FC = () => {
-  const { goBack } = useApp();
+  const { goBack, activeCourseClass, activeCourseType } = useApp();
   const [downloadingFile, setDownloadingFile] = useState<string | null>(null);
   const [downloadProgress, setDownloadProgress] = useState<number>(0);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [materials, setMaterials] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const showToast = (message: string) => {
     setToastMessage(message);
@@ -480,27 +506,33 @@ export const MaterialsFilesScreen: React.FC = () => {
     }, 2000);
   };
 
-  // Mock list of 11 PDFs
-  const pdfList = [
-    { title: '[E-Module]Motion.pdf', size: '1.6M' },
-    { title: '[E-Module]Fun with magnet.pdf', size: '1.2M' },
-    { title: '[E-Module]Body Movement (Class 6th).pdf', size: '1.0M' },
-    { title: '[E-Module]Day 6 Knowing Our Numbers...', size: '0.3M' },
-    { title: '[E-Module]Day 5 and 6 Playing with Numb...', size: '0.9M' },
-    { title: '[E-Module]Day 3 Playing with Numbers Mi...', size: '0.3M' },
-    { title: '[E-Module]Day 3 Fractions Mind-Map.pdf', size: '0.4M' },
-    { title: '[E-Module]Day 3 Fraction Ebook.pdf', size: '0.7M' },
-    { title: '[E-Module]Day 1 Integers Mind-map.pdf', size: '0.4M' },
-    { title: '[E-Module]Day 1 Integers E-book.pdf', size: '1.1M' },
-    { title: '[E-Module]BC_ Respiration in Animals and...', size: '0.7M' }
-  ];
+  useEffect(() => {
+    const fetchMaterials = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`http://localhost:3001/api/materials`);
+        const json = await res.json();
+        if (json.success && json.data) {
+          const filtered = json.data.filter((m: any) => 
+            m.gradeClass === activeCourseClass && 
+            m.courseType === activeCourseType
+          );
+          setMaterials(filtered);
+        }
+      } catch (err) {
+        console.error('Failed to load materials in student files screen:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchMaterials();
+  }, [activeCourseClass, activeCourseType]);
 
   const handleDownload = (fileName: string) => {
     if (downloadingFile) return; // Wait for active download
     setDownloadingFile(fileName);
     setDownloadProgress(0);
 
-    // Dynamic Progress loader mock
     const interval = setInterval(() => {
       setDownloadProgress((prev) => {
         if (prev >= 100) {
@@ -535,56 +567,63 @@ export const MaterialsFilesScreen: React.FC = () => {
         contentContainerStyle={{ paddingBottom: 40 }}
         className="flex-1 bg-white px-5 pt-4"
       >
-        {pdfList.map((pdf, idx) => {
-          const isThisDownloading = downloadingFile === pdf.title;
+        {loading ? (
+          <ActivityIndicator size="small" color="#00B6A6" style={{ marginTop: 20 }} />
+        ) : materials.length === 0 ? (
+          <View className="items-center py-10">
+            <Text style={{ fontFamily: Theme.fonts.poppinsMedium }} className="text-slate-400 text-xs">No study materials available</Text>
+          </View>
+        ) : (
+          materials.map((pdf, idx) => {
+            const isThisDownloading = downloadingFile === pdf.fileName;
 
-          return (
-            <TouchableOpacity 
-              key={idx}
-              onPress={() => handleDownload(pdf.title)}
-              className="flex-row items-center py-3.5 border-b border-slate-50 active:bg-slate-50/50"
-            >
-              {/* PDF Badge Icon with red dot */}
-              <View className="relative mr-4">
-                <View className="w-10 h-10 rounded-lg bg-red-50 items-center justify-center border border-red-100">
-                  <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9) }} className="text-red-500 font-bold">
-                    PDF
-                  </Text>
-                </View>
-                <View className="w-2.5 h-2.5 rounded-full bg-red-500 border border-white absolute -top-0.5 -right-0.5" />
-              </View>
-
-              {/* PDF Title & Size */}
-              <View className="flex-1 pr-3">
-                <Text 
-                  numberOfLines={1} 
-                  style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(13.5) }} 
-                  className="text-slate-800 font-medium"
-                >
-                  {pdf.title}
-                </Text>
-                
-                {isThisDownloading ? (
-                  /* Progress loading bar */
-                  <View className="flex-row items-center mt-1">
-                    <View className="flex-1 h-[3.5px] bg-slate-100 rounded-full overflow-hidden mr-3">
-                      <View className="h-full bg-teal-500" style={{ width: `${downloadProgress}%` }} />
-                    </View>
-                    <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(10.5) }} className="text-teal-600 font-bold">
-                      {downloadProgress}%
+            return (
+              <TouchableOpacity 
+                key={pdf._id || idx}
+                onPress={() => handleDownload(pdf.fileName)}
+                className="flex-row items-center py-3.5 border-b border-slate-50 active:bg-slate-50/50"
+              >
+                {/* PDF Badge Icon with red dot */}
+                <View className="relative mr-4">
+                  <View className="w-10 h-10 rounded-lg bg-red-50 items-center justify-center border border-red-100">
+                    <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9) }} className="text-red-500 font-bold">
+                      PDF
                     </Text>
                   </View>
-                ) : (
-                  <Text style={{ fontFamily: Theme.fonts.poppinsRegular, fontSize: getFontSize(11.5) }} className="text-slate-400 mt-0.5">
-                    Size: {pdf.size}
-                  </Text>
-                )}
-              </View>
+                </View>
 
-              <Feather name="chevron-right" size={18} color="#94A3B8" />
-            </TouchableOpacity>
-          );
-        })}
+                {/* PDF Title & Size */}
+                <View className="flex-1 pr-3">
+                  <Text 
+                    numberOfLines={1} 
+                    style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(13.5) }} 
+                    className="text-slate-800 font-medium"
+                  >
+                    {pdf.fileName}
+                  </Text>
+                  
+                  {isThisDownloading ? (
+                    /* Progress loading bar */
+                    <View className="flex-row items-center mt-1">
+                      <View className="flex-1 h-[3.5px] bg-slate-100 rounded-full overflow-hidden mr-3">
+                        <View className="h-full bg-teal-500" style={{ width: `${downloadProgress}%` }} />
+                      </View>
+                      <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(10.5) }} className="text-teal-600 font-bold">
+                        {downloadProgress}%
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text style={{ fontFamily: Theme.fonts.poppinsRegular, fontSize: getFontSize(11.5) }} className="text-slate-400 mt-0.5">
+                      Size: {pdf.fileSize}
+                    </Text>
+                  )}
+                </View>
+
+                <Feather name="chevron-right" size={18} color="#94A3B8" />
+              </TouchableOpacity>
+            );
+          })
+        )}
       </ScrollView>
 
       {/* TOAST MESSAGE */}
