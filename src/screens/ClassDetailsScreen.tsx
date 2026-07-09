@@ -31,6 +31,18 @@ export const ClassDetailsScreen: React.FC = () => {
   const [downloadProgress, setDownloadProgress] = useState<number>(0);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  const classMaterials = activeClassSchedule?.materials?.length > 0 ? activeClassSchedule.materials : [
+    { title: '[Lecture-Notes] Integers Core.pdf', size: '1.4 MB' },
+    { title: '[Workbook] Absolute Value Exercises.pdf', size: '0.8 MB' }
+  ];
+
+  const hasHomework = activeClassSchedule ? (activeClassSchedule.homework && activeClassSchedule.homework.length > 0) : true;
+  const homeworkQuestions = activeClassSchedule?.homework?.length > 0 ? activeClassSchedule.homework : [
+    { text: 'Which number is smaller than -5?', options: { A: '-4', B: '-6', C: '0', D: '-1' } },
+    { text: 'What is the absolute value of -15?', options: { A: '15', B: '-15', C: '0', D: '1' } },
+    { text: 'Calculate: (-3) x (-4) + (-5).', options: { A: '17', B: '7', C: '-7', D: '-17' } }
+  ];
+
   const showToast = (message: string) => {
     setToastMessage(message);
     setTimeout(() => {
@@ -154,10 +166,7 @@ export const ClassDetailsScreen: React.FC = () => {
               <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13.5) }} className="text-slate-800 font-bold mb-1 pl-1">
                 Class Lecture Handouts
               </Text>
-              {[
-                { title: '[Lecture-Notes] Integers Core.pdf', size: '1.4 MB' },
-                { title: '[Workbook] Absolute Value Exercises.pdf', size: '0.8 MB' }
-              ].map((file, idx) => {
+              {classMaterials.map((file: any, idx: number) => {
                 const isThisDownloading = downloadingFile === file.title;
                 return (
                   <TouchableOpacity 
@@ -265,33 +274,40 @@ export const ClassDetailsScreen: React.FC = () => {
                 Assigned Homework
               </Text>
 
-              {/* Homework Card */}
-              <View className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
-                <View className="flex-row justify-between items-center">
-                  <View className="flex-1 pr-3">
-                    <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(15.5) }} className="text-slate-800 font-bold">
-                      Integers & Negative Numbers Homework
-                    </Text>
-                    <View className="bg-orange-50 border border-orange-100 py-0.5 px-2.5 rounded self-start mt-2">
-                      <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9.5) }} className="text-orange-600 font-bold">Pending Submission</Text>
+              {!hasHomework ? (
+                <View className="bg-white border border-slate-100 rounded-2xl p-6 items-center shadow-sm">
+                  <MaterialCommunityIcons name="clipboard-text-outline" size={32} color="#CBD5E1" />
+                  <Text style={{ fontFamily: Theme.fonts.poppinsMedium }} className="text-slate-400 text-xs mt-2">No homework assigned for this lecture</Text>
+                </View>
+              ) : (
+                /* Homework Card */
+                <View className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+                  <View className="flex-row justify-between items-center">
+                    <View className="flex-1 pr-3">
+                      <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(15.5) }} className="text-slate-800 font-bold">
+                        {activeClassSchedule?.title ? `${activeClassSchedule.subject} Homework` : "Integers & Negative Numbers Homework"}
+                      </Text>
+                      <View className="bg-orange-50 border border-orange-100 py-0.5 px-2.5 rounded self-start mt-2">
+                        <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9.5) }} className="text-orange-600 font-bold">Pending Submission</Text>
+                      </View>
                     </View>
+                    <MaterialCommunityIcons name="clipboard-text-play-outline" size={32} color="#FF6600" />
                   </View>
-                  <MaterialCommunityIcons name="clipboard-text-play-outline" size={32} color="#FF6600" />
-                </View>
 
-                <View className="flex-row justify-between items-center mt-6 pt-4 border-t border-slate-50">
-                  <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(12) }} className="text-slate-400">
-                    Questions: 3 | Limit: 10 mins
-                  </Text>
-                  
-                  <TouchableOpacity 
-                    onPress={() => navigateTo('HOMEWORK_QUIZ')}
-                    className="bg-[#00B6A6] py-1.5 px-5 rounded-full shadow-sm active:bg-teal-650"
-                  >
-                    <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12) }} className="text-white font-bold">Start Homework</Text>
-                  </TouchableOpacity>
+                  <View className="flex-row justify-between items-center mt-6 pt-4 border-t border-slate-55">
+                    <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(12) }} className="text-slate-400">
+                      Questions: {homeworkQuestions.length} | Limit: {homeworkQuestions.length * 3} mins
+                    </Text>
+                    
+                    <TouchableOpacity 
+                      onPress={() => navigateTo('HOMEWORK_QUIZ')}
+                      className="bg-[#00B6A6] py-1.5 px-5 rounded-full shadow-sm active:bg-teal-650"
+                    >
+                      <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12) }} className="text-white font-bold">Start Homework</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              </View>
+              )}
             </View>
           )}
         </View>
@@ -314,7 +330,7 @@ export const ClassDetailsScreen: React.FC = () => {
 // 2. HOMEWORK QUIZ SCREEN
 // ==========================================
 export const HomeworkQuizScreen: React.FC = () => {
-  const { navigateTo, goBack } = useApp();
+  const { navigateTo, goBack, activeClassSchedule } = useApp();
   const [currentIdx, setCurrentIdx] = useState<number>(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState<number>(600); // 10 minutes
@@ -333,7 +349,7 @@ export const HomeworkQuizScreen: React.FC = () => {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  const questions = [
+  const questions = activeClassSchedule?.homework?.length > 0 ? activeClassSchedule.homework : [
     { text: 'Which number is smaller than -5?', options: { A: '-4', B: '-6', C: '0', D: '-1' } },
     { text: 'What is the absolute value of -15?', options: { A: '15', B: '-15', C: '0', D: '1' } },
     { text: 'Calculate: (-3) x (-4) + (-5).', options: { A: '17', B: '7', C: '-7', D: '-17' } }
@@ -428,7 +444,7 @@ export const HomeworkQuizScreen: React.FC = () => {
                   fontSize: getFontSize(14),
                   color: isSelected ? '#1E293B' : '#475569'
                 }}>
-                  {optVal}
+                  {optVal as string}
                 </Text>
               </TouchableOpacity>
             );

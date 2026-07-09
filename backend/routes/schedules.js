@@ -18,7 +18,7 @@ router.get('/', async (req, res) => {
 // POST /api/schedules — Create a new schedule entry
 router.post('/', async (req, res) => {
   try {
-    const { title, subject, time, dateText, gradeClass, courseType, teacherName, teacherAvatar, status } = req.body;
+    const { title, subject, time, dateText, gradeClass, courseType, teacherName, teacherAvatar, status, materials, homework } = req.body;
     
     if (!title || !subject || !time || !dateText || !gradeClass || !courseType) {
       return res.status(400).json({ success: false, error: 'Missing required schedule fields' });
@@ -35,6 +35,8 @@ router.post('/', async (req, res) => {
       teacherName: teacherName || 'Ninja Mam (Priyanka)',
       teacherAvatar: teacherAvatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100',
       status: status || 'Scheduled', // 'Scheduled' or 'Finished'
+      materials: materials || [],
+      homework: homework || [],
       createdAt: new Date()
     };
 
@@ -49,7 +51,7 @@ router.post('/', async (req, res) => {
 // PUT /api/schedules/:id — Update a schedule entry
 router.put('/:id', async (req, res) => {
   try {
-    const { title, subject, time, dateText, gradeClass, courseType, teacherName, teacherAvatar, status } = req.body;
+    const { title, subject, time, dateText, gradeClass, courseType, teacherName, teacherAvatar, status, materials, homework } = req.body;
     const db = getDB();
 
     const updateDoc = {};
@@ -62,6 +64,8 @@ router.put('/:id', async (req, res) => {
     if (teacherName !== undefined) updateDoc.teacherName = teacherName;
     if (teacherAvatar !== undefined) updateDoc.teacherAvatar = teacherAvatar;
     if (status !== undefined) updateDoc.status = status;
+    if (materials !== undefined) updateDoc.materials = materials;
+    if (homework !== undefined) updateDoc.homework = homework;
 
     const result = await db.collection('schedules').findOneAndUpdate(
       { _id: new ObjectId(req.params.id) },

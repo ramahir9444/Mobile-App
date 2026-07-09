@@ -140,7 +140,7 @@ export default function App() {
   // Schedules states
   const [schedules, setSchedules] = useState<any[]>([]);
   const [schedulesLoading, setSchedulesLoading] = useState(false);
-  const [newSchedule, setNewSchedule] = useState({
+  const [newSchedule, setNewSchedule] = useState<any>({
     title: '',
     subject: 'Maths',
     time: '8:10 pm - 9:10 pm',
@@ -149,8 +149,12 @@ export default function App() {
     courseType: 'booster',
     teacherName: 'Ninja Mam (Priyanka)',
     teacherAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100',
-    status: 'Scheduled'
+    status: 'Scheduled',
+    materials: [],
+    homework: []
   });
+  const [tempMaterial, setTempMaterial] = useState({ title: '', size: '1.2 MB' });
+  const [tempHomework, setTempHomework] = useState({ text: '', optA: '', optB: '', optC: '', optD: '', correct: 'A' });
   const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
 
   // Materials states
@@ -671,7 +675,9 @@ export default function App() {
           courseType: 'booster',
           teacherName: 'Ninja Mam (Priyanka)',
           teacherAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100',
-          status: 'Scheduled'
+          status: 'Scheduled',
+          materials: [],
+          homework: []
         });
         setEditingScheduleId(null);
         loadSchedules();
@@ -713,7 +719,9 @@ export default function App() {
         courseType: item.courseType,
         teacherName: item.teacherName,
         teacherAvatar: item.teacherAvatar,
-        status: item.status
+        status: item.status,
+        materials: item.materials || [],
+        homework: item.homework || []
       });
     };
 
@@ -830,6 +838,188 @@ export default function App() {
                 onChange={(url) => setNewSchedule({...newSchedule, teacherAvatar: url})} 
               />
             </div>
+
+            {/* Embedded Class Materials Upload Form Section */}
+            <div className="form-group span-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '15px' }}>
+              <label style={{ fontSize: '14px', fontWeight: 650, color: '#00B6A6', marginBottom: '8px', display: 'block' }}>
+                📂 Attach Study Materials / Notes for this Class
+              </label>
+              
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+                <input 
+                  type="text" 
+                  placeholder="Material File Title (e.g. [Lecture-Notes] Fractions.pdf)"
+                  value={tempMaterial.title}
+                  onChange={(e) => setTempMaterial({...tempMaterial, title: e.target.value})}
+                  style={{ flex: 2, padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
+                />
+                <input 
+                  type="text" 
+                  placeholder="Size (e.g. 1.2 MB)"
+                  value={tempMaterial.size}
+                  onChange={(e) => setTempMaterial({...tempMaterial, size: e.target.value})}
+                  style={{ flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
+                />
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    if (!tempMaterial.title.trim()) return alert('Type a file title!');
+                    const updated = [...(newSchedule.materials || []), { title: tempMaterial.title, size: tempMaterial.size }];
+                    setNewSchedule({...newSchedule, materials: updated});
+                    setTempMaterial({ title: '', size: '1.2 MB' });
+                  }}
+                  className="save-btn" 
+                  style={{ padding: '10px 16px', background: '#00B6A6' }}
+                >
+                  ➕ Add File
+                </button>
+              </div>
+
+              {/* Render lists of attached materials */}
+              {newSchedule.materials && newSchedule.materials.length > 0 ? (
+                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  {newSchedule.materials.map((m: any, idx: number) => (
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: idx < newSchedule.materials.length - 1 ? '1px solid rgba(255,255,255,0.03)' : 'none' }}>
+                      <span style={{ fontSize: '13px', color: 'white' }}>📄 {m.title} <span style={{ color: '#94A3B8', fontSize: '11px' }}>({m.size})</span></span>
+                      <button 
+                        type="button" 
+                        onClick={() => {
+                          const updated = newSchedule.materials.filter((_: any, i: number) => i !== idx);
+                          setNewSchedule({...newSchedule, materials: updated});
+                        }}
+                        style={{ background: 'transparent', border: 'none', color: '#EF4444', cursor: 'pointer', fontSize: '12px' }}
+                      >
+                        ❌ Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ fontSize: '12px', color: '#64748B', margin: '4px 0' }}>No materials attached. Student will see default handouts.</p>
+              )}
+            </div>
+
+            {/* Embedded Homework MCQ Question Editor Section */}
+            <div className="form-group span-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '15px', marginBottom: '10px' }}>
+              <label style={{ fontSize: '14px', fontWeight: 650, color: '#FF5E00', marginBottom: '8px', display: 'block' }}>
+                📝 Attach Homework MCQ Questions for this Class
+              </label>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.01)', marginBottom: '10px' }}>
+                <input 
+                  type="text" 
+                  placeholder="Question text (e.g. Which number is smaller than -5?)"
+                  value={tempHomework.text}
+                  onChange={(e) => setTempHomework({...tempHomework, text: e.target.value})}
+                  style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
+                />
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <input 
+                    type="text" 
+                    placeholder="Option A"
+                    value={tempHomework.optA}
+                    onChange={(e) => setTempHomework({...tempHomework, optA: e.target.value})}
+                    style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
+                  />
+                  <input 
+                    type="text" 
+                    placeholder="Option B"
+                    value={tempHomework.optB}
+                    onChange={(e) => setTempHomework({...tempHomework, optB: e.target.value})}
+                    style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
+                  />
+                  <input 
+                    type="text" 
+                    placeholder="Option C"
+                    value={tempHomework.optC}
+                    onChange={(e) => setTempHomework({...tempHomework, optC: e.target.value})}
+                    style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
+                  />
+                  <input 
+                    type="text" 
+                    placeholder="Option D"
+                    value={tempHomework.optD}
+                    onChange={(e) => setTempHomework({...tempHomework, optD: e.target.value})}
+                    style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '12px', color: '#94A3B8' }}>Correct Answer:</span>
+                    <select 
+                      value={tempHomework.correct}
+                      onChange={(e) => setTempHomework({...tempHomework, correct: e.target.value})}
+                      style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
+                    >
+                      <option value="A">Option A</option>
+                      <option value="B">Option B</option>
+                      <option value="C">Option C</option>
+                      <option value="D">Option D</option>
+                    </select>
+                  </div>
+
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      if (!tempHomework.text.trim()) return alert('Type a question text!');
+                      if (!tempHomework.optA.trim() || !tempHomework.optB.trim()) return alert('Options A and B are required!');
+                      const newQuestion = {
+                        text: tempHomework.text,
+                        options: {
+                          A: tempHomework.optA,
+                          B: tempHomework.optB,
+                          C: tempHomework.optC,
+                          D: tempHomework.optD
+                        },
+                        correctAnswer: tempHomework.correct
+                      };
+                      const updated = [...(newSchedule.homework || []), newQuestion];
+                      setNewSchedule({...newSchedule, homework: updated});
+                      setTempHomework({ text: '', optA: '', optB: '', optC: '', optD: '', correct: 'A' });
+                    }}
+                    className="save-btn"
+                    style={{ padding: '8px 16px', background: '#FF5E00' }}
+                  >
+                    ➕ Add Question
+                  </button>
+                </div>
+              </div>
+
+              {/* Render lists of attached homework questions */}
+              {newSchedule.homework && newSchedule.homework.length > 0 ? (
+                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {newSchedule.homework.map((q: any, idx: number) => (
+                    <div key={idx} style={{ padding: '8px 0', borderBottom: idx < newSchedule.homework.length - 1 ? '1px solid rgba(255,255,255,0.03)' : 'none' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '13px', fontWeight: 600, color: 'white' }}>{idx + 1}. {q.text}</span>
+                        <button 
+                          type="button" 
+                          onClick={() => {
+                            const updated = newSchedule.homework.filter((_: any, i: number) => i !== idx);
+                            setNewSchedule({...newSchedule, homework: updated});
+                          }}
+                          style={{ background: 'transparent', border: 'none', color: '#EF4444', cursor: 'pointer', fontSize: '12px' }}
+                        >
+                          ❌ Remove
+                        </button>
+                      </div>
+                      <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>
+                        <span>A: {q.options.A}</span>
+                        <span>B: {q.options.B}</span>
+                        {q.options.C ? <span>C: {q.options.C}</span> : null}
+                        {q.options.D ? <span>D: {q.options.D}</span> : null}
+                        <span style={{ color: '#10B981', fontWeight: 'bold' }}>(Correct: {q.correctAnswer})</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ fontSize: '12px', color: '#64748B', margin: '4px 0' }}>No questions added. Student will see default quiz.</p>
+              )}
+            </div>
+
             <div className="form-group span-2" style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
               <button type="submit" className="save-btn" style={{ flex: 1, padding: '12px' }}>
                 {editingScheduleId ? '💾 Save Schedule Changes' : '➕ Create Class Schedule'}

@@ -82,7 +82,16 @@ async function initCollections() {
             teacherName: 'Ninja Mam (Priyanka)',
             teacherAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100',
             status: 'Scheduled',
-            createdAt: new Date()
+            createdAt: new Date(),
+            materials: [
+              { title: '[Lecture-Notes] Integers Core.pdf', size: '1.4 MB' },
+              { title: '[Workbook] Absolute Value Exercises.pdf', size: '0.8 MB' }
+            ],
+            homework: [
+              { text: 'Which number is smaller than -5?', options: { A: '-4', B: '-6', C: '0', D: '-1' }, correctAnswer: 'B' },
+              { text: 'What is the absolute value of -15?', options: { A: '15', B: '-15', C: '0', D: '1' }, correctAnswer: 'A' },
+              { text: 'Calculate: (-3) x (-4) + (-5).', options: { A: '17', B: '7', C: '-7', D: '-17' }, correctAnswer: 'B' }
+            ]
           },
           {
             title: 'Vedic Maths !!',
@@ -94,7 +103,13 @@ async function initCollections() {
             teacherName: 'Manish Sir',
             teacherAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100',
             status: 'Scheduled',
-            createdAt: new Date()
+            createdAt: new Date(),
+            materials: [
+              { title: '[Lecture-Notes] Vedic Tricks.pdf', size: '2.1 MB' }
+            ],
+            homework: [
+              { text: 'What is 99 x 99 using Vedic method?', options: { A: '9801', B: '9901', C: '9999', D: '9701' }, correctAnswer: 'A' }
+            ]
           },
           {
             title: 'PTM : Join with Parents for Surprise Olympiad Level Mastery',
@@ -106,7 +121,11 @@ async function initCollections() {
             teacherName: 'Rishabh Sir',
             teacherAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
             status: 'Scheduled',
-            createdAt: new Date()
+            createdAt: new Date(),
+            materials: [
+              { title: '[Slide] Parent Teacher Meet guidelines.pdf', size: '1.1 MB' }
+            ],
+            homework: []
           },
           {
             title: 'Welcome Test',
@@ -118,7 +137,9 @@ async function initCollections() {
             teacherName: 'System',
             teacherAvatar: '',
             status: 'Finished',
-            createdAt: new Date()
+            createdAt: new Date(),
+            materials: [],
+            homework: []
           }
         );
       }
