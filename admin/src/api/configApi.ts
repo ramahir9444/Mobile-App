@@ -1,4 +1,4 @@
-const API_BASE = window.location.port === '5173' || window.location.port === '5174' ? 'http://localhost:3001' : '';
+const API_BASE = window.location.port && window.location.port !== '3001' ? 'http://localhost:3001' : '';
 
 export async function fetchHomepageConfig(classId: string) {
   const res = await fetch(`${API_BASE}/api/homepage-configs/${encodeURIComponent(classId)}`);

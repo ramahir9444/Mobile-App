@@ -76,7 +76,7 @@
         "teacher1Avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80",
         "teacher2Avatar": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=80",
         "teacher3Avatar": "https://images.unsplash.com/photo-1503919545889-aef636e10ad4?w=100&auto=format&fit=crop&q=80",
-        "price": 99,
+        "price": 9,
         "originalPrice": 599
       },
       "masterProgram": {
@@ -143,7 +143,7 @@
         "trustLabel": "parents and students\n oda class",
         "price": 19999
       },
-      "updatedAt": "2026-07-08T03:33:58.860Z"
+      "updatedAt": "2026-07-10T04:14:39.978Z"
     },
     {
       "classId": "Class 2",
@@ -288,7 +288,7 @@
         "trustLabel": "parents and students\n oda class",
         "price": 19999
       },
-      "updatedAt": "2026-07-08T03:33:58.860Z"
+      "updatedAt": "2026-07-10T03:53:57.832Z"
     },
     {
       "classId": "Class 3",
@@ -433,7 +433,7 @@
         "trustLabel": "parents and students\n oda class",
         "price": 24999
       },
-      "updatedAt": "2026-07-08T03:33:58.860Z"
+      "updatedAt": "2026-07-10T03:53:57.832Z"
     },
     {
       "classId": "Class 4",
@@ -578,7 +578,7 @@
         "trustLabel": "parents and students\n oda class",
         "price": 24999
       },
-      "updatedAt": "2026-07-08T03:33:58.860Z"
+      "updatedAt": "2026-07-10T03:53:57.832Z"
     },
     {
       "classId": "Class 5",
@@ -723,14 +723,14 @@
         "trustLabel": "parents and students\n oda class",
         "price": 24999
       },
-      "updatedAt": "2026-07-08T03:33:58.860Z"
+      "updatedAt": "2026-07-10T03:53:57.832Z"
     },
     {
       "classId": "Class 6",
       "bannerText": "Best with 20 Million Users' Trust",
       "teachers": [
         {
-          "name": "Sonia Verma",
+          "name": "Sonia Vermaaaaaaaaaaaa",
           "role": "Maths Expert",
           "avatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=120"
         },
@@ -753,7 +753,7 @@
         "teacherAvatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=120"
       },
       "boosterCourse": {
-        "headerTitle": "6-Day Head Start Course",
+        "headerTitle": "61-Day Head Start Course",
         "headerSubtitle": "IIT/NIT Premium BootCamp",
         "cardTitle": "Maximize Your Child's Potential 100%",
         "title": "Concept Booster Course - 5X Efficient Learning Methods by IITians",
@@ -801,8 +801,8 @@
         "teacher1Avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80",
         "teacher2Avatar": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&auto=format&fit=crop&q=80",
         "teacher3Avatar": "https://images.unsplash.com/photo-1503919545889-aef636e10ad4?w=100&auto=format&fit=crop&q=80",
-        "price": 149,
-        "originalPrice": 999
+        "price": 149999999,
+        "originalPrice": 99999999999
       },
       "masterProgram": {
         "headerTitle": "Class 6 Master Program",
@@ -866,9 +866,9 @@
         "chatBubble3": "Seriously, learning has never been easier!",
         "trustNumber": "20,103,026",
         "trustLabel": "parents and students\n oda class",
-        "price": 3199990
+        "price": 31999
       },
-      "updatedAt": "2026-07-08T03:44:37.440Z"
+      "updatedAt": "2026-07-10T04:52:23.830Z"
     },
     {
       "classId": "Class 7",
@@ -1013,7 +1013,7 @@
         "trustLabel": "parents and students\n oda class",
         "price": 31999
       },
-      "updatedAt": "2026-07-08T03:33:58.860Z"
+      "updatedAt": "2026-07-10T03:53:57.832Z"
     },
     {
       "classId": "Class 8",
@@ -1158,7 +1158,7 @@
         "trustLabel": "parents and students\n oda class",
         "price": 31999
       },
-      "updatedAt": "2026-07-08T03:33:58.860Z"
+      "updatedAt": "2026-07-10T03:53:57.832Z"
     },
     {
       "classId": "Class 9",
@@ -1304,7 +1304,7 @@
         "trustLabel": "parents and students\n oda class",
         "price": 39999
       },
-      "updatedAt": "2026-07-08T03:33:58.860Z"
+      "updatedAt": "2026-07-10T03:53:57.832Z"
     },
     {
       "classId": "Class 10",
@@ -1450,7 +1450,7 @@
         "trustLabel": "parents and students\n oda class",
         "price": 39999
       },
-      "updatedAt": "2026-07-08T03:33:58.860Z"
+      "updatedAt": "2026-07-10T03:53:57.832Z"
     },
     {
       "classId": "Class 11",
@@ -1596,7 +1596,2817 @@
         "trustLabel": "parents and students\n oda class",
         "price": 39999
       },
-      "updatedAt": "2026-07-08T03:33:58.860Z"
+      "updatedAt": "2026-07-10T03:53:57.833Z"
+    }
+  ],
+  "schedules": [
+    {
+      "title": "Beyond Zero : The World of Integers with Ninja Mam!",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "6 Jul, Mon",
+      "gradeClass": "Class 1",
+      "courseType": "booster",
+      "teacherName": "Ninja Mam (Priyanka)",
+      "teacherAvatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.194Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Integers Core.pdf",
+          "size": "1.4 MB"
+        },
+        {
+          "title": "[Workbook] Absolute Value Exercises.pdf",
+          "size": "0.8 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "Which number is smaller than -5?",
+          "options": {
+            "A": "-4",
+            "B": "-6",
+            "C": "0",
+            "D": "-1"
+          },
+          "correctAnswer": "B"
+        },
+        {
+          "text": "What is the absolute value of -15?",
+          "options": {
+            "A": "15",
+            "B": "-15",
+            "C": "0",
+            "D": "1"
+          },
+          "correctAnswer": "A"
+        },
+        {
+          "text": "Calculate: (-3) x (-4) + (-5).",
+          "options": {
+            "A": "17",
+            "B": "7",
+            "C": "-7",
+            "D": "-17"
+          },
+          "correctAnswer": "B"
+        }
+      ]
+    },
+    {
+      "title": "Vedic Maths !!",
+      "subject": "Maths",
+      "time": "5:30 pm - 6:00 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 1",
+      "courseType": "booster",
+      "teacherName": "Manish Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.194Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Vedic Tricks.pdf",
+          "size": "2.1 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "What is 99 x 99 using Vedic method?",
+          "options": {
+            "A": "9801",
+            "B": "9901",
+            "C": "9999",
+            "D": "9701"
+          },
+          "correctAnswer": "A"
+        }
+      ]
+    },
+    {
+      "title": "PTM : Join with Parents for Surprise Olympiad Level Mastery",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 1",
+      "courseType": "booster",
+      "teacherName": "Rishabh Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.194Z",
+      "materials": [
+        {
+          "title": "[Slide] Parent Teacher Meet guidelines.pdf",
+          "size": "1.1 MB"
+        }
+      ],
+      "homework": []
+    },
+    {
+      "title": "Welcome Test",
+      "subject": "Test",
+      "time": "30 minutes",
+      "dateText": "29 Jun, Mon",
+      "gradeClass": "Class 1",
+      "courseType": "booster",
+      "teacherName": "System",
+      "teacherAvatar": "",
+      "status": "Finished",
+      "createdAt": "2026-07-10T03:29:01.194Z",
+      "materials": [],
+      "homework": []
+    },
+    {
+      "title": "Beyond Zero : The World of Integers with Ninja Mam!",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "6 Jul, Mon",
+      "gradeClass": "Class 1",
+      "courseType": "master",
+      "teacherName": "Ninja Mam (Priyanka)",
+      "teacherAvatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.194Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Integers Core.pdf",
+          "size": "1.4 MB"
+        },
+        {
+          "title": "[Workbook] Absolute Value Exercises.pdf",
+          "size": "0.8 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "Which number is smaller than -5?",
+          "options": {
+            "A": "-4",
+            "B": "-6",
+            "C": "0",
+            "D": "-1"
+          },
+          "correctAnswer": "B"
+        },
+        {
+          "text": "What is the absolute value of -15?",
+          "options": {
+            "A": "15",
+            "B": "-15",
+            "C": "0",
+            "D": "1"
+          },
+          "correctAnswer": "A"
+        },
+        {
+          "text": "Calculate: (-3) x (-4) + (-5).",
+          "options": {
+            "A": "17",
+            "B": "7",
+            "C": "-7",
+            "D": "-17"
+          },
+          "correctAnswer": "B"
+        }
+      ]
+    },
+    {
+      "title": "Vedic Maths !!",
+      "subject": "Maths",
+      "time": "5:30 pm - 6:00 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 1",
+      "courseType": "master",
+      "teacherName": "Manish Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.194Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Vedic Tricks.pdf",
+          "size": "2.1 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "What is 99 x 99 using Vedic method?",
+          "options": {
+            "A": "9801",
+            "B": "9901",
+            "C": "9999",
+            "D": "9701"
+          },
+          "correctAnswer": "A"
+        }
+      ]
+    },
+    {
+      "title": "PTM : Join with Parents for Surprise Olympiad Level Mastery",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 1",
+      "courseType": "master",
+      "teacherName": "Rishabh Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.194Z",
+      "materials": [
+        {
+          "title": "[Slide] Parent Teacher Meet guidelines.pdf",
+          "size": "1.1 MB"
+        }
+      ],
+      "homework": []
+    },
+    {
+      "title": "Welcome Test",
+      "subject": "Test",
+      "time": "30 minutes",
+      "dateText": "29 Jun, Mon",
+      "gradeClass": "Class 1",
+      "courseType": "master",
+      "teacherName": "System",
+      "teacherAvatar": "",
+      "status": "Finished",
+      "createdAt": "2026-07-10T03:29:01.194Z",
+      "materials": [],
+      "homework": []
+    },
+    {
+      "title": "Beyond Zero : The World of Integers with Ninja Mam!",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "6 Jul, Mon",
+      "gradeClass": "Class 2",
+      "courseType": "booster",
+      "teacherName": "Ninja Mam (Priyanka)",
+      "teacherAvatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.194Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Integers Core.pdf",
+          "size": "1.4 MB"
+        },
+        {
+          "title": "[Workbook] Absolute Value Exercises.pdf",
+          "size": "0.8 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "Which number is smaller than -5?",
+          "options": {
+            "A": "-4",
+            "B": "-6",
+            "C": "0",
+            "D": "-1"
+          },
+          "correctAnswer": "B"
+        },
+        {
+          "text": "What is the absolute value of -15?",
+          "options": {
+            "A": "15",
+            "B": "-15",
+            "C": "0",
+            "D": "1"
+          },
+          "correctAnswer": "A"
+        },
+        {
+          "text": "Calculate: (-3) x (-4) + (-5).",
+          "options": {
+            "A": "17",
+            "B": "7",
+            "C": "-7",
+            "D": "-17"
+          },
+          "correctAnswer": "B"
+        }
+      ]
+    },
+    {
+      "title": "Vedic Maths !!",
+      "subject": "Maths",
+      "time": "5:30 pm - 6:00 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 2",
+      "courseType": "booster",
+      "teacherName": "Manish Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.194Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Vedic Tricks.pdf",
+          "size": "2.1 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "What is 99 x 99 using Vedic method?",
+          "options": {
+            "A": "9801",
+            "B": "9901",
+            "C": "9999",
+            "D": "9701"
+          },
+          "correctAnswer": "A"
+        }
+      ]
+    },
+    {
+      "title": "PTM : Join with Parents for Surprise Olympiad Level Mastery",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 2",
+      "courseType": "booster",
+      "teacherName": "Rishabh Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Slide] Parent Teacher Meet guidelines.pdf",
+          "size": "1.1 MB"
+        }
+      ],
+      "homework": []
+    },
+    {
+      "title": "Welcome Test",
+      "subject": "Test",
+      "time": "30 minutes",
+      "dateText": "29 Jun, Mon",
+      "gradeClass": "Class 2",
+      "courseType": "booster",
+      "teacherName": "System",
+      "teacherAvatar": "",
+      "status": "Finished",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [],
+      "homework": []
+    },
+    {
+      "title": "Beyond Zero : The World of Integers with Ninja Mam!",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "6 Jul, Mon",
+      "gradeClass": "Class 2",
+      "courseType": "master",
+      "teacherName": "Ninja Mam (Priyanka)",
+      "teacherAvatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Integers Core.pdf",
+          "size": "1.4 MB"
+        },
+        {
+          "title": "[Workbook] Absolute Value Exercises.pdf",
+          "size": "0.8 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "Which number is smaller than -5?",
+          "options": {
+            "A": "-4",
+            "B": "-6",
+            "C": "0",
+            "D": "-1"
+          },
+          "correctAnswer": "B"
+        },
+        {
+          "text": "What is the absolute value of -15?",
+          "options": {
+            "A": "15",
+            "B": "-15",
+            "C": "0",
+            "D": "1"
+          },
+          "correctAnswer": "A"
+        },
+        {
+          "text": "Calculate: (-3) x (-4) + (-5).",
+          "options": {
+            "A": "17",
+            "B": "7",
+            "C": "-7",
+            "D": "-17"
+          },
+          "correctAnswer": "B"
+        }
+      ]
+    },
+    {
+      "title": "Vedic Maths !!",
+      "subject": "Maths",
+      "time": "5:30 pm - 6:00 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 2",
+      "courseType": "master",
+      "teacherName": "Manish Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Vedic Tricks.pdf",
+          "size": "2.1 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "What is 99 x 99 using Vedic method?",
+          "options": {
+            "A": "9801",
+            "B": "9901",
+            "C": "9999",
+            "D": "9701"
+          },
+          "correctAnswer": "A"
+        }
+      ]
+    },
+    {
+      "title": "PTM : Join with Parents for Surprise Olympiad Level Mastery",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 2",
+      "courseType": "master",
+      "teacherName": "Rishabh Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Slide] Parent Teacher Meet guidelines.pdf",
+          "size": "1.1 MB"
+        }
+      ],
+      "homework": []
+    },
+    {
+      "title": "Welcome Test",
+      "subject": "Test",
+      "time": "30 minutes",
+      "dateText": "29 Jun, Mon",
+      "gradeClass": "Class 2",
+      "courseType": "master",
+      "teacherName": "System",
+      "teacherAvatar": "",
+      "status": "Finished",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [],
+      "homework": []
+    },
+    {
+      "title": "Beyond Zero : The World of Integers with Ninja Mam!",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "6 Jul, Mon",
+      "gradeClass": "Class 3",
+      "courseType": "booster",
+      "teacherName": "Ninja Mam (Priyanka)",
+      "teacherAvatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Integers Core.pdf",
+          "size": "1.4 MB"
+        },
+        {
+          "title": "[Workbook] Absolute Value Exercises.pdf",
+          "size": "0.8 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "Which number is smaller than -5?",
+          "options": {
+            "A": "-4",
+            "B": "-6",
+            "C": "0",
+            "D": "-1"
+          },
+          "correctAnswer": "B"
+        },
+        {
+          "text": "What is the absolute value of -15?",
+          "options": {
+            "A": "15",
+            "B": "-15",
+            "C": "0",
+            "D": "1"
+          },
+          "correctAnswer": "A"
+        },
+        {
+          "text": "Calculate: (-3) x (-4) + (-5).",
+          "options": {
+            "A": "17",
+            "B": "7",
+            "C": "-7",
+            "D": "-17"
+          },
+          "correctAnswer": "B"
+        }
+      ]
+    },
+    {
+      "title": "Vedic Maths !!",
+      "subject": "Maths",
+      "time": "5:30 pm - 6:00 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 3",
+      "courseType": "booster",
+      "teacherName": "Manish Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Vedic Tricks.pdf",
+          "size": "2.1 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "What is 99 x 99 using Vedic method?",
+          "options": {
+            "A": "9801",
+            "B": "9901",
+            "C": "9999",
+            "D": "9701"
+          },
+          "correctAnswer": "A"
+        }
+      ]
+    },
+    {
+      "title": "PTM : Join with Parents for Surprise Olympiad Level Mastery",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 3",
+      "courseType": "booster",
+      "teacherName": "Rishabh Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Slide] Parent Teacher Meet guidelines.pdf",
+          "size": "1.1 MB"
+        }
+      ],
+      "homework": []
+    },
+    {
+      "title": "Welcome Test",
+      "subject": "Test",
+      "time": "30 minutes",
+      "dateText": "29 Jun, Mon",
+      "gradeClass": "Class 3",
+      "courseType": "booster",
+      "teacherName": "System",
+      "teacherAvatar": "",
+      "status": "Finished",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [],
+      "homework": []
+    },
+    {
+      "title": "Beyond Zero : The World of Integers with Ninja Mam!",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "6 Jul, Mon",
+      "gradeClass": "Class 3",
+      "courseType": "master",
+      "teacherName": "Ninja Mam (Priyanka)",
+      "teacherAvatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Integers Core.pdf",
+          "size": "1.4 MB"
+        },
+        {
+          "title": "[Workbook] Absolute Value Exercises.pdf",
+          "size": "0.8 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "Which number is smaller than -5?",
+          "options": {
+            "A": "-4",
+            "B": "-6",
+            "C": "0",
+            "D": "-1"
+          },
+          "correctAnswer": "B"
+        },
+        {
+          "text": "What is the absolute value of -15?",
+          "options": {
+            "A": "15",
+            "B": "-15",
+            "C": "0",
+            "D": "1"
+          },
+          "correctAnswer": "A"
+        },
+        {
+          "text": "Calculate: (-3) x (-4) + (-5).",
+          "options": {
+            "A": "17",
+            "B": "7",
+            "C": "-7",
+            "D": "-17"
+          },
+          "correctAnswer": "B"
+        }
+      ]
+    },
+    {
+      "title": "Vedic Maths !!",
+      "subject": "Maths",
+      "time": "5:30 pm - 6:00 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 3",
+      "courseType": "master",
+      "teacherName": "Manish Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Vedic Tricks.pdf",
+          "size": "2.1 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "What is 99 x 99 using Vedic method?",
+          "options": {
+            "A": "9801",
+            "B": "9901",
+            "C": "9999",
+            "D": "9701"
+          },
+          "correctAnswer": "A"
+        }
+      ]
+    },
+    {
+      "title": "PTM : Join with Parents for Surprise Olympiad Level Mastery",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 3",
+      "courseType": "master",
+      "teacherName": "Rishabh Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Slide] Parent Teacher Meet guidelines.pdf",
+          "size": "1.1 MB"
+        }
+      ],
+      "homework": []
+    },
+    {
+      "title": "Welcome Test",
+      "subject": "Test",
+      "time": "30 minutes",
+      "dateText": "29 Jun, Mon",
+      "gradeClass": "Class 3",
+      "courseType": "master",
+      "teacherName": "System",
+      "teacherAvatar": "",
+      "status": "Finished",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [],
+      "homework": []
+    },
+    {
+      "title": "Beyond Zero : The World of Integers with Ninja Mam!",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "6 Jul, Mon",
+      "gradeClass": "Class 4",
+      "courseType": "booster",
+      "teacherName": "Ninja Mam (Priyanka)",
+      "teacherAvatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Integers Core.pdf",
+          "size": "1.4 MB"
+        },
+        {
+          "title": "[Workbook] Absolute Value Exercises.pdf",
+          "size": "0.8 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "Which number is smaller than -5?",
+          "options": {
+            "A": "-4",
+            "B": "-6",
+            "C": "0",
+            "D": "-1"
+          },
+          "correctAnswer": "B"
+        },
+        {
+          "text": "What is the absolute value of -15?",
+          "options": {
+            "A": "15",
+            "B": "-15",
+            "C": "0",
+            "D": "1"
+          },
+          "correctAnswer": "A"
+        },
+        {
+          "text": "Calculate: (-3) x (-4) + (-5).",
+          "options": {
+            "A": "17",
+            "B": "7",
+            "C": "-7",
+            "D": "-17"
+          },
+          "correctAnswer": "B"
+        }
+      ]
+    },
+    {
+      "title": "Vedic Maths !!",
+      "subject": "Maths",
+      "time": "5:30 pm - 6:00 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 4",
+      "courseType": "booster",
+      "teacherName": "Manish Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Vedic Tricks.pdf",
+          "size": "2.1 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "What is 99 x 99 using Vedic method?",
+          "options": {
+            "A": "9801",
+            "B": "9901",
+            "C": "9999",
+            "D": "9701"
+          },
+          "correctAnswer": "A"
+        }
+      ]
+    },
+    {
+      "title": "PTM : Join with Parents for Surprise Olympiad Level Mastery",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 4",
+      "courseType": "booster",
+      "teacherName": "Rishabh Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Slide] Parent Teacher Meet guidelines.pdf",
+          "size": "1.1 MB"
+        }
+      ],
+      "homework": []
+    },
+    {
+      "title": "Welcome Test",
+      "subject": "Test",
+      "time": "30 minutes",
+      "dateText": "29 Jun, Mon",
+      "gradeClass": "Class 4",
+      "courseType": "booster",
+      "teacherName": "System",
+      "teacherAvatar": "",
+      "status": "Finished",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [],
+      "homework": []
+    },
+    {
+      "title": "Beyond Zero : The World of Integers with Ninja Mam!",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "6 Jul, Mon",
+      "gradeClass": "Class 4",
+      "courseType": "master",
+      "teacherName": "Ninja Mam (Priyanka)",
+      "teacherAvatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Integers Core.pdf",
+          "size": "1.4 MB"
+        },
+        {
+          "title": "[Workbook] Absolute Value Exercises.pdf",
+          "size": "0.8 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "Which number is smaller than -5?",
+          "options": {
+            "A": "-4",
+            "B": "-6",
+            "C": "0",
+            "D": "-1"
+          },
+          "correctAnswer": "B"
+        },
+        {
+          "text": "What is the absolute value of -15?",
+          "options": {
+            "A": "15",
+            "B": "-15",
+            "C": "0",
+            "D": "1"
+          },
+          "correctAnswer": "A"
+        },
+        {
+          "text": "Calculate: (-3) x (-4) + (-5).",
+          "options": {
+            "A": "17",
+            "B": "7",
+            "C": "-7",
+            "D": "-17"
+          },
+          "correctAnswer": "B"
+        }
+      ]
+    },
+    {
+      "title": "Vedic Maths !!",
+      "subject": "Maths",
+      "time": "5:30 pm - 6:00 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 4",
+      "courseType": "master",
+      "teacherName": "Manish Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Vedic Tricks.pdf",
+          "size": "2.1 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "What is 99 x 99 using Vedic method?",
+          "options": {
+            "A": "9801",
+            "B": "9901",
+            "C": "9999",
+            "D": "9701"
+          },
+          "correctAnswer": "A"
+        }
+      ]
+    },
+    {
+      "title": "PTM : Join with Parents for Surprise Olympiad Level Mastery",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 4",
+      "courseType": "master",
+      "teacherName": "Rishabh Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Slide] Parent Teacher Meet guidelines.pdf",
+          "size": "1.1 MB"
+        }
+      ],
+      "homework": []
+    },
+    {
+      "title": "Welcome Test",
+      "subject": "Test",
+      "time": "30 minutes",
+      "dateText": "29 Jun, Mon",
+      "gradeClass": "Class 4",
+      "courseType": "master",
+      "teacherName": "System",
+      "teacherAvatar": "",
+      "status": "Finished",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [],
+      "homework": []
+    },
+    {
+      "title": "Beyond Zero : The World of Integers with Ninja Mam!",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "6 Jul, Mon",
+      "gradeClass": "Class 5",
+      "courseType": "booster",
+      "teacherName": "Ninja Mam (Priyanka)",
+      "teacherAvatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Integers Core.pdf",
+          "size": "1.4 MB"
+        },
+        {
+          "title": "[Workbook] Absolute Value Exercises.pdf",
+          "size": "0.8 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "Which number is smaller than -5?",
+          "options": {
+            "A": "-4",
+            "B": "-6",
+            "C": "0",
+            "D": "-1"
+          },
+          "correctAnswer": "B"
+        },
+        {
+          "text": "What is the absolute value of -15?",
+          "options": {
+            "A": "15",
+            "B": "-15",
+            "C": "0",
+            "D": "1"
+          },
+          "correctAnswer": "A"
+        },
+        {
+          "text": "Calculate: (-3) x (-4) + (-5).",
+          "options": {
+            "A": "17",
+            "B": "7",
+            "C": "-7",
+            "D": "-17"
+          },
+          "correctAnswer": "B"
+        }
+      ]
+    },
+    {
+      "title": "Vedic Maths !!",
+      "subject": "Maths",
+      "time": "5:30 pm - 6:00 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 5",
+      "courseType": "booster",
+      "teacherName": "Manish Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Vedic Tricks.pdf",
+          "size": "2.1 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "What is 99 x 99 using Vedic method?",
+          "options": {
+            "A": "9801",
+            "B": "9901",
+            "C": "9999",
+            "D": "9701"
+          },
+          "correctAnswer": "A"
+        }
+      ]
+    },
+    {
+      "title": "PTM : Join with Parents for Surprise Olympiad Level Mastery",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 5",
+      "courseType": "booster",
+      "teacherName": "Rishabh Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Slide] Parent Teacher Meet guidelines.pdf",
+          "size": "1.1 MB"
+        }
+      ],
+      "homework": []
+    },
+    {
+      "title": "Welcome Test",
+      "subject": "Test",
+      "time": "30 minutes",
+      "dateText": "29 Jun, Mon",
+      "gradeClass": "Class 5",
+      "courseType": "booster",
+      "teacherName": "System",
+      "teacherAvatar": "",
+      "status": "Finished",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [],
+      "homework": []
+    },
+    {
+      "title": "Beyond Zero : The World of Integers with Ninja Mam!",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "6 Jul, Mon",
+      "gradeClass": "Class 5",
+      "courseType": "master",
+      "teacherName": "Ninja Mam (Priyanka)",
+      "teacherAvatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Integers Core.pdf",
+          "size": "1.4 MB"
+        },
+        {
+          "title": "[Workbook] Absolute Value Exercises.pdf",
+          "size": "0.8 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "Which number is smaller than -5?",
+          "options": {
+            "A": "-4",
+            "B": "-6",
+            "C": "0",
+            "D": "-1"
+          },
+          "correctAnswer": "B"
+        },
+        {
+          "text": "What is the absolute value of -15?",
+          "options": {
+            "A": "15",
+            "B": "-15",
+            "C": "0",
+            "D": "1"
+          },
+          "correctAnswer": "A"
+        },
+        {
+          "text": "Calculate: (-3) x (-4) + (-5).",
+          "options": {
+            "A": "17",
+            "B": "7",
+            "C": "-7",
+            "D": "-17"
+          },
+          "correctAnswer": "B"
+        }
+      ]
+    },
+    {
+      "title": "Vedic Maths !!",
+      "subject": "Maths",
+      "time": "5:30 pm - 6:00 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 5",
+      "courseType": "master",
+      "teacherName": "Manish Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Vedic Tricks.pdf",
+          "size": "2.1 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "What is 99 x 99 using Vedic method?",
+          "options": {
+            "A": "9801",
+            "B": "9901",
+            "C": "9999",
+            "D": "9701"
+          },
+          "correctAnswer": "A"
+        }
+      ]
+    },
+    {
+      "title": "PTM : Join with Parents for Surprise Olympiad Level Mastery",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 5",
+      "courseType": "master",
+      "teacherName": "Rishabh Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Slide] Parent Teacher Meet guidelines.pdf",
+          "size": "1.1 MB"
+        }
+      ],
+      "homework": []
+    },
+    {
+      "title": "Welcome Test",
+      "subject": "Test",
+      "time": "30 minutes",
+      "dateText": "29 Jun, Mon",
+      "gradeClass": "Class 5",
+      "courseType": "master",
+      "teacherName": "System",
+      "teacherAvatar": "",
+      "status": "Finished",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [],
+      "homework": []
+    },
+    {
+      "title": "Beyond Zero : The World of Integers with Ninja Mam!",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "6 Jul, Mon",
+      "gradeClass": "Class 6",
+      "courseType": "booster",
+      "teacherName": "Ninja Mam (Priyanka)",
+      "teacherAvatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Integers Core.pdf",
+          "size": "1.4 MB"
+        },
+        {
+          "title": "[Workbook] Absolute Value Exercises.pdf",
+          "size": "0.8 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "Which number is smaller than -5?",
+          "options": {
+            "A": "-4",
+            "B": "-6",
+            "C": "0",
+            "D": "-1"
+          },
+          "correctAnswer": "B"
+        },
+        {
+          "text": "What is the absolute value of -15?",
+          "options": {
+            "A": "15",
+            "B": "-15",
+            "C": "0",
+            "D": "1"
+          },
+          "correctAnswer": "A"
+        },
+        {
+          "text": "Calculate: (-3) x (-4) + (-5).",
+          "options": {
+            "A": "17",
+            "B": "7",
+            "C": "-7",
+            "D": "-17"
+          },
+          "correctAnswer": "B"
+        }
+      ]
+    },
+    {
+      "title": "Vedic Maths !!",
+      "subject": "Maths",
+      "time": "5:30 pm - 6:00 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 6",
+      "courseType": "booster",
+      "teacherName": "Manish Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Vedic Tricks.pdf",
+          "size": "2.1 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "What is 99 x 99 using Vedic method?",
+          "options": {
+            "A": "9801",
+            "B": "9901",
+            "C": "9999",
+            "D": "9701"
+          },
+          "correctAnswer": "A"
+        }
+      ]
+    },
+    {
+      "title": "PTM : Join with Parents for Surprise Olympiad Level Mastery",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 6",
+      "courseType": "booster",
+      "teacherName": "Rishabh Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Slide] Parent Teacher Meet guidelines.pdf",
+          "size": "1.1 MB"
+        }
+      ],
+      "homework": []
+    },
+    {
+      "title": "Welcome Test",
+      "subject": "Test",
+      "time": "30 minutes",
+      "dateText": "29 Jun, Mon",
+      "gradeClass": "Class 6",
+      "courseType": "booster",
+      "teacherName": "System",
+      "teacherAvatar": "",
+      "status": "Finished",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [],
+      "homework": []
+    },
+    {
+      "title": "Beyond Zero : The World of Integers with Ninja Mam!",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "6 Jul, Mon",
+      "gradeClass": "Class 6",
+      "courseType": "master",
+      "teacherName": "Ninja Mam (Priyanka)",
+      "teacherAvatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Integers Core.pdf",
+          "size": "1.4 MB"
+        },
+        {
+          "title": "[Workbook] Absolute Value Exercises.pdf",
+          "size": "0.8 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "Which number is smaller than -5?",
+          "options": {
+            "A": "-4",
+            "B": "-6",
+            "C": "0",
+            "D": "-1"
+          },
+          "correctAnswer": "B"
+        },
+        {
+          "text": "What is the absolute value of -15?",
+          "options": {
+            "A": "15",
+            "B": "-15",
+            "C": "0",
+            "D": "1"
+          },
+          "correctAnswer": "A"
+        },
+        {
+          "text": "Calculate: (-3) x (-4) + (-5).",
+          "options": {
+            "A": "17",
+            "B": "7",
+            "C": "-7",
+            "D": "-17"
+          },
+          "correctAnswer": "B"
+        }
+      ]
+    },
+    {
+      "title": "Vedic Maths !!",
+      "subject": "Maths",
+      "time": "5:30 pm - 6:00 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 6",
+      "courseType": "master",
+      "teacherName": "Manish Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Vedic Tricks.pdf",
+          "size": "2.1 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "What is 99 x 99 using Vedic method?",
+          "options": {
+            "A": "9801",
+            "B": "9901",
+            "C": "9999",
+            "D": "9701"
+          },
+          "correctAnswer": "A"
+        }
+      ]
+    },
+    {
+      "title": "PTM : Join with Parents for Surprise Olympiad Level Mastery",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 6",
+      "courseType": "master",
+      "teacherName": "Rishabh Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Slide] Parent Teacher Meet guidelines.pdf",
+          "size": "1.1 MB"
+        }
+      ],
+      "homework": []
+    },
+    {
+      "title": "Welcome Test",
+      "subject": "Test",
+      "time": "30 minutes",
+      "dateText": "29 Jun, Mon",
+      "gradeClass": "Class 6",
+      "courseType": "master",
+      "teacherName": "System",
+      "teacherAvatar": "",
+      "status": "Finished",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [],
+      "homework": []
+    },
+    {
+      "title": "Beyond Zero : The World of Integers with Ninja Mam!",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "6 Jul, Mon",
+      "gradeClass": "Class 7",
+      "courseType": "booster",
+      "teacherName": "Ninja Mam (Priyanka)",
+      "teacherAvatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Integers Core.pdf",
+          "size": "1.4 MB"
+        },
+        {
+          "title": "[Workbook] Absolute Value Exercises.pdf",
+          "size": "0.8 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "Which number is smaller than -5?",
+          "options": {
+            "A": "-4",
+            "B": "-6",
+            "C": "0",
+            "D": "-1"
+          },
+          "correctAnswer": "B"
+        },
+        {
+          "text": "What is the absolute value of -15?",
+          "options": {
+            "A": "15",
+            "B": "-15",
+            "C": "0",
+            "D": "1"
+          },
+          "correctAnswer": "A"
+        },
+        {
+          "text": "Calculate: (-3) x (-4) + (-5).",
+          "options": {
+            "A": "17",
+            "B": "7",
+            "C": "-7",
+            "D": "-17"
+          },
+          "correctAnswer": "B"
+        }
+      ]
+    },
+    {
+      "title": "Vedic Maths !!",
+      "subject": "Maths",
+      "time": "5:30 pm - 6:00 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 7",
+      "courseType": "booster",
+      "teacherName": "Manish Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Vedic Tricks.pdf",
+          "size": "2.1 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "What is 99 x 99 using Vedic method?",
+          "options": {
+            "A": "9801",
+            "B": "9901",
+            "C": "9999",
+            "D": "9701"
+          },
+          "correctAnswer": "A"
+        }
+      ]
+    },
+    {
+      "title": "PTM : Join with Parents for Surprise Olympiad Level Mastery",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 7",
+      "courseType": "booster",
+      "teacherName": "Rishabh Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Slide] Parent Teacher Meet guidelines.pdf",
+          "size": "1.1 MB"
+        }
+      ],
+      "homework": []
+    },
+    {
+      "title": "Welcome Test",
+      "subject": "Test",
+      "time": "30 minutes",
+      "dateText": "29 Jun, Mon",
+      "gradeClass": "Class 7",
+      "courseType": "booster",
+      "teacherName": "System",
+      "teacherAvatar": "",
+      "status": "Finished",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [],
+      "homework": []
+    },
+    {
+      "title": "Beyond Zero : The World of Integers with Ninja Mam!",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "6 Jul, Mon",
+      "gradeClass": "Class 7",
+      "courseType": "master",
+      "teacherName": "Ninja Mam (Priyanka)",
+      "teacherAvatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Integers Core.pdf",
+          "size": "1.4 MB"
+        },
+        {
+          "title": "[Workbook] Absolute Value Exercises.pdf",
+          "size": "0.8 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "Which number is smaller than -5?",
+          "options": {
+            "A": "-4",
+            "B": "-6",
+            "C": "0",
+            "D": "-1"
+          },
+          "correctAnswer": "B"
+        },
+        {
+          "text": "What is the absolute value of -15?",
+          "options": {
+            "A": "15",
+            "B": "-15",
+            "C": "0",
+            "D": "1"
+          },
+          "correctAnswer": "A"
+        },
+        {
+          "text": "Calculate: (-3) x (-4) + (-5).",
+          "options": {
+            "A": "17",
+            "B": "7",
+            "C": "-7",
+            "D": "-17"
+          },
+          "correctAnswer": "B"
+        }
+      ]
+    },
+    {
+      "title": "Vedic Maths !!",
+      "subject": "Maths",
+      "time": "5:30 pm - 6:00 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 7",
+      "courseType": "master",
+      "teacherName": "Manish Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Vedic Tricks.pdf",
+          "size": "2.1 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "What is 99 x 99 using Vedic method?",
+          "options": {
+            "A": "9801",
+            "B": "9901",
+            "C": "9999",
+            "D": "9701"
+          },
+          "correctAnswer": "A"
+        }
+      ]
+    },
+    {
+      "title": "PTM : Join with Parents for Surprise Olympiad Level Mastery",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 7",
+      "courseType": "master",
+      "teacherName": "Rishabh Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Slide] Parent Teacher Meet guidelines.pdf",
+          "size": "1.1 MB"
+        }
+      ],
+      "homework": []
+    },
+    {
+      "title": "Welcome Test",
+      "subject": "Test",
+      "time": "30 minutes",
+      "dateText": "29 Jun, Mon",
+      "gradeClass": "Class 7",
+      "courseType": "master",
+      "teacherName": "System",
+      "teacherAvatar": "",
+      "status": "Finished",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [],
+      "homework": []
+    },
+    {
+      "title": "Beyond Zero : The World of Integers with Ninja Mam!",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "6 Jul, Mon",
+      "gradeClass": "Class 8",
+      "courseType": "booster",
+      "teacherName": "Ninja Mam (Priyanka)",
+      "teacherAvatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Integers Core.pdf",
+          "size": "1.4 MB"
+        },
+        {
+          "title": "[Workbook] Absolute Value Exercises.pdf",
+          "size": "0.8 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "Which number is smaller than -5?",
+          "options": {
+            "A": "-4",
+            "B": "-6",
+            "C": "0",
+            "D": "-1"
+          },
+          "correctAnswer": "B"
+        },
+        {
+          "text": "What is the absolute value of -15?",
+          "options": {
+            "A": "15",
+            "B": "-15",
+            "C": "0",
+            "D": "1"
+          },
+          "correctAnswer": "A"
+        },
+        {
+          "text": "Calculate: (-3) x (-4) + (-5).",
+          "options": {
+            "A": "17",
+            "B": "7",
+            "C": "-7",
+            "D": "-17"
+          },
+          "correctAnswer": "B"
+        }
+      ]
+    },
+    {
+      "title": "Vedic Maths !!",
+      "subject": "Maths",
+      "time": "5:30 pm - 6:00 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 8",
+      "courseType": "booster",
+      "teacherName": "Manish Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Vedic Tricks.pdf",
+          "size": "2.1 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "What is 99 x 99 using Vedic method?",
+          "options": {
+            "A": "9801",
+            "B": "9901",
+            "C": "9999",
+            "D": "9701"
+          },
+          "correctAnswer": "A"
+        }
+      ]
+    },
+    {
+      "title": "PTM : Join with Parents for Surprise Olympiad Level Mastery",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 8",
+      "courseType": "booster",
+      "teacherName": "Rishabh Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Slide] Parent Teacher Meet guidelines.pdf",
+          "size": "1.1 MB"
+        }
+      ],
+      "homework": []
+    },
+    {
+      "title": "Welcome Test",
+      "subject": "Test",
+      "time": "30 minutes",
+      "dateText": "29 Jun, Mon",
+      "gradeClass": "Class 8",
+      "courseType": "booster",
+      "teacherName": "System",
+      "teacherAvatar": "",
+      "status": "Finished",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [],
+      "homework": []
+    },
+    {
+      "title": "Beyond Zero : The World of Integers with Ninja Mam!",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "6 Jul, Mon",
+      "gradeClass": "Class 8",
+      "courseType": "master",
+      "teacherName": "Ninja Mam (Priyanka)",
+      "teacherAvatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Integers Core.pdf",
+          "size": "1.4 MB"
+        },
+        {
+          "title": "[Workbook] Absolute Value Exercises.pdf",
+          "size": "0.8 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "Which number is smaller than -5?",
+          "options": {
+            "A": "-4",
+            "B": "-6",
+            "C": "0",
+            "D": "-1"
+          },
+          "correctAnswer": "B"
+        },
+        {
+          "text": "What is the absolute value of -15?",
+          "options": {
+            "A": "15",
+            "B": "-15",
+            "C": "0",
+            "D": "1"
+          },
+          "correctAnswer": "A"
+        },
+        {
+          "text": "Calculate: (-3) x (-4) + (-5).",
+          "options": {
+            "A": "17",
+            "B": "7",
+            "C": "-7",
+            "D": "-17"
+          },
+          "correctAnswer": "B"
+        }
+      ]
+    },
+    {
+      "title": "Vedic Maths !!",
+      "subject": "Maths",
+      "time": "5:30 pm - 6:00 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 8",
+      "courseType": "master",
+      "teacherName": "Manish Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Vedic Tricks.pdf",
+          "size": "2.1 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "What is 99 x 99 using Vedic method?",
+          "options": {
+            "A": "9801",
+            "B": "9901",
+            "C": "9999",
+            "D": "9701"
+          },
+          "correctAnswer": "A"
+        }
+      ]
+    },
+    {
+      "title": "PTM : Join with Parents for Surprise Olympiad Level Mastery",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 8",
+      "courseType": "master",
+      "teacherName": "Rishabh Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Slide] Parent Teacher Meet guidelines.pdf",
+          "size": "1.1 MB"
+        }
+      ],
+      "homework": []
+    },
+    {
+      "title": "Welcome Test",
+      "subject": "Test",
+      "time": "30 minutes",
+      "dateText": "29 Jun, Mon",
+      "gradeClass": "Class 8",
+      "courseType": "master",
+      "teacherName": "System",
+      "teacherAvatar": "",
+      "status": "Finished",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [],
+      "homework": []
+    },
+    {
+      "title": "Beyond Zero : The World of Integers with Ninja Mam!",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "6 Jul, Mon",
+      "gradeClass": "Class 9",
+      "courseType": "booster",
+      "teacherName": "Ninja Mam (Priyanka)",
+      "teacherAvatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Integers Core.pdf",
+          "size": "1.4 MB"
+        },
+        {
+          "title": "[Workbook] Absolute Value Exercises.pdf",
+          "size": "0.8 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "Which number is smaller than -5?",
+          "options": {
+            "A": "-4",
+            "B": "-6",
+            "C": "0",
+            "D": "-1"
+          },
+          "correctAnswer": "B"
+        },
+        {
+          "text": "What is the absolute value of -15?",
+          "options": {
+            "A": "15",
+            "B": "-15",
+            "C": "0",
+            "D": "1"
+          },
+          "correctAnswer": "A"
+        },
+        {
+          "text": "Calculate: (-3) x (-4) + (-5).",
+          "options": {
+            "A": "17",
+            "B": "7",
+            "C": "-7",
+            "D": "-17"
+          },
+          "correctAnswer": "B"
+        }
+      ]
+    },
+    {
+      "title": "Vedic Maths !!",
+      "subject": "Maths",
+      "time": "5:30 pm - 6:00 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 9",
+      "courseType": "booster",
+      "teacherName": "Manish Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Vedic Tricks.pdf",
+          "size": "2.1 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "What is 99 x 99 using Vedic method?",
+          "options": {
+            "A": "9801",
+            "B": "9901",
+            "C": "9999",
+            "D": "9701"
+          },
+          "correctAnswer": "A"
+        }
+      ]
+    },
+    {
+      "title": "PTM : Join with Parents for Surprise Olympiad Level Mastery",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 9",
+      "courseType": "booster",
+      "teacherName": "Rishabh Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Slide] Parent Teacher Meet guidelines.pdf",
+          "size": "1.1 MB"
+        }
+      ],
+      "homework": []
+    },
+    {
+      "title": "Welcome Test",
+      "subject": "Test",
+      "time": "30 minutes",
+      "dateText": "29 Jun, Mon",
+      "gradeClass": "Class 9",
+      "courseType": "booster",
+      "teacherName": "System",
+      "teacherAvatar": "",
+      "status": "Finished",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [],
+      "homework": []
+    },
+    {
+      "title": "Beyond Zero : The World of Integers with Ninja Mam!",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "6 Jul, Mon",
+      "gradeClass": "Class 9",
+      "courseType": "master",
+      "teacherName": "Ninja Mam (Priyanka)",
+      "teacherAvatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Integers Core.pdf",
+          "size": "1.4 MB"
+        },
+        {
+          "title": "[Workbook] Absolute Value Exercises.pdf",
+          "size": "0.8 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "Which number is smaller than -5?",
+          "options": {
+            "A": "-4",
+            "B": "-6",
+            "C": "0",
+            "D": "-1"
+          },
+          "correctAnswer": "B"
+        },
+        {
+          "text": "What is the absolute value of -15?",
+          "options": {
+            "A": "15",
+            "B": "-15",
+            "C": "0",
+            "D": "1"
+          },
+          "correctAnswer": "A"
+        },
+        {
+          "text": "Calculate: (-3) x (-4) + (-5).",
+          "options": {
+            "A": "17",
+            "B": "7",
+            "C": "-7",
+            "D": "-17"
+          },
+          "correctAnswer": "B"
+        }
+      ]
+    },
+    {
+      "title": "Vedic Maths !!",
+      "subject": "Maths",
+      "time": "5:30 pm - 6:00 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 9",
+      "courseType": "master",
+      "teacherName": "Manish Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Vedic Tricks.pdf",
+          "size": "2.1 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "What is 99 x 99 using Vedic method?",
+          "options": {
+            "A": "9801",
+            "B": "9901",
+            "C": "9999",
+            "D": "9701"
+          },
+          "correctAnswer": "A"
+        }
+      ]
+    },
+    {
+      "title": "PTM : Join with Parents for Surprise Olympiad Level Mastery",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 9",
+      "courseType": "master",
+      "teacherName": "Rishabh Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Slide] Parent Teacher Meet guidelines.pdf",
+          "size": "1.1 MB"
+        }
+      ],
+      "homework": []
+    },
+    {
+      "title": "Welcome Test",
+      "subject": "Test",
+      "time": "30 minutes",
+      "dateText": "29 Jun, Mon",
+      "gradeClass": "Class 9",
+      "courseType": "master",
+      "teacherName": "System",
+      "teacherAvatar": "",
+      "status": "Finished",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [],
+      "homework": []
+    },
+    {
+      "title": "Beyond Zero : The World of Integers with Ninja Mam!",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "6 Jul, Mon",
+      "gradeClass": "Class 10",
+      "courseType": "booster",
+      "teacherName": "Ninja Mam (Priyanka)",
+      "teacherAvatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Integers Core.pdf",
+          "size": "1.4 MB"
+        },
+        {
+          "title": "[Workbook] Absolute Value Exercises.pdf",
+          "size": "0.8 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "Which number is smaller than -5?",
+          "options": {
+            "A": "-4",
+            "B": "-6",
+            "C": "0",
+            "D": "-1"
+          },
+          "correctAnswer": "B"
+        },
+        {
+          "text": "What is the absolute value of -15?",
+          "options": {
+            "A": "15",
+            "B": "-15",
+            "C": "0",
+            "D": "1"
+          },
+          "correctAnswer": "A"
+        },
+        {
+          "text": "Calculate: (-3) x (-4) + (-5).",
+          "options": {
+            "A": "17",
+            "B": "7",
+            "C": "-7",
+            "D": "-17"
+          },
+          "correctAnswer": "B"
+        }
+      ]
+    },
+    {
+      "title": "Vedic Maths !!",
+      "subject": "Maths",
+      "time": "5:30 pm - 6:00 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 10",
+      "courseType": "booster",
+      "teacherName": "Manish Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Vedic Tricks.pdf",
+          "size": "2.1 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "What is 99 x 99 using Vedic method?",
+          "options": {
+            "A": "9801",
+            "B": "9901",
+            "C": "9999",
+            "D": "9701"
+          },
+          "correctAnswer": "A"
+        }
+      ]
+    },
+    {
+      "title": "PTM : Join with Parents for Surprise Olympiad Level Mastery",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 10",
+      "courseType": "booster",
+      "teacherName": "Rishabh Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Slide] Parent Teacher Meet guidelines.pdf",
+          "size": "1.1 MB"
+        }
+      ],
+      "homework": []
+    },
+    {
+      "title": "Welcome Test",
+      "subject": "Test",
+      "time": "30 minutes",
+      "dateText": "29 Jun, Mon",
+      "gradeClass": "Class 10",
+      "courseType": "booster",
+      "teacherName": "System",
+      "teacherAvatar": "",
+      "status": "Finished",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [],
+      "homework": []
+    },
+    {
+      "title": "Beyond Zero : The World of Integers with Ninja Mam!",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "6 Jul, Mon",
+      "gradeClass": "Class 10",
+      "courseType": "master",
+      "teacherName": "Ninja Mam (Priyanka)",
+      "teacherAvatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Integers Core.pdf",
+          "size": "1.4 MB"
+        },
+        {
+          "title": "[Workbook] Absolute Value Exercises.pdf",
+          "size": "0.8 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "Which number is smaller than -5?",
+          "options": {
+            "A": "-4",
+            "B": "-6",
+            "C": "0",
+            "D": "-1"
+          },
+          "correctAnswer": "B"
+        },
+        {
+          "text": "What is the absolute value of -15?",
+          "options": {
+            "A": "15",
+            "B": "-15",
+            "C": "0",
+            "D": "1"
+          },
+          "correctAnswer": "A"
+        },
+        {
+          "text": "Calculate: (-3) x (-4) + (-5).",
+          "options": {
+            "A": "17",
+            "B": "7",
+            "C": "-7",
+            "D": "-17"
+          },
+          "correctAnswer": "B"
+        }
+      ]
+    },
+    {
+      "title": "Vedic Maths !!",
+      "subject": "Maths",
+      "time": "5:30 pm - 6:00 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 10",
+      "courseType": "master",
+      "teacherName": "Manish Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Vedic Tricks.pdf",
+          "size": "2.1 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "What is 99 x 99 using Vedic method?",
+          "options": {
+            "A": "9801",
+            "B": "9901",
+            "C": "9999",
+            "D": "9701"
+          },
+          "correctAnswer": "A"
+        }
+      ]
+    },
+    {
+      "title": "PTM : Join with Parents for Surprise Olympiad Level Mastery",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 10",
+      "courseType": "master",
+      "teacherName": "Rishabh Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Slide] Parent Teacher Meet guidelines.pdf",
+          "size": "1.1 MB"
+        }
+      ],
+      "homework": []
+    },
+    {
+      "title": "Welcome Test",
+      "subject": "Test",
+      "time": "30 minutes",
+      "dateText": "29 Jun, Mon",
+      "gradeClass": "Class 10",
+      "courseType": "master",
+      "teacherName": "System",
+      "teacherAvatar": "",
+      "status": "Finished",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [],
+      "homework": []
+    },
+    {
+      "title": "Beyond Zero : The World of Integers with Ninja Mam!",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "6 Jul, Mon",
+      "gradeClass": "Class 11",
+      "courseType": "booster",
+      "teacherName": "Ninja Mam (Priyanka)",
+      "teacherAvatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Integers Core.pdf",
+          "size": "1.4 MB"
+        },
+        {
+          "title": "[Workbook] Absolute Value Exercises.pdf",
+          "size": "0.8 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "Which number is smaller than -5?",
+          "options": {
+            "A": "-4",
+            "B": "-6",
+            "C": "0",
+            "D": "-1"
+          },
+          "correctAnswer": "B"
+        },
+        {
+          "text": "What is the absolute value of -15?",
+          "options": {
+            "A": "15",
+            "B": "-15",
+            "C": "0",
+            "D": "1"
+          },
+          "correctAnswer": "A"
+        },
+        {
+          "text": "Calculate: (-3) x (-4) + (-5).",
+          "options": {
+            "A": "17",
+            "B": "7",
+            "C": "-7",
+            "D": "-17"
+          },
+          "correctAnswer": "B"
+        }
+      ]
+    },
+    {
+      "title": "Vedic Maths !!",
+      "subject": "Maths",
+      "time": "5:30 pm - 6:00 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 11",
+      "courseType": "booster",
+      "teacherName": "Manish Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Vedic Tricks.pdf",
+          "size": "2.1 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "What is 99 x 99 using Vedic method?",
+          "options": {
+            "A": "9801",
+            "B": "9901",
+            "C": "9999",
+            "D": "9701"
+          },
+          "correctAnswer": "A"
+        }
+      ]
+    },
+    {
+      "title": "PTM : Join with Parents for Surprise Olympiad Level Mastery",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 11",
+      "courseType": "booster",
+      "teacherName": "Rishabh Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Slide] Parent Teacher Meet guidelines.pdf",
+          "size": "1.1 MB"
+        }
+      ],
+      "homework": []
+    },
+    {
+      "title": "Welcome Test",
+      "subject": "Test",
+      "time": "30 minutes",
+      "dateText": "29 Jun, Mon",
+      "gradeClass": "Class 11",
+      "courseType": "booster",
+      "teacherName": "System",
+      "teacherAvatar": "",
+      "status": "Finished",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [],
+      "homework": []
+    },
+    {
+      "title": "Beyond Zero : The World of Integers with Ninja Mam!",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "6 Jul, Mon",
+      "gradeClass": "Class 11",
+      "courseType": "master",
+      "teacherName": "Ninja Mam (Priyanka)",
+      "teacherAvatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Integers Core.pdf",
+          "size": "1.4 MB"
+        },
+        {
+          "title": "[Workbook] Absolute Value Exercises.pdf",
+          "size": "0.8 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "Which number is smaller than -5?",
+          "options": {
+            "A": "-4",
+            "B": "-6",
+            "C": "0",
+            "D": "-1"
+          },
+          "correctAnswer": "B"
+        },
+        {
+          "text": "What is the absolute value of -15?",
+          "options": {
+            "A": "15",
+            "B": "-15",
+            "C": "0",
+            "D": "1"
+          },
+          "correctAnswer": "A"
+        },
+        {
+          "text": "Calculate: (-3) x (-4) + (-5).",
+          "options": {
+            "A": "17",
+            "B": "7",
+            "C": "-7",
+            "D": "-17"
+          },
+          "correctAnswer": "B"
+        }
+      ]
+    },
+    {
+      "title": "Vedic Maths !!",
+      "subject": "Maths",
+      "time": "5:30 pm - 6:00 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 11",
+      "courseType": "master",
+      "teacherName": "Manish Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Vedic Tricks.pdf",
+          "size": "2.1 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "What is 99 x 99 using Vedic method?",
+          "options": {
+            "A": "9801",
+            "B": "9901",
+            "C": "9999",
+            "D": "9701"
+          },
+          "correctAnswer": "A"
+        }
+      ]
+    },
+    {
+      "title": "PTM : Join with Parents for Surprise Olympiad Level Mastery",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 11",
+      "courseType": "master",
+      "teacherName": "Rishabh Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Slide] Parent Teacher Meet guidelines.pdf",
+          "size": "1.1 MB"
+        }
+      ],
+      "homework": []
+    },
+    {
+      "title": "Welcome Test",
+      "subject": "Test",
+      "time": "30 minutes",
+      "dateText": "29 Jun, Mon",
+      "gradeClass": "Class 11",
+      "courseType": "master",
+      "teacherName": "System",
+      "teacherAvatar": "",
+      "status": "Finished",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [],
+      "homework": []
+    },
+    {
+      "title": "Beyond Zero : The World of Integers with Ninja Mam!",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "6 Jul, Mon",
+      "gradeClass": "Class 12",
+      "courseType": "booster",
+      "teacherName": "Ninja Mam (Priyanka)",
+      "teacherAvatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Integers Core.pdf",
+          "size": "1.4 MB"
+        },
+        {
+          "title": "[Workbook] Absolute Value Exercises.pdf",
+          "size": "0.8 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "Which number is smaller than -5?",
+          "options": {
+            "A": "-4",
+            "B": "-6",
+            "C": "0",
+            "D": "-1"
+          },
+          "correctAnswer": "B"
+        },
+        {
+          "text": "What is the absolute value of -15?",
+          "options": {
+            "A": "15",
+            "B": "-15",
+            "C": "0",
+            "D": "1"
+          },
+          "correctAnswer": "A"
+        },
+        {
+          "text": "Calculate: (-3) x (-4) + (-5).",
+          "options": {
+            "A": "17",
+            "B": "7",
+            "C": "-7",
+            "D": "-17"
+          },
+          "correctAnswer": "B"
+        }
+      ]
+    },
+    {
+      "title": "Vedic Maths !!",
+      "subject": "Maths",
+      "time": "5:30 pm - 6:00 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 12",
+      "courseType": "booster",
+      "teacherName": "Manish Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Vedic Tricks.pdf",
+          "size": "2.1 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "What is 99 x 99 using Vedic method?",
+          "options": {
+            "A": "9801",
+            "B": "9901",
+            "C": "9999",
+            "D": "9701"
+          },
+          "correctAnswer": "A"
+        }
+      ]
+    },
+    {
+      "title": "PTM : Join with Parents for Surprise Olympiad Level Mastery",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 12",
+      "courseType": "booster",
+      "teacherName": "Rishabh Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Slide] Parent Teacher Meet guidelines.pdf",
+          "size": "1.1 MB"
+        }
+      ],
+      "homework": []
+    },
+    {
+      "title": "Welcome Test",
+      "subject": "Test",
+      "time": "30 minutes",
+      "dateText": "29 Jun, Mon",
+      "gradeClass": "Class 12",
+      "courseType": "booster",
+      "teacherName": "System",
+      "teacherAvatar": "",
+      "status": "Finished",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [],
+      "homework": []
+    },
+    {
+      "title": "Beyond Zero : The World of Integers with Ninja Mam!",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "6 Jul, Mon",
+      "gradeClass": "Class 12",
+      "courseType": "master",
+      "teacherName": "Ninja Mam (Priyanka)",
+      "teacherAvatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Integers Core.pdf",
+          "size": "1.4 MB"
+        },
+        {
+          "title": "[Workbook] Absolute Value Exercises.pdf",
+          "size": "0.8 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "Which number is smaller than -5?",
+          "options": {
+            "A": "-4",
+            "B": "-6",
+            "C": "0",
+            "D": "-1"
+          },
+          "correctAnswer": "B"
+        },
+        {
+          "text": "What is the absolute value of -15?",
+          "options": {
+            "A": "15",
+            "B": "-15",
+            "C": "0",
+            "D": "1"
+          },
+          "correctAnswer": "A"
+        },
+        {
+          "text": "Calculate: (-3) x (-4) + (-5).",
+          "options": {
+            "A": "17",
+            "B": "7",
+            "C": "-7",
+            "D": "-17"
+          },
+          "correctAnswer": "B"
+        }
+      ]
+    },
+    {
+      "title": "Vedic Maths !!",
+      "subject": "Maths",
+      "time": "5:30 pm - 6:00 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 12",
+      "courseType": "master",
+      "teacherName": "Manish Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Lecture-Notes] Vedic Tricks.pdf",
+          "size": "2.1 MB"
+        }
+      ],
+      "homework": [
+        {
+          "text": "What is 99 x 99 using Vedic method?",
+          "options": {
+            "A": "9801",
+            "B": "9901",
+            "C": "9999",
+            "D": "9701"
+          },
+          "correctAnswer": "A"
+        }
+      ]
+    },
+    {
+      "title": "PTM : Join with Parents for Surprise Olympiad Level Mastery",
+      "subject": "Maths",
+      "time": "8:10 pm - 9:10 pm",
+      "dateText": "7 Jul, Tue",
+      "gradeClass": "Class 12",
+      "courseType": "master",
+      "teacherName": "Rishabh Sir",
+      "teacherAvatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100",
+      "status": "Scheduled",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [
+        {
+          "title": "[Slide] Parent Teacher Meet guidelines.pdf",
+          "size": "1.1 MB"
+        }
+      ],
+      "homework": []
+    },
+    {
+      "title": "Welcome Test",
+      "subject": "Test",
+      "time": "30 minutes",
+      "dateText": "29 Jun, Mon",
+      "gradeClass": "Class 12",
+      "courseType": "master",
+      "teacherName": "System",
+      "teacherAvatar": "",
+      "status": "Finished",
+      "createdAt": "2026-07-10T03:29:01.195Z",
+      "materials": [],
+      "homework": []
     }
   ]
 }

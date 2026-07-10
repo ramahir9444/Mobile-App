@@ -17,6 +17,7 @@ const orderRoutes         = require('./routes/orders');
 const homepageRoutes      = require('./routes/homepage');
 const scheduleRoutes      = require('./routes/schedules');
 const materialRoutes      = require('./routes/materials');
+const hwSubmissionRoutes  = require('./routes/homeworkSubmissions');
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -68,6 +69,7 @@ app.use('/api/orders',   orderRoutes);
 app.use('/api/homepage-configs', homepageRoutes);
 app.use('/api/schedules', scheduleRoutes);
 app.use('/api/materials', materialRoutes);
+app.use('/api/homework-submissions', hwSubmissionRoutes);
 
 // ── 404 Handler ──────────────────────────────────────────────────
 app.use((req, res) => {
@@ -82,7 +84,7 @@ app.use((err, req, res, _next) => {
 
 // ── Boot ─────────────────────────────────────────────────────────
 const startExpressServer = () => {
-  app.listen(PORT, () => {
+  app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n🚀  Oda Class API  →  http://localhost:${PORT}`);
     console.log(`    Health:       GET  /health`);
     console.log(`    Send OTP:     POST /api/auth/send-otp`);

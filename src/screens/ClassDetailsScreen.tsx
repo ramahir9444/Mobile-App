@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
 import { useApp } from '../context/AppContext';
-import { getAvatarUrl } from '../services/api';
+import { getAvatarUrl, submitHomeworkScore } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -26,7 +26,7 @@ const getFontSize = (baseSize: number) => {
 // 1. CLASS DETAILS SCREEN
 // ==========================================
 export const ClassDetailsScreen: React.FC = () => {
-  const { navigateTo, goBack, setSelectedReportPeriod, activeClassSchedule } = useApp();
+  const { navigateTo, goBack, setSelectedReportPeriod, activeClassSchedule, activeCourseClass, activeCourseType, user, homeworkSubmissions, refreshHomeworkSubmissions } = useApp();
   const [activeSection, setActiveSection] = useState<'Materials' | 'Report' | 'Homework'>('Homework');
   const [downloadingFile, setDownloadingFile] = useState<string | null>(null);
   const [downloadProgress, setDownloadProgress] = useState<number>(0);
@@ -306,32 +306,58 @@ export const ClassDetailsScreen: React.FC = () => {
                 </View>
               ) : (
                 /* Homework Card */
-                <View className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
-                  <View className="flex-row justify-between items-center">
-                    <View className="flex-1 pr-3">
-                      <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(15.5) }} className="text-slate-800 font-bold">
-                        {activeClassSchedule?.title ? `${activeClassSchedule.subject} Homework` : "Integers & Negative Numbers Homework"}
-                      </Text>
-                      <View className="bg-orange-50 border border-orange-100 py-0.5 px-2.5 rounded self-start mt-2">
-                        <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9.5) }} className="text-orange-600 font-bold">Pending Submission</Text>
+                (() => {
+                  // Always check from DB-fetched context array — persists across refreshes
+                  const submission = homeworkSubmissions.find(
+                    (s: any) => s.scheduleId === activeClassSchedule?._id
+                  );
+                  const isCompleted = !!submission;
+
+                  return (
+                    <View className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
+                      <View className="flex-row justify-between items-center">
+                        <View className="flex-1 pr-3">
+                          <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(15.5) }} className="text-slate-800 font-bold">
+                            {activeClassSchedule?.title ? `${activeClassSchedule.subject} Homework` : "Integers & Negative Numbers Homework"}
+                          </Text>
+                          {isCompleted ? (
+                            <View className="bg-emerald-50 border border-emerald-100 py-0.5 px-2.5 rounded self-start mt-2">
+                              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9.5) }} className="text-emerald-650 font-bold">
+                                Completed ({submission.score}/{submission.totalQuestions})
+                              </Text>
+                            </View>
+                          ) : (
+                            <View className="bg-orange-50 border border-orange-100 py-0.5 px-2.5 rounded self-start mt-2">
+                              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9.5) }} className="text-orange-650 font-bold">Pending Submission</Text>
+                            </View>
+                          )}
+                        </View>
+                        <MaterialCommunityIcons 
+                          name={isCompleted ? "clipboard-check-outline" : "clipboard-text-play-outline"} 
+                          size={32} 
+                          color={isCompleted ? "#10B981" : "#FF6600"} 
+                        />
+                      </View>
+
+                      <View className="flex-row justify-between items-center mt-6 pt-4 border-t border-slate-55">
+                        <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(12) }} className="text-slate-400">
+                          Questions: {homeworkQuestions.length} | Limit: {homeworkQuestions.length * 3} mins
+                        </Text>
+                        
+                        <TouchableOpacity 
+                          onPress={() => navigateTo(isCompleted ? 'HOMEWORK_REPORT' : 'HOMEWORK_QUIZ')}
+                          className={`py-1.5 px-5 rounded-full shadow-sm ${
+                            isCompleted ? 'bg-indigo-600 active:bg-indigo-750' : 'bg-[#00B6A6] active:bg-teal-650'
+                          }`}
+                        >
+                          <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12) }} className="text-white font-bold">
+                            {isCompleted ? 'View Report' : 'Start Homework'}
+                          </Text>
+                        </TouchableOpacity>
                       </View>
                     </View>
-                    <MaterialCommunityIcons name="clipboard-text-play-outline" size={32} color="#FF6600" />
-                  </View>
-
-                  <View className="flex-row justify-between items-center mt-6 pt-4 border-t border-slate-55">
-                    <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(12) }} className="text-slate-400">
-                      Questions: {homeworkQuestions.length} | Limit: {homeworkQuestions.length * 3} mins
-                    </Text>
-                    
-                    <TouchableOpacity 
-                      onPress={() => navigateTo('HOMEWORK_QUIZ')}
-                      className="bg-[#00B6A6] py-1.5 px-5 rounded-full shadow-sm active:bg-teal-650"
-                    >
-                      <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12) }} className="text-white font-bold">Start Homework</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
+                  );
+                })()
               )}
             </View>
           )}
@@ -355,9 +381,9 @@ export const ClassDetailsScreen: React.FC = () => {
 // 2. HOMEWORK QUIZ SCREEN
 // ==========================================
 export const HomeworkQuizScreen: React.FC = () => {
-  const { navigateTo, goBack, activeClassSchedule } = useApp();
+  const { navigateTo, goBack, activeClassSchedule, activeCourseClass, activeCourseType, user, refreshHomeworkSubmissions } = useApp();
   const [currentIdx, setCurrentIdx] = useState<number>(0);
-  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
   const [timeLeft, setTimeLeft] = useState<number>(600); // 10 minutes
 
   // Timer Tick
@@ -375,28 +401,58 @@ export const HomeworkQuizScreen: React.FC = () => {
   };
 
   const questions = activeClassSchedule?.homework?.length > 0 ? activeClassSchedule.homework : [
-    { text: 'Which number is smaller than -5?', options: { A: '-4', B: '-6', C: '0', D: '-1' } },
-    { text: 'What is the absolute value of -15?', options: { A: '15', B: '-15', C: '0', D: '1' } },
-    { text: 'Calculate: (-3) x (-4) + (-5).', options: { A: '17', B: '7', C: '-7', D: '-17' } }
+    { text: 'Which number is smaller than -5?', options: { A: '-4', B: '-6', C: '0', D: '-1' }, correctAnswer: 'B' },
+    { text: 'What is the absolute value of -15?', options: { A: '15', B: '-15', C: '0', D: '1' }, correctAnswer: 'A' },
+    { text: 'Calculate: (-3) x (-4) + (-5).', options: { A: '17', B: '7', C: '-7', D: '-17' }, correctAnswer: 'B' }
   ];
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentIdx === questions.length - 1) {
+      // Submit homework
+      const finalScore = questions.reduce((acc: number, q: any, idx: number) => {
+        const ans = selectedAnswers[idx];
+        const correct = q.correctAnswer || 'A';
+        return ans === correct ? acc + 1 : acc;
+      }, 0);
+
+      try {
+        await submitHomeworkScore(
+          user.phone,
+          {
+            scheduleId: activeClassSchedule?._id || 'mock_schedule_id',
+            scheduleTitle: activeClassSchedule?.title || '',
+            subject: activeClassSchedule?.subject || '',
+            gradeClass: activeCourseClass || activeClassSchedule?.gradeClass || '',
+            courseType: activeCourseType || activeClassSchedule?.courseType || 'master',
+            score: finalScore,
+            totalQuestions: questions.length,
+            answers: Object.entries(selectedAnswers).map(([qIdx, ans]) => ({
+              questionIndex: Number(qIdx),
+              selectedAnswer: ans,
+              isCorrect: ans === (questions[Number(qIdx)].correctAnswer || 'A')
+            }))
+          },
+          user.name
+        );
+        // Always refresh from DB so status is correct even after app restart
+        await refreshHomeworkSubmissions(user.phone);
+      } catch (err) {
+        console.error("Failed to submit homework score:", err);
+      }
       navigateTo('HOMEWORK_REPORT');
     } else {
       setCurrentIdx((prev) => prev + 1);
-      setSelectedOption(null);
     }
   };
 
   const handlePrev = () => {
     if (currentIdx > 0) {
       setCurrentIdx((prev) => prev - 1);
-      setSelectedOption(null);
     }
   };
 
   const activeQ = questions[currentIdx];
+  const selectedOption = selectedAnswers[currentIdx] || null;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }} edges={['top', 'left', 'right', 'bottom']}>
@@ -423,7 +479,7 @@ export const HomeworkQuizScreen: React.FC = () => {
       </View>
 
       {/* TIMINGS ROW */}
-      <View className="flex-row justify-between items-center px-5 py-3 border-b border-slate-50">
+      <View className="flex-row justify-between items-center px-5 py-3 border-b border-slate-55">
         <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(16) }} className="text-slate-800 font-bold">
           {currentIdx + 1}/{questions.length}
         </Text>
@@ -449,7 +505,7 @@ export const HomeworkQuizScreen: React.FC = () => {
             return (
               <TouchableOpacity
                 key={optKey}
-                onPress={() => setSelectedOption(optKey)}
+                onPress={() => setSelectedAnswers({ ...selectedAnswers, [currentIdx]: optKey })}
                 className="flex-row items-center py-2.5 active:opacity-75"
               >
                 <View className={`w-8 h-8 rounded-full border items-center justify-center mr-4 ${
@@ -499,7 +555,10 @@ export const HomeworkQuizScreen: React.FC = () => {
 
           <TouchableOpacity 
             onPress={handleNext}
-            className="bg-[#00B6A6] border border-[#00B6A6] py-2 px-6 rounded-full flex-row items-center active:bg-teal-650"
+            disabled={!selectedOption}
+            className={`border py-2 px-6 rounded-full flex-row items-center ${
+              !selectedOption ? 'bg-slate-200 border-slate-200 opacity-60' : 'bg-[#00B6A6] border-[#00B6A6] active:bg-teal-650'
+            }`}
           >
             <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(11.5) }} className="text-white font-bold">
               {currentIdx === questions.length - 1 ? 'SUBMIT HW' : 'NEXT'}
@@ -518,7 +577,22 @@ export const HomeworkQuizScreen: React.FC = () => {
 // 3. HOMEWORK REPORT SCREEN
 // ==========================================
 export const HomeworkReportScreen: React.FC = () => {
-  const { goBackTo } = useApp();
+  const { goBackTo, homeworkSubmissions, activeClassSchedule, user } = useApp();
+
+  const questions = activeClassSchedule?.homework?.length > 0 ? activeClassSchedule.homework : [
+    { text: 'Which number is smaller than -5?', options: { A: '-4', B: '-6', C: '0', D: '-1' }, correctAnswer: 'B' },
+    { text: 'What is the absolute value of -15?', options: { A: '15', B: '-15', C: '0', D: '1' }, correctAnswer: 'A' },
+    { text: 'Calculate: (-3) x (-4) + (-5).', options: { A: '17', B: '7', C: '-7', D: '-17' }, correctAnswer: 'B' }
+  ];
+
+  const submission = homeworkSubmissions.find(
+    (s: any) => s.scheduleId === activeClassSchedule?._id
+  );
+
+  const score = submission ? submission.score : questions.length;
+  const total = submission ? submission.totalQuestions : questions.length;
+  const accuracy = Math.round((score / total) * 100);
+  const grade = accuracy >= 90 ? 'A+' : accuracy >= 75 ? 'A' : accuracy >= 60 ? 'B' : 'C';
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }} edges={['top', 'left', 'right', 'bottom']}>
@@ -542,20 +616,20 @@ export const HomeworkReportScreen: React.FC = () => {
         <View className="flex-row justify-between items-start mb-6">
           <View className="flex-1 pr-4">
             <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(20) }} className="text-slate-805 font-bold leading-tight">
-              Homework: Beyond Zero
+              Homework: {activeClassSchedule?.title || 'Beyond Zero'}
             </Text>
             <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(12.5) }} className="text-slate-400 mt-1">
-              Submitted: Just now, 6 Jul
+              Submitted: {submission?.submittedAt ? new Date(submission.submittedAt).toLocaleDateString() : 'Just now'}
             </Text>
           </View>
 
           <View className="items-center">
             <Image 
-              source={{ uri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80' }} 
+              source={{ uri: user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80' }} 
               className="w-13 h-13 rounded-full bg-slate-100 border-2 border-teal-100 shadow-sm"
             />
-            <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(11.5) }} className="text-slate-650 font-bold mt-1">
-              Ram
+            <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(11.5) }} className="text-slate-655 font-bold mt-1">
+              {user.name || 'Student'}
             </Text>
           </View>
         </View>
@@ -563,8 +637,8 @@ export const HomeworkReportScreen: React.FC = () => {
         {/* SCORE CARD */}
         <View className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex-row divide-x divide-slate-100 mb-6">
           <View className="flex-1 items-center justify-center py-2">
-            <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-800 text-4.5xl font-bold leading-none">
-              A
+            <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-teal-600 text-4.5xl font-bold leading-none">
+              {grade}
             </Text>
             <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(11.5) }} className="text-slate-400 font-medium mt-2">
               Grade
@@ -574,17 +648,17 @@ export const HomeworkReportScreen: React.FC = () => {
           <View className="flex-1 items-center justify-center py-2">
             <View className="flex-row items-baseline">
               <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-800 text-3.5xl font-bold">
-                3
+                {score}
               </Text>
               <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-400 text-lg font-bold">
-                /3
+                /{total}
               </Text>
             </View>
             <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(11.5) }} className="text-slate-400 font-medium mt-2">
               Scores
             </Text>
             <Text style={{ fontFamily: Theme.fonts.poppinsRegular, fontSize: getFontSize(10.5) }} className="text-slate-400 mt-0.5">
-              Accuracy: 100%
+              Accuracy: {accuracy}%
             </Text>
           </View>
         </View>
@@ -595,18 +669,27 @@ export const HomeworkReportScreen: React.FC = () => {
             Answer Details
           </Text>
 
-          <View className="flex-row gap-3.5 justify-start">
-            {[1, 2, 3].map((num) => (
-              <View 
-                key={num} 
-                className="w-14 h-14 rounded-xl border border-slate-150 items-center justify-center bg-white"
-              >
-                <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12) }} className="text-slate-700 font-bold">
-                  Q{num}
-                </Text>
-                <Feather name="check" size={12} color="#10B981" />
-              </View>
-            ))}
+          <View className="flex-row gap-3.5 justify-start flex-wrap">
+            {questions.map((q: any, idx: number) => {
+              const answerItem = submission?.answers?.find((a: any) => a.questionIndex === idx);
+              const isCorrect = answerItem ? answerItem.isCorrect : true;
+
+              return (
+                <View 
+                  key={idx} 
+                  className="w-14 h-14 rounded-xl border border-slate-150 items-center justify-center bg-white"
+                >
+                  <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12) }} className="text-slate-700 font-bold">
+                    Q{idx + 1}
+                  </Text>
+                  <Feather 
+                    name={isCorrect ? "check" : "x"} 
+                    size={12} 
+                    color={isCorrect ? "#10B981" : "#EF4444"} 
+                  />
+                </View>
+              );
+            })}
           </View>
         </View>
 

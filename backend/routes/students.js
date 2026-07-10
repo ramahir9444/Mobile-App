@@ -272,4 +272,46 @@ router.post('/:id/upload-avatar', async (req, res) => {
   }
 });
 
+// POST /api/students/:phone/homework — submit homework score
+router.post('/:phone/homework', async (req, res) => {
+  try {
+    const { scheduleId, score, totalQuestions, answers } = req.body;
+    if (!scheduleId) {
+      return res.status(400).json({ success: false, error: 'Missing scheduleId' });
+    }
+
+    const db = getDB();
+    // Remove any existing submission for this scheduleId
+    await db.collection('students').updateOne(
+      { phone: req.params.phone },
+      { $pull: { homeworkSubmissions: { scheduleId } } }
+    );
+
+    // Push new homework submission
+    const result = await db.collection('students').findOneAndUpdate(
+      { phone: req.params.phone },
+      { 
+        $push: { 
+          homeworkSubmissions: {
+            scheduleId,
+            score: Number(score),
+            totalQuestions: Number(totalQuestions),
+            answers: answers || [],
+            submittedAt: new Date()
+          }
+        }
+      },
+      { returnDocument: 'after' }
+    );
+
+    if (!result) {
+      return res.status(404).json({ success: false, error: 'Student not found' });
+    }
+
+    res.json({ success: true, data: result });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 module.exports = router;

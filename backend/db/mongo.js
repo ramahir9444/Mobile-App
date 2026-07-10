@@ -131,6 +131,18 @@ class MockCollection {
     this._write(data);
     return { insertedId: doc._id || Date.now().toString() };
   }
+
+  async countDocuments(query = {}) {
+    const data = this._read();
+    const list = data[this.name] || [];
+    if (Object.keys(query).length === 0) return list.length;
+    return list.filter(item => {
+      for (let k in query) {
+        if (item[k] !== query[k]) return false;
+      }
+      return true;
+    }).length;
+  }
 }
 
 async function connectDB() {

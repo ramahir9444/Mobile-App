@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getStudentByPhone, updateStudentClass } from '../services/api';
+import { getStudentByPhone, updateStudentClass, fetchHomeworkSubmissions } from '../services/api';
 
 export type AppScreen =
   | 'SPLASH'
@@ -45,6 +45,7 @@ export interface UserProfile {
   state?: string;
   address?: string;
   enrollmentType?: 'none' | 'demo' | 'master';
+  // homeworkSubmissions removed from UserProfile — always fetched fresh from DB
 }
 
 export interface BookingDetails {
@@ -87,6 +88,9 @@ interface AppContextType {
   user: UserProfile;
   updateUser: (fields: Partial<UserProfile>) => void;
   resetUser: () => void;
+  // Homework submissions — always fetched from DB, never stored locally
+  homeworkSubmissions: any[];
+  refreshHomeworkSubmissions: (phone?: string) => Promise<void>;
 
   // Temporary App Form Data (shared across auth screens)
   authEmail: string;
@@ -181,6 +185,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // User profile
   const [user, setUser] = useState<UserProfile>(defaultUser);
 
+  // Homework submissions — always sourced from MongoDB, never from local state
+  const [homeworkSubmissions, setHomeworkSubmissions] = useState<any[]>([]);
+
+  const refreshHomeworkSubmissions = async (phone?: string) => {
+    const targetPhone = phone || user.phone;
+    if (!targetPhone) return;
+    try {
+      const res = await fetchHomeworkSubmissions(targetPhone);
+      if (res.success) setHomeworkSubmissions(res.data || []);
+    } catch (err) {
+      console.error('[refreshHomeworkSubmissions] failed:', err);
+    }
+  };
+
   // Shared form inputs for auth demonstration flow
   const [authEmail, setAuthEmail] = useState('student@example.com');
   const [authName, setAuthName] = useState('Priya Sharma');
@@ -191,10 +209,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [selectedChapter, setSelectedChapter] = useState('Chapter 3: Quadratic Equations');
   const [selectedLesson, setSelectedLesson] = useState('Factoring Quadratic Polynomials');
 
-  const [selectedClass, setSelectedClassState] = useState('Class 1');
+  const [selectedClass, setSelectedClassState] = useState('Class 6');
 
   const setSelectedClass = async (cls: string) => {
     setSelectedClassState(cls);
+    try {
+      await AsyncStorage.setItem('@selected_class', cls);
+    } catch (err) {
+      console.error('Failed to save selected class to AsyncStorage:', err);
+    }
     if (user && user._id && selectedClass !== cls) {
       try {
         await updateStudentClass(user._id, cls);
@@ -248,6 +271,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const loadSession = async () => {
       console.log('🔄 [loadSession] Starting session recovery...');
       try {
+        // Load persisted guest class if exists
+        const savedClass = await AsyncStorage.getItem('@selected_class');
+        console.log('🔄 [loadSession] AsyncStorage @selected_class:', savedClass);
+        if (savedClass) {
+          setSelectedClassState(savedClass);
+        }
+
         const savedPhone = await AsyncStorage.getItem('@user_phone');
         console.log('🔄 [loadSession] AsyncStorage @user_phone:', savedPhone);
         if (savedPhone) {
@@ -273,9 +303,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             });
             if (res.data.selectedClass) {
               setSelectedClassState(res.data.selectedClass);
+              try {
+                await AsyncStorage.setItem('@selected_class', res.data.selectedClass);
+              } catch {}
             }
             setIsEnrolled(!!(res.data.enrollmentType && res.data.enrollmentType !== 'none'));
             setAuthPhone(savedPhone);
+            // Fetch homework submissions from DB — never from local state
+            try {
+              const hwRes = await fetchHomeworkSubmissions(savedPhone);
+              if (hwRes.success) setHomeworkSubmissions(hwRes.data || []);
+            } catch { /* non-critical */ }
             setCurrentScreen('DASHBOARD');
             setScreenStack(['DASHBOARD']);
             console.log('🔄 [loadSession] Session recovered successfully! Routing to DASHBOARD.');
@@ -406,6 +444,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setActiveCourseType,
         activeClassSchedule,
         setActiveClassSchedule,
+        homeworkSubmissions,
+        refreshHomeworkSubmissions,
       }}
     >
       {children}

@@ -685,10 +685,6 @@ export const DashboardScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Far right download icon */}
-          <TouchableOpacity onPress={() => showToast("Opening downloads...")} className="p-2">
-            <Feather name="download" size={20} color="#64748B" />
-          </TouchableOpacity>
         </View>
 
         {!isEnrolled ? (

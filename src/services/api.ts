@@ -290,6 +290,48 @@ export async function updateOrderStatus(
   return apiCall('PUT', `/api/orders/${id}`, { status });
 }
 
+// ─── HOMEWORK SUBMISSIONS (dedicated collection) ─────────────────
+
+/** Submit (or re-submit) homework — stored in dedicated homework_submissions collection */
+export async function submitHomeworkScore(
+  phone: string,
+  data: {
+    scheduleId: string;
+    scheduleTitle?: string;
+    subject?: string;
+    gradeClass?: string;
+    courseType?: string;
+    score: number;
+    totalQuestions: number;
+    answers: any[];
+  },
+  studentName?: string
+): Promise<{ success: boolean; data: any }> {
+  return apiCall('POST', `/api/homework-submissions`, {
+    studentPhone: phone,
+    studentName: studentName || '',
+    ...data,
+  });
+}
+
+/** Fetch all homework submissions for a student from DB */
+export async function fetchHomeworkSubmissions(
+  phone: string
+): Promise<{ success: boolean; data: any[]; count: number }> {
+  return apiCall('GET', `/api/homework-submissions?phone=${encodeURIComponent(phone)}`);
+}
+
+/** Check if a specific schedule HW is submitted */
+export async function checkHomeworkSubmission(
+  phone: string,
+  scheduleId: string
+): Promise<{ success: boolean; data: any[]; count: number }> {
+  return apiCall(
+    'GET',
+    `/api/homework-submissions?phone=${encodeURIComponent(phone)}&scheduleId=${encodeURIComponent(scheduleId)}`
+  );
+}
+
 // ─── HEALTH ──────────────────────────────────────────────────────
 export async function healthCheck(): Promise<{ status: string }> {
   return apiCall('GET', '/health');

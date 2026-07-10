@@ -8,12 +8,14 @@ import {
   Dimensions, 
   ActivityIndicator, 
   StatusBar,
-  Alert
+  Alert,
+  Linking
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
 import { useApp } from '../context/AppContext';
+import { getAvatarUrl } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -528,25 +530,45 @@ export const MaterialsFilesScreen: React.FC = () => {
     fetchMaterials();
   }, [activeCourseClass, activeCourseType]);
 
-  const handleDownload = (fileName: string) => {
-    if (downloadingFile) return; // Wait for active download
-    setDownloadingFile(fileName);
-    setDownloadProgress(0);
+  const handleDownload = (pdf: any) => {
+    if (pdf.fileUrl) {
+      const absUrl = getAvatarUrl(pdf.fileUrl);
+      if (absUrl) {
+        Linking.openURL(absUrl).catch((err) => {
+          console.error("Failed to open study material URL:", err);
+          showToast("Error opening file link.");
+        });
+      }
+    } else {
+      if (downloadingFile) return;
+      setDownloadingFile(pdf.fileName);
+      setDownloadProgress(0);
 
-    const interval = setInterval(() => {
-      setDownloadProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setTimeout(() => {
-            setDownloadingFile(null);
-            showToast(`Successfully downloaded ${fileName}! 📁`);
-          }, 400);
-          return 100;
-        }
-        return prev + 25;
-      });
-    }, 200);
+      const interval = setInterval(() => {
+        setDownloadProgress((prev) => {
+          if (prev >= 100) {
+            clearInterval(interval);
+            setTimeout(() => {
+              setDownloadingFile(null);
+              showToast(`Successfully downloaded ${pdf.fileName}! 📁`);
+            }, 400);
+            return 100;
+          }
+          return prev + 25;
+        });
+      }, 200);
+    }
   };
+
+  // Group materials by chapter, then by topic
+  const grouped: Record<string, Record<string, any[]>> = {};
+  materials.forEach((m) => {
+    const ch = m.chapter || 'General Notes';
+    const top = m.topic || 'All Topics';
+    if (!grouped[ch]) grouped[ch] = {};
+    if (!grouped[ch][top]) grouped[ch][top] = [];
+    grouped[ch][top].push(m);
+  });
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }} edges={['top', 'left', 'right', 'bottom']}>
@@ -574,55 +596,76 @@ export const MaterialsFilesScreen: React.FC = () => {
             <Text style={{ fontFamily: Theme.fonts.poppinsMedium }} className="text-slate-400 text-xs">No study materials available</Text>
           </View>
         ) : (
-          materials.map((pdf, idx) => {
-            const isThisDownloading = downloadingFile === pdf.fileName;
+          Object.entries(grouped).map(([chapterTitle, topics]) => (
+            <View key={chapterTitle} className="mb-6 bg-slate-50/50 p-4.5 rounded-2xl border border-slate-100/50">
+              {/* Chapter Header */}
+              <View className="flex-row items-center mb-3">
+                <MaterialCommunityIcons name="folder-open" size={20} color="#EA580C" className="mr-2" />
+                <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(14) }} className="text-slate-800 font-bold">
+                  {chapterTitle}
+                </Text>
+              </View>
 
-            return (
-              <TouchableOpacity 
-                key={pdf._id || idx}
-                onPress={() => handleDownload(pdf.fileName)}
-                className="flex-row items-center py-3.5 border-b border-slate-50 active:bg-slate-50/50"
-              >
-                {/* PDF Badge Icon with red dot */}
-                <View className="relative mr-4">
-                  <View className="w-10 h-10 rounded-lg bg-red-50 items-center justify-center border border-red-100">
-                    <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9) }} className="text-red-500 font-bold">
-                      PDF
-                    </Text>
-                  </View>
-                </View>
-
-                {/* PDF Title & Size */}
-                <View className="flex-1 pr-3">
-                  <Text 
-                    numberOfLines={1} 
-                    style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(13.5) }} 
-                    className="text-slate-800 font-medium"
-                  >
-                    {pdf.fileName}
+              {/* Map Topics inside Chapter */}
+              {Object.entries(topics).map(([topicTitle, files]) => (
+                <View key={topicTitle} className="mt-3.5 pl-1.5">
+                  {/* Topic Label */}
+                  <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(11) }} className="text-slate-450 uppercase tracking-wider mb-2 font-bold">
+                    {topicTitle}
                   </Text>
-                  
-                  {isThisDownloading ? (
-                    /* Progress loading bar */
-                    <View className="flex-row items-center mt-1">
-                      <View className="flex-1 h-[3.5px] bg-slate-100 rounded-full overflow-hidden mr-3">
-                        <View className="h-full bg-teal-500" style={{ width: `${downloadProgress}%` }} />
-                      </View>
-                      <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(10.5) }} className="text-teal-600 font-bold">
-                        {downloadProgress}%
-                      </Text>
-                    </View>
-                  ) : (
-                    <Text style={{ fontFamily: Theme.fonts.poppinsRegular, fontSize: getFontSize(11.5) }} className="text-slate-400 mt-0.5">
-                      Size: {pdf.fileSize}
-                    </Text>
-                  )}
-                </View>
 
-                <Feather name="chevron-right" size={18} color="#94A3B8" />
-              </TouchableOpacity>
-            );
-          })
+                  {/* Map Files inside Topic */}
+                  {files.map((pdf, idx) => {
+                    const isThisDownloading = downloadingFile === pdf.fileName;
+                    const isPdf = pdf.fileName.toLowerCase().endsWith('.pdf');
+                    return (
+                      <TouchableOpacity 
+                        key={pdf._id || idx}
+                        onPress={() => handleDownload(pdf)}
+                        className="flex-row items-center py-3 border-b border-slate-100/40 active:bg-slate-100/20"
+                      >
+                        {/* File Icon */}
+                        <View className="relative mr-3">
+                          <View className="w-9 h-9 rounded-lg bg-red-50 items-center justify-center border border-red-100/50">
+                            <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(8) }} className="text-red-500 font-bold uppercase">
+                              {isPdf ? 'PDF' : 'DOC'}
+                            </Text>
+                          </View>
+                        </View>
+
+                        {/* Title & Size */}
+                        <View className="flex-1 pr-3">
+                          <Text 
+                            numberOfLines={1} 
+                            style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(13) }} 
+                            className="text-slate-800 font-medium"
+                          >
+                            {pdf.fileName}
+                          </Text>
+                          {isThisDownloading ? (
+                            <View className="flex-row items-center mt-1">
+                              <View className="flex-1 h-[3px] bg-slate-100 rounded-full overflow-hidden mr-2">
+                                <View className="h-full bg-teal-500" style={{ width: `${downloadProgress}%` }} />
+                              </View>
+                              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9.5) }} className="text-teal-600 font-bold">
+                                {downloadProgress}%
+                              </Text>
+                            </View>
+                          ) : (
+                            <Text style={{ fontFamily: Theme.fonts.poppinsRegular, fontSize: getFontSize(11) }} className="text-slate-450 mt-0.5">
+                              Size: {pdf.fileSize}
+                            </Text>
+                          )}
+                        </View>
+
+                        <Feather name={pdf.fileUrl ? "external-link" : "chevron-right"} size={16} color="#94A3B8" />
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              ))}
+            </View>
+          ))
         )}
       </ScrollView>
 

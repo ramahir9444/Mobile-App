@@ -124,7 +124,8 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'config' | 'orders' | 'students' | 'schedules' | 'materials'>('config');
+  const [toastType, setToastType] = useState<'success' | 'error'>('success');
+  const [activeTab, setActiveTab] = useState<'config' | 'orders' | 'students' | 'schedules' | 'materials' | 'hw_reports'>('config');
   const [orders, setOrders] = useState<any[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -162,12 +163,22 @@ export default function App() {
   // Materials states
   const [materials, setMaterials] = useState<any[]>([]);
   const [materialsLoading, setMaterialsLoading] = useState(false);
+
+  // HW Reports state
+  const [hwReports, setHwReports] = useState<any[]>([]);
+  const [hwReportsLoading, setHwReportsLoading] = useState(false);
+  const [hwFilterClass, setHwFilterClass] = useState('');
+  const [hwFilterSubject, setHwFilterSubject] = useState('');
+  const [hwFilterMonth, setHwFilterMonth] = useState('');
+  const [hwFilterYear, setHwFilterYear] = useState(new Date().getFullYear().toString());
   const [newMaterial, setNewMaterial] = useState({
     fileName: '',
     fileSize: '1.0M',
     gradeClass: 'Class 6',
     courseType: 'booster',
-    fileUrl: ''
+    fileUrl: '',
+    chapter: '',
+    topic: ''
   });
 
   const loadOrders = async () => {
@@ -251,8 +262,9 @@ export default function App() {
     loadData();
   }, [selectedClass]);
 
-  const showToast = (msg: string) => {
+  const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToast(msg);
+    setToastType(type);
     setTimeout(() => setToast(null), 3000);
   };
 
@@ -262,9 +274,9 @@ export default function App() {
     setSaving(true);
     try {
       await saveHomepageConfig(selectedClass, config);
-      showToast('Configuration saved successfully! ✨');
+      showToast('Configuration saved successfully! ✨', 'success');
     } catch (err: any) {
-      alert('Save failed: ' + err.message);
+      showToast('Save failed: ' + err.message, 'error');
     } finally {
       setSaving(false);
     }
@@ -684,7 +696,7 @@ export default function App() {
         setEditingScheduleId(null);
         loadSchedules();
       } catch (err: any) {
-        alert('Failed to save schedule: ' + err.message);
+        showToast('Failed to save schedule: ' + err.message, 'error');
       }
     };
 
@@ -695,7 +707,7 @@ export default function App() {
         showToast(`Class status updated to ${nextStatus}!`);
         loadSchedules();
       } catch (err: any) {
-        alert('Failed to toggle status: ' + err.message);
+        showToast('Failed to toggle status: ' + err.message, 'error');
       }
     };
 
@@ -706,7 +718,7 @@ export default function App() {
         showToast('Schedule deleted.');
         loadSchedules();
       } catch (err: any) {
-        alert('Failed to delete: ' + err.message);
+        showToast('Failed to delete: ' + err.message, 'error');
       }
     };
 
@@ -887,7 +899,7 @@ export default function App() {
                           };
                           reader.readAsDataURL(file);
                         } catch (err: any) {
-                          alert('File upload failed: ' + err.message);
+                          showToast('File upload failed: ' + err.message, 'error');
                         } finally {
                           setIsUploadingMaterial(false);
                         }
@@ -900,7 +912,7 @@ export default function App() {
                   <button 
                     type="button" 
                     onClick={() => {
-                      if (!tempMaterial.title.trim()) return alert('Type a title or upload a file first!');
+                      if (!tempMaterial.title.trim()) return showToast('Type a title or upload a file first!', 'error');
                       const updated = [...(newSchedule.materials || []), { title: tempMaterial.title, size: tempMaterial.size, url: tempMaterial.url }];
                       setNewSchedule({...newSchedule, materials: updated});
                       setTempMaterial({ title: '', size: '0.0 MB', url: '' });
@@ -1216,6 +1228,179 @@ export default function App() {
     );
   };
 
+  // ─── HW REPORTS ───────────────────────────────────────────────────
+  const loadHwReports = async () => {
+    setHwReportsLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (hwFilterClass) params.append('gradeClass', hwFilterClass);
+      if (hwFilterSubject) params.append('subject', hwFilterSubject);
+      if (hwFilterMonth) params.append('month', hwFilterMonth);
+      if (hwFilterYear) params.append('year', hwFilterYear);
+      const res = await fetch(`/api/homework-submissions?${params.toString()}`);
+      const json = await res.json();
+      if (json.success) setHwReports(json.data || []);
+    } catch (err) {
+      console.error('Failed to fetch HW reports:', err);
+    } finally {
+      setHwReportsLoading(false);
+    }
+  };
+
+  const renderHwReports = () => {
+    // Aggregate summary stats
+    const totalSubs = hwReports.length;
+    const avgPct = totalSubs > 0
+      ? Math.round(hwReports.reduce((s: number, r: any) => s + (r.percentage || 0), 0) / totalSubs)
+      : 0;
+    const gradeCounts: Record<string, number> = {};
+    hwReports.forEach((r: any) => {
+      gradeCounts[r.grade] = (gradeCounts[r.grade] || 0) + 1;
+    });
+
+    // Group by student
+    const byStudent: Record<string, any[]> = {};
+    hwReports.forEach((r: any) => {
+      const key = `${r.studentName || r.studentPhone} (${r.studentPhone})`;
+      if (!byStudent[key]) byStudent[key] = [];
+      byStudent[key].push(r);
+    });
+
+    return (
+      <div>
+        <header>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'white' }}>📊 Homework Reports</h1>
+        </header>
+
+        {/* Filters */}
+        <div className="form-card" style={{ marginBottom: '20px' }}>
+          <h2 style={{ color: 'white', marginBottom: '15px', fontSize: '16px' }}>🔍 Filter Reports</h2>
+          <div className="form-grid" style={{ gap: '12px' }}>
+            <div className="form-group">
+              <label>Grade / Class</label>
+              <select
+                value={hwFilterClass}
+                onChange={e => setHwFilterClass(e.target.value)}
+                style={{ width: '100%' }}
+              >
+                <option value="">All Classes</option>
+                {[6,7,8,9,10,11].map(n => <option key={n} value={`Class ${n}`}>Class {n}</option>)}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>Subject</label>
+              <input
+                type="text"
+                placeholder="e.g. Maths, Science"
+                value={hwFilterSubject}
+                onChange={e => setHwFilterSubject(e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label>Month (YYYY-MM)</label>
+              <input
+                type="month"
+                value={hwFilterMonth}
+                onChange={e => setHwFilterMonth(e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label>Year</label>
+              <input
+                type="number"
+                placeholder="e.g. 2026"
+                value={hwFilterYear}
+                onChange={e => setHwFilterYear(e.target.value)}
+              />
+            </div>
+          </div>
+          <div style={{ marginTop: '12px' }}>
+            <button
+              type="button"
+              className="save-btn"
+              onClick={loadHwReports}
+              disabled={hwReportsLoading}
+            >
+              {hwReportsLoading ? 'Loading...' : '🔍 Apply Filters'}
+            </button>
+          </div>
+        </div>
+
+        {/* Summary Cards */}
+        {totalSubs > 0 && (
+          <div className="form-grid" style={{ gap: '12px', marginBottom: '20px' }}>
+            <div className="form-card" style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '32px', fontWeight: 800, color: '#00B6A6' }}>{totalSubs}</div>
+              <div style={{ color: '#94A3B8', fontSize: '13px' }}>Total Submissions</div>
+            </div>
+            <div className="form-card" style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '32px', fontWeight: 800, color: avgPct >= 70 ? '#10B981' : '#FF6600' }}>{avgPct}%</div>
+              <div style={{ color: '#94A3B8', fontSize: '13px' }}>Average Score</div>
+            </div>
+            <div className="form-card" style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '32px', fontWeight: 800, color: '#6366F1' }}>{Object.keys(byStudent).length}</div>
+              <div style={{ color: '#94A3B8', fontSize: '13px' }}>Students Attempted</div>
+            </div>
+            <div className="form-card">
+              <div style={{ color: 'white', fontWeight: 700, marginBottom: '8px', fontSize: '13px' }}>Grade Distribution</div>
+              {['A+','A','B+','B','C','D'].map(g => (
+                <div key={g} style={{ display: 'flex', justifyContent: 'space-between', color: '#94A3B8', fontSize: '12px', marginBottom: '3px' }}>
+                  <span>{g}</span>
+                  <span style={{ color: 'white', fontWeight: 600 }}>{gradeCounts[g] || 0}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Per-Student Table */}
+        <div className="form-card">
+          <h2 style={{ color: 'white', marginBottom: '16px', fontSize: '16px' }}>📋 Student-wise Results</h2>
+          {hwReportsLoading ? (
+            <div style={{ padding: '30px', textAlign: 'center', color: '#94A3B8' }}>Loading reports...</div>
+          ) : hwReports.length === 0 ? (
+            <div style={{ padding: '30px', textAlign: 'center', color: '#94A3B8' }}>
+              No submissions found. Adjust filters and click Apply.
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                    {['Student', 'Phone', 'Class', 'Subject', 'Score', '%', 'Grade', 'HW Title', 'Date'].map(h => (
+                      <th key={h} style={{ textAlign: 'left', padding: '8px 10px', color: '#94A3B8', fontWeight: 600 }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {hwReports.map((r: any) => (
+                    <tr key={r._id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                      <td style={{ padding: '8px 10px', color: 'white' }}>{r.studentName || '—'}</td>
+                      <td style={{ padding: '8px 10px', color: '#94A3B8' }}>{r.studentPhone}</td>
+                      <td style={{ padding: '8px 10px', color: '#94A3B8' }}>{r.gradeClass}</td>
+                      <td style={{ padding: '8px 10px', color: '#94A3B8' }}>{r.subject}</td>
+                      <td style={{ padding: '8px 10px', color: 'white', fontWeight: 700 }}>{r.score}/{r.totalQuestions}</td>
+                      <td style={{ padding: '8px 10px', color: r.percentage >= 70 ? '#10B981' : '#FF6600', fontWeight: 700 }}>{r.percentage}%</td>
+                      <td style={{ padding: '8px 10px' }}>
+                        <span style={{
+                          background: r.grade?.startsWith('A') ? 'rgba(16,185,129,0.15)' : r.grade === 'B' || r.grade === 'B+' ? 'rgba(99,102,241,0.15)' : 'rgba(255,102,0,0.15)',
+                          color: r.grade?.startsWith('A') ? '#10B981' : r.grade === 'B' || r.grade === 'B+' ? '#6366F1' : '#FF6600',
+                          padding: '2px 8px', borderRadius: '4px', fontWeight: 700, fontSize: '12px'
+                        }}>{r.grade}</span>
+                      </td>
+                      <td style={{ padding: '8px 10px', color: '#94A3B8', maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.scheduleTitle}</td>
+                      <td style={{ padding: '8px 10px', color: '#94A3B8' }}>{r.submittedDate}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const renderMaterialsManager = () => {
     const filteredMaterials = materials.filter((m: any) => {
       const matchesSearch = m.fileName.toLowerCase().includes(searchQuery.toLowerCase());
@@ -1234,11 +1419,13 @@ export default function App() {
           fileSize: '1.0M',
           gradeClass: 'Class 6',
           courseType: 'booster',
-          fileUrl: ''
+          fileUrl: '',
+          chapter: '',
+          topic: ''
         });
         loadMaterials();
       } catch (err: any) {
-        alert('Failed to upload material: ' + err.message);
+        showToast('Failed to upload material: ' + err.message, 'error');
       }
     };
 
@@ -1249,7 +1436,7 @@ export default function App() {
         showToast('Material deleted.');
         loadMaterials();
       } catch (err: any) {
-        alert('Failed to delete: ' + err.message);
+        showToast('Failed to delete: ' + err.message, 'error');
       }
     };
 
@@ -1273,8 +1460,70 @@ export default function App() {
             ➕ Upload Study Material PDF / Note File
           </h2>
           <form onSubmit={handleCreateMaterial} className="form-grid" style={{ gap: '15px' }}>
-            <div className="form-group span-2">
-              <label>File Name</label>
+            <div className="form-group">
+              <label>Chapter Name / Chapter Number</label>
+              <input 
+                type="text" 
+                required
+                value={newMaterial.chapter} 
+                onChange={(e) => setNewMaterial({...newMaterial, chapter: e.target.value})} 
+                placeholder="e.g. Chapter 1: Integers"
+              />
+            </div>
+            <div className="form-group">
+              <label>Topic Name</label>
+              <input 
+                type="text" 
+                required
+                value={newMaterial.topic} 
+                onChange={(e) => setNewMaterial({...newMaterial, topic: e.target.value})} 
+                placeholder="e.g. Introduction to Negative Numbers"
+              />
+            </div>
+
+            <div className="form-group span-2" style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '15px' }}>
+              <label>Select PDF / Notes File to Upload</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                <label className="image-upload-btn-label" style={{ padding: '10px 20px', background: '#00B6A6', color: 'white', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', display: 'inline-block', textAlign: 'center', margin: 0 }}>
+                  {isUploadingMaterial ? 'Uploading File...' : '📁 Select & Upload PDF/Notes File'}
+                  <input 
+                    type="file" 
+                    accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.txt,.ppt,.pptx"
+                  onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setIsUploadingMaterial(true);
+                      const reader = new FileReader();
+                      reader.onload = async () => {
+                        try {
+                          const base64 = (reader.result as string).split(',')[1];
+                          const url = await uploadFile(base64, file.name);
+                          setNewMaterial(prev => ({
+                            ...prev,
+                            fileName: file.name,
+                            fileSize: (file.size / (1024 * 1024)).toFixed(1) + ' MB',
+                            fileUrl: url
+                          }));
+                        } catch (err: any) {
+                          alert('Upload failed: ' + err.message);
+                        } finally {
+                          setIsUploadingMaterial(false);
+                        }
+                      };
+                      reader.readAsDataURL(file);
+                    }}
+                    style={{ display: 'none' }}
+                    disabled={isUploadingMaterial}
+                  />
+                </label>
+                {newMaterial.fileUrl && (
+                  <span style={{ fontSize: '13px', color: '#10B981', fontWeight: 600 }}>✓ File Uploaded: {newMaterial.fileName}</span>
+                )}
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>File Name (Review / Edit)</label>
               <input 
                 type="text" 
                 required
@@ -1316,8 +1565,8 @@ export default function App() {
                 <option value="master">Long-term Master Program</option>
               </select>
             </div>
-            <div className="form-group">
-              <label>File Resource URL (Optional)</label>
+            <div className="form-group span-2">
+              <label>File Resource URL (Review / Edit)</label>
               <input 
                 type="text" 
                 value={newMaterial.fileUrl} 
@@ -1326,8 +1575,8 @@ export default function App() {
               />
             </div>
             <div className="form-group span-2" style={{ marginTop: '10px' }}>
-              <button type="submit" className="save-btn" style={{ width: '100%', padding: '12px' }}>
-                ➕ Register Study Material PDF
+              <button type="submit" className="save-btn" style={{ width: '100%', padding: '12px' }} disabled={isUploadingMaterial}>
+                {isUploadingMaterial ? 'Uploading File...' : '➕ Register Study Material PDF'}
               </button>
             </div>
           </form>
@@ -1466,6 +1715,13 @@ export default function App() {
           >
             📚 Study Materials
           </button>
+          <button 
+            type="button" 
+            className={`nav-item ${activeTab === 'hw_reports' ? 'active' : ''}`}
+            onClick={async () => { setActiveTab('hw_reports'); await loadHwReports(); }}
+          >
+            📊 HW Reports
+          </button>
         </div>
 
         {activeTab === 'config' && (
@@ -1498,6 +1754,8 @@ export default function App() {
           renderSchedulesManager()
         ) : activeTab === 'materials' ? (
           renderMaterialsManager()
+        ) : activeTab === 'hw_reports' ? (
+          renderHwReports()
         ) : (
           <>
             <header>
@@ -2417,7 +2675,7 @@ export default function App() {
 
         {/* Global Toast component */}
         {toast && (
-          <div className="toast active">
+          <div className={`toast active ${toastType === 'error' ? 'error' : ''}`}>
             <div className="toast-dot"></div>
             <span>{toast}</span>
           </div>

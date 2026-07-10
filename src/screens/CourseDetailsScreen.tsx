@@ -24,8 +24,8 @@ const getFontSize = (baseSize: number) => {
 };
 
 export const CourseDetailsScreen: React.FC = () => {
-  const { navigateTo, goBack, activeCourseClass, activeCourseType, setActiveClassSchedule } = useApp();
-  const [activeTab, setActiveTab] = useState<'Scheduled' | 'Finished'>('Scheduled');
+  const { navigateTo, goBack, setActiveClassSchedule, activeCourseClass, activeCourseType, user, homeworkSubmissions, refreshHomeworkSubmissions } = useApp();
+  const [activeTab, setActiveTab] = useState<'Scheduled' | 'Finished' | 'Pending HW'>('Scheduled');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [schedules, setSchedules] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -57,11 +57,26 @@ export const CourseDetailsScreen: React.FC = () => {
       }
     };
     fetchSchedules();
+    // Also refresh homework submissions from DB on every mount
+    if (user.phone) refreshHomeworkSubmissions(user.phone);
   }, [activeCourseClass, activeCourseType]);
 
   const isScheduled = activeTab === 'Scheduled';
+  const isFinished = activeTab === 'Finished';
+  const isPendingHw = activeTab === 'Pending HW';
+
   const scheduledList = schedules.filter((s: any) => s.status === 'Scheduled');
   const finishedList = schedules.filter((s: any) => s.status === 'Finished');
+
+  const pendingHwList = schedules.filter((s: any) => {
+    const hasHw = s.homework && s.homework.length > 0;
+    if (!hasHw) return false;
+    // Always check against DB-fetched homeworkSubmissions — accurate across app restarts
+    const isSubmitted = homeworkSubmissions.some(
+      (sub: any) => sub.scheduleId === s._id
+    );
+    return !isSubmitted;
+  });
 
   // Group scheduled list by dateText
   const groupedScheduled: { [key: string]: any[] } = {};
@@ -81,6 +96,15 @@ export const CourseDetailsScreen: React.FC = () => {
     groupedFinished[item.dateText].push(item);
   });
 
+  // Group pending HW list by dateText
+  const groupedPendingHw: { [key: string]: any[] } = {};
+  pendingHwList.forEach(item => {
+    if (!groupedPendingHw[item.dateText]) {
+      groupedPendingHw[item.dateText] = [];
+    }
+    groupedPendingHw[item.dateText].push(item);
+  });
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }} edges={['top', 'left', 'right', 'bottom']}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
@@ -92,9 +116,6 @@ export const CourseDetailsScreen: React.FC = () => {
         </TouchableOpacity>
         
         <View className="flex-row items-center space-x-3.5">
-          <TouchableOpacity onPress={() => showToast("Opening downloads...")} className="p-1">
-            <Feather name="download" size={20} color="#475569" />
-          </TouchableOpacity>
           <TouchableOpacity onPress={() => showToast("Opening calendar schedule...")} className="p-1">
             <Feather name="calendar" size={20} color="#475569" />
           </TouchableOpacity>
@@ -203,14 +224,31 @@ export const CourseDetailsScreen: React.FC = () => {
           >
             <Text 
               style={{ 
-                fontFamily: !isScheduled ? Theme.fonts.poppinsBold : Theme.fonts.poppinsMedium,
+                fontFamily: isFinished ? Theme.fonts.poppinsBold : Theme.fonts.poppinsMedium,
                 fontSize: getFontSize(13.5)
               }} 
-              className={!isScheduled ? 'text-slate-800 font-bold' : 'text-slate-400'}
+              className={isFinished ? 'text-slate-800 font-bold' : 'text-slate-400'}
             >
               Finished
             </Text>
-            {!isScheduled && <View className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-slate-900 rounded-t-full" />}
+            {isFinished && <View className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-slate-900 rounded-t-full" />}
+          </TouchableOpacity>
+
+          {/* Pending HW Tab */}
+          <TouchableOpacity 
+            onPress={() => setActiveTab('Pending HW')} 
+            className="flex-1 py-3.5 items-center justify-center relative"
+          >
+            <Text 
+              style={{ 
+                fontFamily: isPendingHw ? Theme.fonts.poppinsBold : Theme.fonts.poppinsMedium,
+                fontSize: getFontSize(13.5)
+              }} 
+              className={isPendingHw ? 'text-slate-800 font-bold' : 'text-slate-400'}
+            >
+              Pending HW
+            </Text>
+            {isPendingHw && <View className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-slate-900 rounded-t-full" />}
           </TouchableOpacity>
         </View>
 
@@ -283,7 +321,7 @@ export const CourseDetailsScreen: React.FC = () => {
                 ))
               )}
             </View>
-          ) : (
+          ) : isFinished ? (
             /* FINISHED LIST */
             <View className="space-y-4">
               {loading ? (
@@ -328,6 +366,65 @@ export const CourseDetailsScreen: React.FC = () => {
                               View Report
                             </Text>
                           </TouchableOpacity>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                ))
+              )}
+            </View>
+          ) : (
+            /* PENDING HW LIST */
+            <View className="space-y-4">
+              {loading ? (
+                <ActivityIndicator size="small" color="#00B6A6" style={{ marginTop: 20 }} />
+              ) : Object.keys(groupedPendingHw).length === 0 ? (
+                <View className="items-center py-14">
+                  <Text style={{ fontSize: 40 }}>🎉</Text>
+                  <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(14) }} className="text-slate-700 font-bold mt-3">All caught up!</Text>
+                  <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(12) }} className="text-slate-400 mt-1 text-center px-6">No pending homework. Great work!</Text>
+                </View>
+              ) : (
+                Object.keys(groupedPendingHw).map((date) => (
+                  <View key={date} className="mb-4">
+                    <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12.5) }} className="text-slate-800 font-bold pl-1 mb-2">
+                      {date}
+                    </Text>
+
+                    {groupedPendingHw[date].map((item: any) => (
+                      <TouchableOpacity
+                        key={item._id}
+                        onPress={() => {
+                          setActiveClassSchedule(item);
+                          navigateTo('CLASS_DETAILS');
+                        }}
+                        className="bg-white rounded-2xl p-5 border border-orange-100 shadow-sm mb-3 active:opacity-95"
+                      >
+                        {/* Pending badge */}
+                        <View className="flex-row items-center justify-between mb-2">
+                          <View className="bg-orange-50 border border-orange-200 py-0.5 px-2.5 rounded-full self-start">
+                            <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9) }} className="text-orange-500 font-bold">⏳ HW PENDING</Text>
+                          </View>
+                          <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(10) }} className="text-slate-400">
+                            {item.homework?.length || 0} question{item.homework?.length !== 1 ? 's' : ''}
+                          </Text>
+                        </View>
+
+                        <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(14) }} className="text-slate-800 font-bold leading-snug">
+                          {item.title}
+                        </Text>
+
+                        <View className="bg-slate-100 py-0.5 px-2 rounded self-start mt-2">
+                          <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-500 text-[8.5px] uppercase font-bold">{item.subject}</Text>
+                        </View>
+
+                        <View className="flex-row justify-between items-center mt-4 pt-3 border-t border-orange-50">
+                          <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(11) }} className="text-slate-500">
+                            {item.dateText} · {item.time}
+                          </Text>
+                          <View className="bg-orange-500 py-1.5 px-4 rounded-full">
+                            <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(11) }} className="text-white font-bold">Do HW →</Text>
+                          </View>
                         </View>
                       </TouchableOpacity>
                     ))}

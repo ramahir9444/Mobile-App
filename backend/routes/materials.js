@@ -18,7 +18,7 @@ router.get('/', async (req, res) => {
 // POST /api/materials — Create a new study material entry
 router.post('/', async (req, res) => {
   try {
-    const { fileName, fileSize, gradeClass, courseType, fileUrl } = req.body;
+    const { fileName, fileSize, gradeClass, courseType, fileUrl, chapter, topic } = req.body;
     
     if (!fileName || !fileSize || !gradeClass || !courseType) {
       return res.status(400).json({ success: false, error: 'Missing required study material fields' });
@@ -31,12 +31,31 @@ router.post('/', async (req, res) => {
       gradeClass,
       courseType, // 'booster' or 'master'
       fileUrl: fileUrl || '',
+      chapter: chapter || 'General Notes',
+      topic: topic || 'All Topics',
       createdAt: new Date()
     };
 
     const result = await db.collection('study_materials').insertOne(doc);
     const newDoc = await db.collection('study_materials').findOne({ _id: result.insertedId });
     res.status(201).json({ success: true, data: newDoc });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// DELETE /api/materials/bulk-clear-empty — Remove all mock/seeded materials with no real file URL
+router.delete('/bulk-clear-empty', async (req, res) => {
+  try {
+    const db = getDB();
+    const result = await db.collection('study_materials').deleteMany({
+      $or: [
+        { fileUrl: '' },
+        { fileUrl: null },
+        { fileUrl: { $exists: false } }
+      ]
+    });
+    res.json({ success: true, deletedCount: result.deletedCount, message: `Removed ${result.deletedCount} empty/mock materials` });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }

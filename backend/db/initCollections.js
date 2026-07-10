@@ -152,36 +152,7 @@ async function initCollections() {
   await db.createCollection('study_materials').catch(() => {});
   const materialsCount = await db.collection('study_materials').countDocuments();
   if (materialsCount === 0) {
-    console.log('🌱 Seeding default study materials...');
-    const defaultMaterials = [];
-    const classes = ['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12'];
-    const courseTypes = ['booster', 'master'];
-    const mockPDFs = [
-      { fileName: '[E-Module]Motion.pdf', fileSize: '1.6M' },
-      { fileName: '[E-Module]Fun with magnet.pdf', fileSize: '1.2M' },
-      { fileName: '[E-Module]Body Movement.pdf', fileSize: '1.0M' },
-      { fileName: '[E-Module]Day 6 Knowing Our Numbers.pdf', fileSize: '0.3M' },
-      { fileName: '[E-Module]Day 5 and 6 Playing with Numbers.pdf', fileSize: '0.9M' },
-      { fileName: '[E-Module]Day 3 Fractions Mind-Map.pdf', fileSize: '0.4M' },
-      { fileName: '[E-Module]Day 1 Integers E-book.pdf', fileSize: '1.1M' }
-    ];
-
-    for (const cls of classes) {
-      for (const cType of courseTypes) {
-        for (const pdf of mockPDFs) {
-          defaultMaterials.push({
-            fileName: pdf.fileName,
-            fileSize: pdf.fileSize,
-            gradeClass: cls,
-            courseType: cType,
-            fileUrl: '',
-            createdAt: new Date()
-          });
-        }
-      }
-    }
-    await db.collection('study_materials').insertMany(defaultMaterials);
-    console.log(`✅ Seeded ${defaultMaterials.length} study materials.`);
+    console.log('🌱 Seeding default study materials: skipping to keep only user uploaded files.');
   }
 
   console.log('📦 DB collections + indexes ready');
