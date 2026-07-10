@@ -430,15 +430,45 @@ export const MaterialsModulesScreen: React.FC = () => {
     const fetchMaterials = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`http://localhost:3001/api/materials`);
-        const json = await res.json();
-        if (json.success && json.data) {
-          const filtered = json.data.filter((m: any) => 
+        let list: any[] = [];
+        
+        // 1. Fetch study materials
+        const resMat = await fetch(`http://localhost:3001/api/materials`);
+        const jsonMat = await resMat.json();
+        if (jsonMat.success && jsonMat.data) {
+          list = jsonMat.data.filter((m: any) => 
             m.gradeClass === activeCourseClass && 
             m.courseType === activeCourseType
           );
-          setMaterials(filtered);
         }
+
+        // 2. Fetch schedules and extract attached materials
+        const resSched = await fetch(`http://localhost:3001/api/schedules`);
+        const jsonSched = await resSched.json();
+        if (jsonSched.success && jsonSched.data) {
+          const filteredScheds = jsonSched.data.filter((s: any) => 
+            s.gradeClass === activeCourseClass && 
+            s.courseType === activeCourseType &&
+            s.materials && s.materials.length > 0
+          );
+          filteredScheds.forEach((s: any) => {
+            s.materials.forEach((m: any, idx: number) => {
+              list.push({
+                _id: `${s._id}_mat_${idx}`,
+                fileName: m.title || 'Class Handout',
+                fileSize: m.size || '0.2 MB',
+                gradeClass: s.gradeClass,
+                courseType: s.courseType,
+                fileUrl: m.url || '',
+                chapter: s.title || 'Class Handouts',
+                topic: s.subject || 'All Topics',
+                createdAt: s.createdAt || new Date()
+              });
+            });
+          });
+        }
+
+        setMaterials(list);
       } catch (err) {
         console.error('Failed to load materials in student app:', err);
       } finally {
@@ -523,15 +553,45 @@ export const MaterialsFilesScreen: React.FC = () => {
     const fetchMaterials = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`http://localhost:3001/api/materials`);
-        const json = await res.json();
-        if (json.success && json.data) {
-          const filtered = json.data.filter((m: any) => 
+        let list: any[] = [];
+        
+        // 1. Fetch study materials
+        const resMat = await fetch(`http://localhost:3001/api/materials`);
+        const jsonMat = await resMat.json();
+        if (jsonMat.success && jsonMat.data) {
+          list = jsonMat.data.filter((m: any) => 
             m.gradeClass === activeCourseClass && 
             m.courseType === activeCourseType
           );
-          setMaterials(filtered);
         }
+
+        // 2. Fetch schedules and extract attached materials
+        const resSched = await fetch(`http://localhost:3001/api/schedules`);
+        const jsonSched = await resSched.json();
+        if (jsonSched.success && jsonSched.data) {
+          const filteredScheds = jsonSched.data.filter((s: any) => 
+            s.gradeClass === activeCourseClass && 
+            s.courseType === activeCourseType &&
+            s.materials && s.materials.length > 0
+          );
+          filteredScheds.forEach((s: any) => {
+            s.materials.forEach((m: any, idx: number) => {
+              list.push({
+                _id: `${s._id}_mat_${idx}`,
+                fileName: m.title || 'Class Handout',
+                fileSize: m.size || '0.2 MB',
+                gradeClass: s.gradeClass,
+                courseType: s.courseType,
+                fileUrl: m.url || '',
+                chapter: s.title || 'Class Handouts',
+                topic: s.subject || 'All Topics',
+                createdAt: s.createdAt || new Date()
+              });
+            });
+          });
+        }
+
+        setMaterials(list);
       } catch (err) {
         console.error('Failed to load materials in student files screen:', err);
       } finally {
