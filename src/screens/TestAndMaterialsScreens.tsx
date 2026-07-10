@@ -490,6 +490,17 @@ export const MaterialsModulesScreen: React.FC = () => {
   );
 };
 
+// Helper to prettify system/hashed filenames (e.g. homepage-file-xxx.pdf) based on topic and chapter
+const getCleanFileName = (fileName: string, chapter: string, topic: string, idx: number) => {
+  if (!fileName) return `Study Material ${idx + 1}`;
+  if (fileName.startsWith('homepage-file-')) {
+    const ext = fileName.split('.').pop() || 'pdf';
+    const base = (topic && topic !== 'All Topics') ? topic : (chapter || 'Study Material');
+    return `${base} - Part ${idx + 1}.${ext}`;
+  }
+  return fileName;
+};
+
 // ==========================================
 // 5. MATERIALS FILES SCREEN
 // ==========================================
@@ -640,7 +651,7 @@ export const MaterialsFilesScreen: React.FC = () => {
                             style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(13) }} 
                             className="text-slate-800 font-medium"
                           >
-                            {pdf.fileName}
+                            {getCleanFileName(pdf.fileName, chapterTitle, topicTitle, idx)}
                           </Text>
                           {isThisDownloading ? (
                             <View className="flex-row items-center mt-1">
