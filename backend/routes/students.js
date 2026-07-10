@@ -312,6 +312,38 @@ router.post('/:phone/homework', async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
+// POST /api/students/:phone/welcome-test — submit welcome test score
+router.post('/:phone/welcome-test', async (req, res) => {
+  try {
+    const { score, answers } = req.body;
+    const db = getDB();
+
+    const result = await db.collection('students').findOneAndUpdate(
+      { phone: req.params.phone },
+      { 
+        $set: { 
+          welcomeTestStatus: 'completed',
+          welcomeTestResult: {
+            score: Number(score),
+            totalQuestions: 10,
+            answers: answers || [],
+            submittedAt: new Date()
+          },
+          updatedAt: new Date()
+        },
+        $inc: { totalQuizzesAttempted: 1 }
+      },
+      { returnDocument: 'after' }
+    );
+
+    if (!result) {
+      return res.status(404).json({ success: false, error: 'Student not found' });
+    }
+
+    res.json({ success: true, data: result });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 module.exports = router;

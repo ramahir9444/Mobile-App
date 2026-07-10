@@ -806,27 +806,29 @@ export const DashboardScreen: React.FC = () => {
               })}
 
                 {/* Card 1: Default Welcome Test */}
-                <TouchableOpacity 
-                  onPress={() => navigateTo('TEST_INTRO')}
-                  className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm mt-2"
-                >
-                  <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(16) }} className="text-slate-800 font-bold">
-                    Welcome Diagnostic Test
-                  </Text>
-                  
-                  <View className="bg-slate-100 py-0.5 px-2 rounded self-start mt-2">
-                    <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9) }} className="text-slate-500 uppercase tracking-wider font-bold">Test</Text>
-                  </View>
-
-                  <View className="flex-row justify-between items-center mt-5 pt-3 border-t border-slate-50">
-                    <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12) }} className="text-orange-500 font-bold">
-                      30 minutes
+                {((displayBoosterList && displayBoosterList.length > 0) || user.enrollmentType === 'demo') && user.welcomeTestStatus !== 'completed' && (
+                  <TouchableOpacity 
+                    onPress={() => navigateTo('TEST_INTRO')}
+                    className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm mt-2"
+                  >
+                    <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(16) }} className="text-slate-800 font-bold">
+                      Welcome Diagnostic Test
                     </Text>
-                    <View className="bg-[#E0F7F6] py-1 px-4 rounded-full">
-                      <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12) }} className="text-[#00B6A6] font-bold">Enter</Text>
+                    
+                    <View className="bg-slate-100 py-0.5 px-2 rounded self-start mt-2">
+                      <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9) }} className="text-slate-500 uppercase tracking-wider font-bold">Test</Text>
                     </View>
-                  </View>
-                </TouchableOpacity>
+
+                    <View className="flex-row justify-between items-center mt-5 pt-3 border-t border-slate-50">
+                      <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12) }} className="text-orange-500 font-bold">
+                        30 minutes
+                      </Text>
+                      <View className="bg-[#E0F7F6] py-1 px-4 rounded-full">
+                        <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12) }} className="text-[#00B6A6] font-bold">Enter</Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                )}
 
                 {/* Course Schedule Button */}
                 <TouchableOpacity 

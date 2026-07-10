@@ -95,7 +95,13 @@ export const ReportPeriodSelectScreen: React.FC = () => {
 // 2. STUDY REPORT SCREEN (Detailed View)
 // ==========================================
 export const StudyReportScreen: React.FC = () => {
-  const { goBack, selectedReportPeriod } = useApp();
+  const { goBack, selectedReportPeriod, user } = useApp();
+
+  // Check if welcome test was completed within last 30 days
+  const welcomeTestResult = user.welcomeTestResult;
+  const showWelcomeTestCard = user.welcomeTestStatus === 'completed' && welcomeTestResult?.submittedAt
+    ? (new Date().getTime() - new Date(welcomeTestResult.submittedAt).getTime()) < 30 * 24 * 60 * 60 * 1000
+    : false;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F8FAFC' }} edges={['top', 'left', 'right', 'bottom']}>
@@ -452,6 +458,58 @@ export const StudyReportScreen: React.FC = () => {
           </View>
 
           {/* Footer watermarks */}
+          {/* Welcome Test Result Card — visible up to 30 days */}
+          {showWelcomeTestCard && (
+            <View style={{ marginBottom: 20, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: '#A7F3D0' }}>
+              {/* Gradient-like header bar */}
+              <View style={{ backgroundColor: '#ECFDF5', paddingVertical: 12, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#D1FAE5', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
+                    <Feather name="award" size={17} color="#059669" />
+                  </View>
+                  <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(14), color: '#065F46' }}>
+                    Welcome Test Result
+                  </Text>
+                </View>
+                <View style={{ backgroundColor: '#D1FAE5', paddingVertical: 3, paddingHorizontal: 10, borderRadius: 20 }}>
+                  <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(10), color: '#059669' }}>COMPLETED</Text>
+                </View>
+              </View>
+              <View style={{ backgroundColor: '#FFFFFF', padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around' }}>
+                <View style={{ alignItems: 'center' }}>
+                  <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(32), color: '#059669' }}>
+                    {welcomeTestResult?.score ?? 0}
+                    <Text style={{ fontSize: getFontSize(18), color: '#9CA3AF' }}>/10</Text>
+                  </Text>
+                  <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(11), color: '#6B7280' }}>Score</Text>
+                </View>
+                <View style={{ width: 1, height: 48, backgroundColor: '#E5E7EB' }} />
+                <View style={{ alignItems: 'center' }}>
+                  <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(32), color: '#1E293B' }}>
+                    {(() => {
+                      const s = welcomeTestResult?.score ?? 0;
+                      if (s >= 9) return 'A';
+                      if (s >= 8) return 'B';
+                      if (s >= 6) return 'C';
+                      if (s >= 4) return 'D';
+                      return 'E';
+                    })()}
+                  </Text>
+                  <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(11), color: '#6B7280' }}>Grade</Text>
+                </View>
+                <View style={{ width: 1, height: 48, backgroundColor: '#E5E7EB' }} />
+                <View style={{ alignItems: 'center' }}>
+                  <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(11), color: '#6B7280' }}>
+                    {welcomeTestResult?.submittedAt
+                      ? new Date(welcomeTestResult.submittedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
+                      : '--'}
+                  </Text>
+                  <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(10), color: '#9CA3AF', marginTop: 2 }}>Submitted</Text>
+                </View>
+              </View>
+            </View>
+          )}
+
           <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(11.5) }} className="text-slate-400 text-center italic mt-2">
             Better Teacher, Better Future
           </Text>

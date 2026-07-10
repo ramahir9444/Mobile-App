@@ -125,7 +125,7 @@ export default function App() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
-  const [activeTab, setActiveTab] = useState<'config' | 'orders' | 'students' | 'schedules' | 'materials' | 'hw_reports'>('config');
+  const [activeTab, setActiveTab] = useState<'config' | 'orders' | 'students' | 'schedules' | 'materials' | 'hw_reports' | 'welcome_test'>('config');
   const [orders, setOrders] = useState<any[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -171,6 +171,10 @@ export default function App() {
   const [hwFilterSubject, setHwFilterSubject] = useState('');
   const [hwFilterMonth, setHwFilterMonth] = useState('');
   const [hwFilterYear, setHwFilterYear] = useState(new Date().getFullYear().toString());
+  
+  // Welcome Test panel state
+  const [wtSearch, setWtSearch] = useState('');
+
   const [newMaterial, setNewMaterial] = useState({
     fileName: '',
     fileSize: '1.0M',
@@ -242,6 +246,8 @@ export default function App() {
       loadSchedules();
     } else if (activeTab === 'materials') {
       loadMaterials();
+    } else if (activeTab === 'welcome_test') {
+      loadStudents(); // reuse students fetch to get welcomeTestStatus
     }
   }, [activeTab]);
 
@@ -1660,6 +1666,99 @@ export default function App() {
     );
   };
 
+  const renderWelcomeTestPanel = () => {
+    const demoStudents = students.filter((s: any) =>
+      s.enrollmentType === 'demo' || s.welcomeTestStatus === 'pending' || s.welcomeTestStatus === 'completed'
+    );
+
+    const filtered = demoStudents.filter((s: any) =>
+      s.name?.toLowerCase().includes(wtSearch.toLowerCase()) ||
+      s.phone?.includes(wtSearch)
+    );
+
+    const pendingCount = demoStudents.filter((s: any) => s.welcomeTestStatus !== 'completed').length;
+    const completedCount = demoStudents.filter((s: any) => s.welcomeTestStatus === 'completed').length;
+
+    return (
+      <div style={{ padding: '24px' }}>
+        <header style={{ marginBottom: '24px' }}>
+          <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 700 }}>🎯 Welcome Test — Student Results</h1>
+          <p style={{ margin: '6px 0 0', color: '#94A3B8', fontSize: '13px' }}>
+            Showing all Demo Class students and their Welcome Diagnostic Test status.
+          </p>
+        </header>
+
+        <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
+          {[
+            { label: 'Demo Students', value: demoStudents.length, color: '#00B6A6' },
+            { label: 'Pending', value: pendingCount, color: '#F59E0B' },
+            { label: 'Completed', value: completedCount, color: '#10B981' }
+          ].map(({ label, value, color }) => (
+            <div key={label} style={{ flex: 1, minWidth: '140px', background: 'linear-gradient(135deg, #0F172A, #1E293B)', borderRadius: '12px', padding: '16px', border: '1px solid #334155' }}>
+              <div style={{ fontSize: '28px', fontWeight: 700, color }}>{value}</div>
+              <div style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px' }}>{label}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ marginBottom: '16px' }}>
+          <input
+            type="text"
+            placeholder="Search by name or phone..."
+            value={wtSearch}
+            onChange={(e) => setWtSearch(e.target.value)}
+            style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #334155', background: '#1E293B', color: 'white', fontSize: '13px', boxSizing: 'border-box' }}
+          />
+        </div>
+
+        {studentsLoading ? (
+          <div style={{ textAlign: 'center', padding: '40px', color: '#94A3B8' }}>Loading...</div>
+        ) : filtered.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px', color: '#64748B', fontSize: '14px' }}>No demo class students found.</div>
+        ) : (
+          <div style={{ overflowX: 'auto', background: '#1E293B', borderRadius: '12px', border: '1px solid #334155' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+              <thead>
+                <tr style={{ background: '#0F172A', color: '#94A3B8', textAlign: 'left' }}>
+                  {['Student', 'Phone', 'Class', 'Status', 'Score', 'Grade', 'Submitted At'].map(h => (
+                    <th key={h} style={{ padding: '12px 16px', fontWeight: 600 }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((s: any, idx: number) => {
+                  const result = s.welcomeTestResult;
+                  const score = result?.score ?? null;
+                  const grade = score !== null ? (score >= 9 ? 'A' : score >= 8 ? 'B' : score >= 6 ? 'C' : score >= 4 ? 'D' : 'E') : '—';
+                  const isDone = s.welcomeTestStatus === 'completed';
+                  return (
+                    <tr key={s._id || idx} style={{ borderTop: '1px solid #334155', color: 'white' }}>
+                      <td style={{ padding: '12px 16px', fontWeight: 600 }}>{s.name || 'Unknown'}</td>
+                      <td style={{ padding: '12px 16px', color: '#94A3B8' }}>{s.phone}</td>
+                      <td style={{ padding: '12px 16px', color: '#94A3B8' }}>{s.selectedClass || '—'}</td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <span style={{ background: isDone ? '#D1FAE5' : '#FEF3C7', color: isDone ? '#059669' : '#D97706', padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600 }}>
+                          {isDone ? 'Completed' : 'Pending'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '12px 16px', fontWeight: 700, color: score !== null ? '#00B6A6' : '#64748B' }}>
+                        {score !== null ? `${score}/10` : '—'}
+                      </td>
+                      <td style={{ padding: '12px 16px', fontWeight: 700, color: '#E2E8F0' }}>{grade}</td>
+                      <td style={{ padding: '12px 16px', color: '#94A3B8', fontSize: '12px' }}>
+                        {result?.submittedAt ? new Date(result.submittedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   if (loading && activeTab === 'config') {
     return (
       <div style={{ display: 'flex', flex: 1, height: '100vh', justifyContent: 'center', alignItems: 'center', background: '#0F172A', color: 'white' }}>
@@ -1722,6 +1821,13 @@ export default function App() {
           >
             📊 HW Reports
           </button>
+          <button 
+            type="button" 
+            className={`nav-item ${activeTab === 'welcome_test' ? 'active' : ''}`}
+            onClick={() => setActiveTab('welcome_test')}
+          >
+            🎯 Welcome Test
+          </button>
         </div>
 
         {activeTab === 'config' && (
@@ -1756,6 +1862,8 @@ export default function App() {
           renderMaterialsManager()
         ) : activeTab === 'hw_reports' ? (
           renderHwReports()
+        ) : activeTab === 'welcome_test' ? (
+          renderWelcomeTestPanel()
         ) : (
           <>
             <header>

@@ -45,6 +45,8 @@ export interface UserProfile {
   state?: string;
   address?: string;
   enrollmentType?: 'none' | 'demo' | 'master';
+  welcomeTestStatus?: 'pending' | 'completed' | 'none';
+  welcomeTestResult?: { score: number; totalQuestions: number; submittedAt: string; answers: any[] };
   // homeworkSubmissions removed from UserProfile — always fetched fresh from DB
 }
 
@@ -300,6 +302,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               state: res.data.state || '',
               address: res.data.address || '',
               enrollmentType: res.data.enrollmentType || 'none',
+              welcomeTestStatus: res.data.welcomeTestStatus || 'none',
+              welcomeTestResult: res.data.welcomeTestResult || undefined,
             });
             if (res.data.selectedClass) {
               setSelectedClassState(res.data.selectedClass);

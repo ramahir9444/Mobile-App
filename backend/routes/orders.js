@@ -40,9 +40,18 @@ async function updateStudentEnrollment(db, phone, courseTitle, amount) {
                       courseTitle.toLowerCase().includes('6 day') || 
                       Number(amount) < 500;
     const enrollmentType = isBooster ? 'demo' : 'master';
+    
+    const updateDoc = { enrollmentType, updatedAt: new Date() };
+    if (isBooster) {
+      const student = await db.collection('students').findOne({ phone });
+      if (!student || student.welcomeTestStatus !== 'completed') {
+        updateDoc.welcomeTestStatus = 'pending';
+      }
+    }
+
     await db.collection('students').updateOne(
       { phone },
-      { $set: { enrollmentType, updatedAt: new Date() } }
+      { $set: updateDoc }
     );
     console.log(`[Enrollment] Updated student ${phone} to type: ${enrollmentType}`);
   } catch (err) {

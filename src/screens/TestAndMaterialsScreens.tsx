@@ -94,10 +94,25 @@ export const TestIntroScreen: React.FC = () => {
 // 2. TEST QUIZ SCREEN
 // ==========================================
 export const TestQuizScreen: React.FC = () => {
-  const { navigateTo, goBack } = useApp();
-  const [currentQuestionIdx, setCurrentQuestionIdx] = useState<number>(4); // Default to question 5 (index 4)
-  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const { navigateTo, goBack, user, updateUser } = useApp();
+  const [currentQuestionIdx, setCurrentQuestionIdx] = useState<number>(0); // Start from first question
   const [timeLeft, setTimeLeft] = useState<number>(1788); // 29:48 in seconds
+
+  // Mock Questions Data with correct option keys
+  const questions = [
+    { text: 'Solve for x: 3x + 5 = 20.', options: { A: '5', B: '4', C: '6', D: '3' }, correct: 'B' },
+    { text: 'Which is a prime number?', options: { A: '4', B: '9', C: '15', D: '17' }, correct: 'D' },
+    { text: 'Find the area of a rectangle with length 10 and width 5.', options: { A: '50', B: '15', C: '30', D: '25' }, correct: 'A' },
+    { text: 'What is 15% of 200?', options: { A: '35', B: '30', C: '25', D: '40' }, correct: 'B' },
+    { text: 'Two numbers are in the ratio 2 : 7. If the second number is 378, find the first.', options: { A: '105', B: '180', C: '108', D: '165' }, correct: 'C' },
+    { text: 'Calculate the average of 10, 20, and 30.', options: { A: '15', B: '20', C: '25', D: '30' }, correct: 'B' },
+    { text: 'If a triangle has angles 50° and 60°, what is the third angle?', options: { A: '70°', B: '80°', C: '90°', D: '60°' }, correct: 'A' },
+    { text: 'Solve: 12 x 11 - 10.', options: { A: '122', B: '132', C: '120', D: '112' }, correct: 'A' },
+    { text: 'Convert 4/5 into a percentage.', options: { A: '85%', B: '75%', C: '80%', D: '90%' }, correct: 'C' },
+    { text: 'What is the square root of 225?', options: { A: '15', B: '25', C: '12', D: '20' }, correct: 'A' }
+  ];
+
+  const [answers, setAnswers] = useState<string[]>(Array(questions.length).fill(''));
 
   // Timer Tick
   useEffect(() => {
@@ -119,38 +134,56 @@ export const TestQuizScreen: React.FC = () => {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  // Mock Questions Data
-  const questions = [
-    { text: 'Solve for x: 3x + 5 = 20.', options: { A: '5', B: '4', C: '6', D: '3' } },
-    { text: 'Which is a prime number?', options: { A: '4', B: '9', C: '15', D: '17' } },
-    { text: 'Find the area of a rectangle with length 10 and width 5.', options: { A: '50', B: '15', C: '30', D: '25' } },
-    { text: 'What is 15% of 200?', options: { A: '35', B: '30', C: '25', D: '40' } },
-    { text: 'Two numbers are in the ratio 2 : 7. If the second number is 378, find the first.', options: { A: '105', B: '180', C: '108', D: '165' } },
-    { text: 'Calculate the average of 10, 20, and 30.', options: { A: '15', B: '20', C: '25', D: '30' } },
-    { text: 'If a triangle has angles 50° and 60°, what is the third angle?', options: { A: '70°', B: '80°', C: '90°', D: '60°' } },
-    { text: 'Solve: 12 x 11 - 10.', options: { A: '122', B: '132', C: '120', D: '112' } },
-    { text: 'Convert 4/5 into a percentage.', options: { A: '85%', B: '75%', C: '80%', D: '90%' } },
-    { text: 'What is the square root of 225?', options: { A: '15', B: '25', C: '12', D: '20' } }
-  ];
-
-  const handleNext = () => {
+  const handleNext = async () => {
+    const updatedAnswers = [...answers];
     if (currentQuestionIdx === questions.length - 1) {
-      // Last question - Submit Test
+      // Calculate score
+      let score = 0;
+      questions.forEach((q, idx) => {
+        if (updatedAnswers[idx] === q.correct) {
+          score += 1;
+        }
+      });
+
+      // Submit score to backend
+      try {
+        const res = await fetch(`http://localhost:3001/api/students/${user.phone}/welcome-test`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ score, answers: updatedAnswers })
+        });
+        const json = await res.json();
+        if (json.success && json.data) {
+          // Update local student user context state
+          updateUser({
+            welcomeTestStatus: 'completed',
+            welcomeTestResult: json.data.welcomeTestResult
+          });
+        }
+      } catch (err) {
+        console.error('Failed to submit welcome test:', err);
+      }
+      
       navigateTo('TEST_REPORT');
     } else {
       setCurrentQuestionIdx((prev) => prev + 1);
-      setSelectedOption(null);
     }
   };
 
   const handlePrev = () => {
     if (currentQuestionIdx > 0) {
       setCurrentQuestionIdx((prev) => prev - 1);
-      setSelectedOption(null);
     }
   };
 
+  const handleSelectOption = (optKey: string) => {
+    const newAnswers = [...answers];
+    newAnswers[currentQuestionIdx] = optKey;
+    setAnswers(newAnswers);
+  };
+
   const activeQuestion = questions[currentQuestionIdx];
+  const selectedOption = answers[currentQuestionIdx] || null;
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }} edges={['top', 'left', 'right', 'bottom']}>
@@ -204,7 +237,7 @@ export const TestQuizScreen: React.FC = () => {
             return (
               <TouchableOpacity
                 key={optKey}
-                onPress={() => setSelectedOption(optKey)}
+                onPress={() => handleSelectOption(optKey)}
                 className="flex-row items-center py-2.5 active:opacity-75"
               >
                 {/* Circle badge */}
@@ -277,7 +310,29 @@ export const TestQuizScreen: React.FC = () => {
 // 3. TEST REPORT SCREEN
 // ==========================================
 export const TestReportScreen: React.FC = () => {
-  const { navigateTo, goBack, goBackTo } = useApp();
+  const { navigateTo, goBack, goBackTo, user } = useApp();
+
+  const score = user.welcomeTestResult?.score ?? 0;
+  const studentAnswers = user.welcomeTestResult?.answers || [];
+  const correctKeys = ['B', 'D', 'A', 'B', 'C', 'B', 'A', 'A', 'C', 'A'];
+
+  // Calculate grade based on score
+  let grade = 'F';
+  if (score >= 9) grade = 'A';
+  else if (score >= 8) grade = 'B';
+  else if (score >= 6) grade = 'C';
+  else if (score >= 4) grade = 'D';
+  else grade = 'E';
+
+  // Construct answer sheet types dynamically
+  const answerSheet = correctKeys.map((key, idx) => {
+    const chosen = studentAnswers[idx];
+    let type: 'correct' | 'wrong' | 'skipped' = 'skipped';
+    if (chosen) {
+      type = (chosen === key) ? 'correct' : 'wrong';
+    }
+    return { id: idx + 1, type };
+  });
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF' }} edges={['top', 'left', 'right', 'bottom']}>
@@ -305,18 +360,18 @@ export const TestReportScreen: React.FC = () => {
               Welcome Test
             </Text>
             <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(12.5) }} className="text-slate-400 mt-1">
-              16:00-19:00, 06 Jul
+              Diagnostic Test Report
             </Text>
           </View>
 
           {/* Student Profile Avatar */}
           <View className="items-center">
             <Image 
-              source={{ uri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80' }} 
+              source={{ uri: user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80' }} 
               className="w-13 h-13 rounded-full bg-slate-100 border-2 border-teal-100 shadow-sm"
             />
             <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(11.5) }} className="text-slate-600 font-bold mt-1">
-              Ram
+              {user.name || 'Student'}
             </Text>
           </View>
         </View>
@@ -325,8 +380,8 @@ export const TestReportScreen: React.FC = () => {
         <View className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex-row divide-x divide-slate-100 mb-6">
           {/* Left Column (Grade) */}
           <View className="flex-1 items-center justify-center py-2">
-            <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-850 text-4.5xl font-bold leading-none">
-              D
+            <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-855 text-4.5xl font-bold leading-none">
+              {grade}
             </Text>
             <View className="flex-row items-center mt-2.5">
               <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(11.5) }} className="text-slate-400 font-medium mr-1">
@@ -339,8 +394,8 @@ export const TestReportScreen: React.FC = () => {
           {/* Right Column (Scores) */}
           <View className="flex-1 items-center justify-center py-2">
             <View className="flex-row items-baseline">
-              <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-850 text-3.5xl font-bold">
-                1
+              <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-855 text-3.5xl font-bold">
+                {score}
               </Text>
               <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-400 text-lg font-bold">
                 /10
@@ -350,7 +405,7 @@ export const TestReportScreen: React.FC = () => {
               Scores
             </Text>
             <Text style={{ fontFamily: Theme.fonts.poppinsRegular, fontSize: getFontSize(10.5) }} className="text-slate-400 mt-0.5">
-              Class average: 4
+              Class average: 7
             </Text>
           </View>
         </View>
@@ -370,18 +425,7 @@ export const TestReportScreen: React.FC = () => {
 
           {/* Grid structure (5 columns, 2 rows) */}
           <View className="flex-row flex-wrap gap-2.5 justify-between">
-            {[
-              { id: 1, type: 'wrong' },
-              { id: 2, type: 'correct' },
-              { id: 3, type: 'wrong' },
-              { id: 4, type: 'wrong' },
-              { id: 5, type: 'wrong' },
-              { id: 6, type: 'skipped' },
-              { id: 7, type: 'skipped' },
-              { id: 8, type: 'skipped' },
-              { id: 9, type: 'skipped' },
-              { id: 10, type: 'skipped' }
-            ].map((ans) => {
+            {answerSheet.map((ans) => {
               let renderIcon = null;
               if (ans.type === 'correct') {
                 renderIcon = <Feather name="check" size={10} color="#10B981" />;

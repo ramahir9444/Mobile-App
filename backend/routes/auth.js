@@ -97,15 +97,10 @@ router.post('/verify-otp', async (req, res) => {
       success:    true,
       isNew:      isNewStudent,      // frontend can show welcome screen
       student: {
+        ...student,
         _id:           student._id,
-        name:          student.name,
-        phone:         student.phone,
-        selectedClass: student.selectedClass,
         profilePhoto:  student.profilePhoto  || null,
         email:         student.email         || null,
-        enrollmentType: student.enrollmentType || 'none',
-        totalClassesAttended:  student.totalClassesAttended,
-        totalQuizzesAttempted: student.totalQuizzesAttempted,
       },
     });
   } catch (err) {
