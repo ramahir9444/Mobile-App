@@ -312,6 +312,8 @@ router.post('/:phone/homework', async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
+});
+
 // POST /api/students/:phone/welcome-test — submit welcome test score
 router.post('/:phone/welcome-test', async (req, res) => {
   try {

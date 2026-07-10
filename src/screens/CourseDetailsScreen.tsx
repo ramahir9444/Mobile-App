@@ -342,79 +342,98 @@ export const CourseDetailsScreen: React.FC = () => {
                       {date}
                     </Text>
 
-                    {groupedFinished[date].map((item: any) => (
-                      <TouchableOpacity 
-                        key={item._id} 
-                        onPress={() => {
-                          setActiveClassSchedule(item);
-                          navigateTo('CLASS_DETAILS');
-                        }}
-                        className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm mb-3 active:opacity-95"
-                      >
-                        <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(14.5) }} className="text-slate-800 font-bold">
-                          {item.title}
-                        </Text>
-                        
-                        <View className="flex-row items-center mt-2.5 space-x-2">
-                          <View className="bg-slate-100 py-0.5 px-2 rounded">
-                            <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9) }} className="text-slate-500 text-[8.5px] uppercase font-bold">{item.subject}</Text>
-                          </View>
-                          
-                          {item.subject?.toLowerCase() === 'test' ? (
-                            <View className="bg-blue-50 border border-blue-100 py-0.5 px-2.5 rounded-full">
-                              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9) }} className="text-blue-600 font-bold uppercase">
-                                📝 Test
-                              </Text>
-                            </View>
-                          ) : item.subject?.toLowerCase() === 'ptm' ? (
-                            <View className="bg-purple-50 border border-purple-100 py-0.5 px-2.5 rounded-full">
-                              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9) }} className="text-purple-600 font-bold uppercase">
-                                🤝 Parents Meeting
-                              </Text>
-                            </View>
-                          ) : item.homework && item.homework.length > 0 ? (
-                            (() => {
-                              const isHwSubmitted = homeworkSubmissions.some(
-                                (sub: any) => sub.scheduleId === item._id
-                              );
-                              return isHwSubmitted ? (
-                                <View className="bg-emerald-50 border border-emerald-100 py-0.5 px-2.5 rounded-full">
-                                  <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9) }} className="text-emerald-650 font-bold uppercase">
-                                    ✅ HW Completed
-                                  </Text>
-                                </View>
-                              ) : (
-                                <View className="bg-orange-50 border border-orange-100 py-0.5 px-2.5 rounded-full">
-                                  <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9) }} className="text-orange-650 font-bold uppercase">
-                                    ⏳ HW Pending
-                                  </Text>
-                                </View>
-                              );
-                            })()
-                          ) : (
-                            <View className="bg-teal-50 border border-teal-100 py-0.5 px-2.5 rounded-full">
-                              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9) }} className="text-teal-650 font-bold uppercase">
-                                🎥 Class Replay
-                              </Text>
-                            </View>
-                          )}
-                        </View>
-
-                        <View className="flex-row justify-between items-center mt-5 pt-3 border-t border-slate-55">
-                          <Text style={{ fontFamily: Theme.fonts.poppinsMedium }} className="text-slate-505 text-xs font-medium">
-                            {item.time}
+                    {groupedFinished[date].map((item: any) => {
+                      const isWelcomeTest = item.title?.toLowerCase().includes('welcome test') || 
+                                            (item.subject?.toLowerCase() === 'test' && item.title?.toLowerCase().includes('welcome'));
+                      return (
+                        <TouchableOpacity 
+                          key={item._id} 
+                          onPress={() => {
+                            setActiveClassSchedule(item);
+                            // Welcome Test goes straight to report; class goes to details
+                            if (isWelcomeTest) {
+                              navigateTo('TEST_REPORT');
+                            } else {
+                              navigateTo('CLASS_DETAILS');
+                            }
+                          }}
+                          className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm mb-3 active:opacity-95"
+                        >
+                          <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(14.5) }} className="text-slate-800 font-bold">
+                            {item.title}
                           </Text>
-                          <TouchableOpacity 
-                            onPress={() => navigateTo('TEST_REPORT')}
-                            className="bg-[#E0F7F6] py-1 px-4.5 rounded-full active:bg-[#B2DFDB]"
-                          >
-                            <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(11.5) }} className="text-[#00B6A6] font-bold">
-                              View Report
+                          
+                          <View className="flex-row items-center mt-2.5 space-x-2">
+                            <View className="bg-slate-100 py-0.5 px-2 rounded">
+                              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9) }} className="text-slate-500 text-[8.5px] uppercase font-bold">{item.subject}</Text>
+                            </View>
+                            
+                            {isWelcomeTest ? (
+                              <View className="bg-emerald-50 border border-emerald-100 py-0.5 px-2.5 rounded-full">
+                                <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9) }} className="text-emerald-600 font-bold uppercase">
+                                  🎯 Welcome Test — Tap for Result
+                                </Text>
+                              </View>
+                            ) : item.subject?.toLowerCase() === 'test' ? (
+                              <View className="bg-blue-50 border border-blue-100 py-0.5 px-2.5 rounded-full">
+                                <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9) }} className="text-blue-600 font-bold uppercase">
+                                  📝 Test
+                                </Text>
+                              </View>
+                            ) : item.subject?.toLowerCase() === 'ptm' ? (
+                              <View className="bg-purple-50 border border-purple-100 py-0.5 px-2.5 rounded-full">
+                                <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9) }} className="text-purple-600 font-bold uppercase">
+                                  🤝 Parents Meeting
+                                </Text>
+                              </View>
+                            ) : item.homework && item.homework.length > 0 ? (
+                              (() => {
+                                const isHwSubmitted = homeworkSubmissions.some(
+                                  (sub: any) => sub.scheduleId === item._id
+                                );
+                                return isHwSubmitted ? (
+                                  <View className="bg-emerald-50 border border-emerald-100 py-0.5 px-2.5 rounded-full">
+                                    <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9) }} className="text-emerald-650 font-bold uppercase">
+                                      ✅ HW Completed
+                                    </Text>
+                                  </View>
+                                ) : (
+                                  <View className="bg-orange-50 border border-orange-100 py-0.5 px-2.5 rounded-full">
+                                    <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9) }} className="text-orange-650 font-bold uppercase">
+                                      ⏳ HW Pending
+                                    </Text>
+                                  </View>
+                                );
+                              })()
+                            ) : (
+                              <View className="bg-teal-50 border border-teal-100 py-0.5 px-2.5 rounded-full">
+                                <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9) }} className="text-teal-650 font-bold uppercase">
+                                  🎥 Class Replay
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+
+                          <View className="flex-row justify-between items-center mt-5 pt-3 border-t border-slate-55">
+                            <Text style={{ fontFamily: Theme.fonts.poppinsMedium }} className="text-slate-505 text-xs font-medium">
+                              {item.time}
                             </Text>
-                          </TouchableOpacity>
-                        </View>
-                      </TouchableOpacity>
-                    ))}
+                            <TouchableOpacity 
+                              onPress={() => {
+                                setActiveClassSchedule(item);
+                                navigateTo('TEST_REPORT');
+                              }}
+                              className="bg-[#E0F7F6] py-1 px-4.5 rounded-full active:bg-[#B2DFDB]"
+                            >
+                              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(11.5) }} className="text-[#00B6A6] font-bold">
+                                View Report
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+
                   </View>
                 ))
               )}

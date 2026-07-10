@@ -27,7 +27,9 @@ const getFontSize = (baseSize: number) => {
 // ==========================================
 export const ClassDetailsScreen: React.FC = () => {
   const { navigateTo, goBack, setSelectedReportPeriod, activeClassSchedule, setActiveClassSchedule, activeCourseClass, activeCourseType, user, homeworkSubmissions, refreshHomeworkSubmissions } = useApp();
-  const [activeSection, setActiveSection] = useState<'Materials' | 'Report' | 'Homework'>('Homework');
+  const isWelcomeTestClass = activeClassSchedule?.title?.toLowerCase().includes('welcome test') ||
+    (activeClassSchedule?.subject?.toLowerCase() === 'test' && activeClassSchedule?.title?.toLowerCase().includes('welcome'));
+  const [activeSection, setActiveSection] = useState<'Materials' | 'Report' | 'Homework'>(isWelcomeTestClass ? 'Report' : 'Homework');
   const [downloadingFile, setDownloadingFile] = useState<string | null>(null);
 
   // Dynamically refresh schedule details (materials, homework) on mount from DB
@@ -254,67 +256,145 @@ export const ClassDetailsScreen: React.FC = () => {
           )}
 
           {activeSection === 'Report' && (
-            /* REPORTS LOG WITH ACCURACY, ATTENDANCE & INSIGHTS PREVIEW */
-            <View className="space-y-4">
-              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13.5) }} className="text-slate-800 font-bold mb-1 pl-1">
-                Live Class Engagement Report
-              </Text>
-              
-              <View className="bg-white border border-slate-100 rounded-2xl p-5 space-y-4.5 shadow-sm">
-                {/* 1. Quiz & Homework Accuracy metrics row */}
-                <View className="flex-row justify-between items-center">
-                  <View className="flex-1 bg-[#F8FAFC] border border-slate-100 py-3 px-2 rounded-xl items-center mr-1.5">
-                    <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(17) }} className="text-[#00B6A6] font-bold">
-                      85%
-                    </Text>
-                    <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9.5) }} className="text-slate-400 mt-0.5 uppercase tracking-wider font-bold">
-                      Quiz Accuracy
-                    </Text>
-                  </View>
+            /* REPORTS LOG — Welcome Test result for demo class, engagement stats otherwise */
+            (() => {
+              const isWelcomeTest = activeClassSchedule?.title?.toLowerCase().includes('welcome test') ||
+                (activeClassSchedule?.subject?.toLowerCase() === 'test' && activeClassSchedule?.title?.toLowerCase().includes('welcome'));
 
-                  <View className="flex-1 bg-[#F8FAFC] border border-slate-100 py-3 px-2 rounded-xl items-center ml-1.5">
-                    <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(17) }} className="text-indigo-650 font-bold">
-                      90%
+              if (isWelcomeTest && user.welcomeTestStatus === 'completed' && user.welcomeTestResult) {
+                const result = user.welcomeTestResult;
+                const score = result.score ?? 0;
+                const grade = score >= 9 ? 'A' : score >= 8 ? 'B' : score >= 6 ? 'C' : score >= 4 ? 'D' : 'E';
+                const gradeColor = score >= 8 ? '#059669' : score >= 6 ? '#0284C7' : score >= 4 ? '#D97706' : '#DC2626';
+
+                return (
+                  <View className="space-y-4">
+                    <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13.5) }} className="text-slate-800 font-bold mb-1 pl-1">
+                      🎯 Welcome Test Report
                     </Text>
-                    <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9.5) }} className="text-slate-400 mt-0.5 uppercase tracking-wider font-bold text-center">
-                      Homework Acc.
-                    </Text>
+
+                    {/* Score Card */}
+                    <View style={{ backgroundColor: '#ECFDF5', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#A7F3D0' }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center' }}>
+                        <View style={{ alignItems: 'center' }}>
+                          <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(40), color: '#059669' }}>
+                            {score}
+                            <Text style={{ fontSize: getFontSize(20), color: '#9CA3AF' }}>/10</Text>
+                          </Text>
+                          <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(11), color: '#6B7280' }}>Score</Text>
+                        </View>
+                        <View style={{ width: 1, height: 56, backgroundColor: '#A7F3D0' }} />
+                        <View style={{ alignItems: 'center' }}>
+                          <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(40), color: gradeColor }}>
+                            {grade}
+                          </Text>
+                          <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(11), color: '#6B7280' }}>Grade</Text>
+                        </View>
+                        <View style={{ width: 1, height: 56, backgroundColor: '#A7F3D0' }} />
+                        <View style={{ alignItems: 'center' }}>
+                          <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13), color: '#374151' }}>
+                            {Math.round((score / 10) * 100)}%
+                          </Text>
+                          <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(11), color: '#6B7280' }}>Accuracy</Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* Submitted At */}
+                    <View className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
+                      <View className="flex-row justify-between items-center">
+                        <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(13) }} className="text-slate-500">Submitted On</Text>
+                        <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13) }} className="text-slate-800">
+                          {result.submittedAt
+                            ? new Date(result.submittedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                            : '—'}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Performance Insight */}
+                    <View style={{ backgroundColor: '#EFF6FF', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#BFDBFE' }}>
+                      <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(11.5), color: '#1E40AF', marginBottom: 4 }}>
+                        🧠 Diagnostic Insight
+                      </Text>
+                      <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(12), color: '#374151' }}>
+                        {score >= 8
+                          ? 'Excellent! You have a strong foundation. Ready for advanced concepts!'
+                          : score >= 6
+                          ? 'Good performance! A little more practice will make you shine.'
+                          : score >= 4
+                          ? 'Average score. Focus on fundamentals to improve quickly.'
+                          : 'Needs attention. Your teacher will help you strengthen the basics.'}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              }
+
+              // Default: Generic engagement report for non-welcome-test classes
+              return (
+                <View className="space-y-4">
+                  <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13.5) }} className="text-slate-800 font-bold mb-1 pl-1">
+                    Live Class Engagement Report
+                  </Text>
+                  
+                  <View className="bg-white border border-slate-100 rounded-2xl p-5 space-y-4.5 shadow-sm">
+                    {/* 1. Quiz & Homework Accuracy metrics row */}
+                    <View className="flex-row justify-between items-center">
+                      <View className="flex-1 bg-[#F8FAFC] border border-slate-100 py-3 px-2 rounded-xl items-center mr-1.5">
+                        <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(17) }} className="text-[#00B6A6] font-bold">
+                          85%
+                        </Text>
+                        <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9.5) }} className="text-slate-400 mt-0.5 uppercase tracking-wider font-bold">
+                          Quiz Accuracy
+                        </Text>
+                      </View>
+
+                      <View className="flex-1 bg-[#F8FAFC] border border-slate-100 py-3 px-2 rounded-xl items-center ml-1.5">
+                        <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(17) }} className="text-indigo-650 font-bold">
+                          90%
+                        </Text>
+                        <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9.5) }} className="text-slate-400 mt-0.5 uppercase tracking-wider font-bold text-center">
+                          Homework Acc.
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* 2. Class Minutes Attended */}
+                    <View className="flex-row justify-between items-center py-2 border-b border-slate-50">
+                      <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(13) }} className="text-slate-500 font-medium">Class Attendance</Text>
+                      <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13.5) }} className="text-orange-500 font-bold">
+                        58 / 60 mins
+                      </Text>
+                    </View>
+
+                    {/* 3. AI Insights Preview */}
+                    <View className="bg-[#EFF6FF] border border-blue-50/60 p-4 rounded-xl">
+                      <View className="flex-row items-center mb-1.5">
+                        <MaterialCommunityIcons name="robot-outline" size={16} color="#2563EB" className="mr-1.5" />
+                        <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(11.5) }} className="text-blue-700 font-bold uppercase tracking-wide">
+                          AI Insights
+                        </Text>
+                      </View>
+                      <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(12) }} className="text-slate-650 leading-relaxed font-medium">
+                        Steady progress in homework tasks, high engagement shown in quiz answering. Keep up the active participation!
+                      </Text>
+                    </View>
+
+                    {/* 4. Action Button - Redirects to Daily Report */}
+                    <TouchableOpacity 
+                      onPress={viewDailyReport}
+                      className="bg-[#00B6A6] py-2.5 rounded-xl active:bg-teal-650 flex-row items-center justify-center mt-2 shadow-sm"
+                    >
+                      <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12.5) }} className="text-white font-bold mr-1">
+                        View Full Report
+                      </Text>
+                      <Feather name="arrow-right" size={14} color="#FFFFFF" />
+                    </TouchableOpacity>
                   </View>
                 </View>
-
-                {/* 2. Class Minutes Attended */}
-                <View className="flex-row justify-between items-center py-2 border-b border-slate-50">
-                  <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(13) }} className="text-slate-500 font-medium">Class Attendance</Text>
-                  <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13.5) }} className="text-orange-500 font-bold">
-                    58 / 60 mins
-                  </Text>
-                </View>
-
-                {/* 3. AI Insights Preview */}
-                <View className="bg-[#EFF6FF] border border-blue-50/60 p-4 rounded-xl">
-                  <View className="flex-row items-center mb-1.5">
-                    <MaterialCommunityIcons name="robot-outline" size={16} color="#2563EB" className="mr-1.5" />
-                    <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(11.5) }} className="text-blue-700 font-bold uppercase tracking-wide">
-                      AI Insights
-                    </Text>
-                  </View>
-                  <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(12) }} className="text-slate-650 leading-relaxed font-medium">
-                    Steady progress in homework tasks, high engagement shown in quiz answering. Keep up the active participation!
-                  </Text>
-                </View>
-
-                {/* 4. Action Button - Redirects to Daily Report */}
-                <TouchableOpacity 
-                  onPress={viewDailyReport}
-                  className="bg-[#00B6A6] py-2.5 rounded-xl active:bg-teal-650 flex-row items-center justify-center mt-2 shadow-sm"
-                >
-                  <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12.5) }} className="text-white font-bold mr-1">
-                    View Full Report
-                  </Text>
-                  <Feather name="arrow-right" size={14} color="#FFFFFF" />
-                </TouchableOpacity>
-              </View>
-            </View>
+              );
+            })()
           )}
 
           {activeSection === 'Homework' && (
