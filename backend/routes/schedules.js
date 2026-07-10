@@ -74,6 +74,18 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/schedules/:id — Fetch a single schedule by ID
+router.get('/:id', async (req, res) => {
+  try {
+    const db = getDB();
+    const schedule = await db.collection('schedules').findOne({ _id: new ObjectId(req.params.id) });
+    if (!schedule) return res.status(404).json({ success: false, error: 'Schedule not found' });
+    res.json({ success: true, data: schedule });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // POST /api/schedules — Create a new schedule entry
 router.post('/', async (req, res) => {
   try {

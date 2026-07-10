@@ -340,6 +340,13 @@ export async function updateScheduleStatus(
   return apiCall('PUT', `/api/schedules/${id}/status`, { status });
 }
 
+/** Fetch details for a single schedule by ID */
+export async function getScheduleById(
+  id: string
+): Promise<{ success: boolean; data: any }> {
+  return apiCall('GET', `/api/schedules/${id}`);
+}
+
 // ─── HEALTH ──────────────────────────────────────────────────────
 export async function healthCheck(): Promise<{ status: string }> {
   return apiCall('GET', '/health');

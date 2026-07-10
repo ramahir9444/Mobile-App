@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
 import { useApp } from '../context/AppContext';
-import { getAvatarUrl, submitHomeworkScore, updateScheduleStatus } from '../services/api';
+import { getAvatarUrl, submitHomeworkScore, updateScheduleStatus, getScheduleById } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -26,9 +26,25 @@ const getFontSize = (baseSize: number) => {
 // 1. CLASS DETAILS SCREEN
 // ==========================================
 export const ClassDetailsScreen: React.FC = () => {
-  const { navigateTo, goBack, setSelectedReportPeriod, activeClassSchedule, activeCourseClass, activeCourseType, user, homeworkSubmissions, refreshHomeworkSubmissions } = useApp();
+  const { navigateTo, goBack, setSelectedReportPeriod, activeClassSchedule, setActiveClassSchedule, activeCourseClass, activeCourseType, user, homeworkSubmissions, refreshHomeworkSubmissions } = useApp();
   const [activeSection, setActiveSection] = useState<'Materials' | 'Report' | 'Homework'>('Homework');
   const [downloadingFile, setDownloadingFile] = useState<string | null>(null);
+
+  // Dynamically refresh schedule details (materials, homework) on mount from DB
+  useEffect(() => {
+    const refreshSchedule = async () => {
+      if (!activeClassSchedule?._id) return;
+      try {
+        const res = await getScheduleById(activeClassSchedule._id);
+        if (res.success && res.data) {
+          setActiveClassSchedule(res.data);
+        }
+      } catch (err) {
+        console.error('Failed to refresh schedule in ClassDetailsScreen:', err);
+      }
+    };
+    refreshSchedule();
+  }, [activeClassSchedule?._id]);
   const [downloadProgress, setDownloadProgress] = useState<number>(0);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
