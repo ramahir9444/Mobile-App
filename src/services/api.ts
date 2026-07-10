@@ -332,6 +332,14 @@ export async function checkHomeworkSubmission(
   );
 }
 
+/** Update status of a schedule dynamically */
+export async function updateScheduleStatus(
+  id: string,
+  status: 'Scheduled' | 'Finished'
+): Promise<{ success: boolean; data: any }> {
+  return apiCall('PUT', `/api/schedules/${id}/status`, { status });
+}
+
 // ─── HEALTH ──────────────────────────────────────────────────────
 export async function healthCheck(): Promise<{ status: string }> {
   return apiCall('GET', '/health');

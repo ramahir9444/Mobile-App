@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
 import { useApp } from '../context/AppContext';
-import { getAvatarUrl } from '../services/api';
+import { getAvatarUrl, updateScheduleStatus } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -306,9 +306,14 @@ export const CourseDetailsScreen: React.FC = () => {
                             </View>
                           )}
                           <TouchableOpacity 
-                            onPress={(e) => {
+                            onPress={async (e) => {
                               e.stopPropagation();
                               showToast("Entering Live interactive Class...");
+                              try {
+                                await updateScheduleStatus(item._id, 'Finished');
+                              } catch (err) {
+                                console.error('Failed to update schedule status on Join Class:', err);
+                              }
                             }}
                             className="bg-[#00B6A6] py-1 px-3.5 rounded-full active:bg-teal-650 mt-3"
                           >

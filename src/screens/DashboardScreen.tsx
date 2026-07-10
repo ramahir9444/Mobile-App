@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
 import { useApp } from '../context/AppContext';
-import { getAvatarUrl, getHomepageConfig, HomepageConfig, getOrdersByPhone, OrderItem } from '../services/api';
+import { getAvatarUrl, getHomepageConfig, HomepageConfig, getOrdersByPhone, OrderItem, updateScheduleStatus } from '../services/api';
 
 
 const { width, height } = Dimensions.get('window');

@@ -90,6 +90,24 @@ router.post('/', async (req, res) => {
     const result = await db.collection('homework_submissions').insertOne(doc);
     const newDoc = { ...doc, _id: result.insertedId };
 
+    // Automatically update the corresponding schedule's status to "Finished" in schedules collection
+    try {
+      const { ObjectId } = require('mongodb');
+      if (ObjectId.isValid(scheduleId)) {
+        await db.collection('schedules').updateOne(
+          { _id: new ObjectId(scheduleId) },
+          { $set: { status: 'Finished', updatedAt: new Date() } }
+        );
+      } else {
+        await db.collection('schedules').updateOne(
+          { _id: scheduleId },
+          { $set: { status: 'Finished', updatedAt: new Date() } }
+        );
+      }
+    } catch (err) {
+      console.error(`Failed to update schedule status to Finished on HW submit for ${scheduleId}:`, err);
+    }
+
     res.status(201).json({ success: true, data: newDoc });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

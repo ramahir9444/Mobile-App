@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
 import { useApp } from '../context/AppContext';
-import { getAvatarUrl, submitHomeworkScore } from '../services/api';
+import { getAvatarUrl, submitHomeworkScore, updateScheduleStatus } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -133,7 +133,16 @@ export const ClassDetailsScreen: React.FC = () => {
               </Text>
               
               <TouchableOpacity 
-                onPress={() => showToast(activeClassSchedule?.status === 'Finished' ? "Opening replay recording..." : "Entering Live interactive Class...")}
+                onPress={async () => {
+                  showToast(activeClassSchedule?.status === 'Finished' ? "Opening replay recording..." : "Entering Live interactive Class...");
+                  if (activeClassSchedule && activeClassSchedule.status !== 'Finished') {
+                    try {
+                      await updateScheduleStatus(activeClassSchedule._id, 'Finished');
+                    } catch (err) {
+                      console.error('Failed to update schedule status on Join Class:', err);
+                    }
+                  }
+                }}
                 className="bg-[#00B6A6] py-1 px-4.5 rounded-full"
               >
                 <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(11.5) }} className="text-white font-bold">
