@@ -89,7 +89,7 @@ router.get('/:id', async (req, res) => {
 // POST /api/schedules — Create a new schedule entry
 router.post('/', async (req, res) => {
   try {
-    const { title, subject, time, dateText, gradeClass, courseType, teacherName, teacherAvatar, status, materials, homework } = req.body;
+    const { title, subject, time, dateText, gradeClass, courseType, teacherName, teacherAvatar, status, materials, homework, questions, durationMinutes } = req.body;
     
     if (!title || !subject || !time || !dateText || !gradeClass || !courseType) {
       return res.status(400).json({ success: false, error: 'Missing required schedule fields' });
@@ -108,6 +108,8 @@ router.post('/', async (req, res) => {
       status: status || 'Scheduled', // 'Scheduled' or 'Finished'
       materials: materials || [],
       homework: homework || [],
+      questions: questions || [],
+      durationMinutes: durationMinutes !== undefined ? Number(durationMinutes) : 30,
       createdAt: new Date()
     };
 
@@ -122,7 +124,7 @@ router.post('/', async (req, res) => {
 // PUT /api/schedules/:id — Update a schedule entry
 router.put('/:id', async (req, res) => {
   try {
-    const { title, subject, time, dateText, gradeClass, courseType, teacherName, teacherAvatar, status, materials, homework } = req.body;
+    const { title, subject, time, dateText, gradeClass, courseType, teacherName, teacherAvatar, status, materials, homework, questions, durationMinutes } = req.body;
     const db = getDB();
 
     const updateDoc = {};
@@ -137,6 +139,8 @@ router.put('/:id', async (req, res) => {
     if (status !== undefined) updateDoc.status = status;
     if (materials !== undefined) updateDoc.materials = materials;
     if (homework !== undefined) updateDoc.homework = homework;
+    if (questions !== undefined) updateDoc.questions = questions;
+    if (durationMinutes !== undefined) updateDoc.durationMinutes = Number(durationMinutes);
 
     const result = await db.collection('schedules').findOneAndUpdate(
       { _id: new ObjectId(req.params.id) },

@@ -270,58 +270,82 @@ export const CourseDetailsScreen: React.FC = () => {
                       {date}
                     </Text>
 
-                    {groupedScheduled[date].map((item: any) => (
-                      <TouchableOpacity 
-                        key={item._id}
-                        onPress={() => {
-                          setActiveClassSchedule(item);
-                          navigateTo('CLASS_DETAILS');
-                        }}
-                        className="bg-white rounded-2xl p-4.5 border border-slate-100 shadow-sm flex-row justify-between active:opacity-95 mb-3"
-                      >
-                        <View className="flex-1 pr-3 justify-between">
-                          <View>
-                            <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13.5) }} className="text-slate-850 font-bold leading-snug">
-                              {item.title}
+                    {groupedScheduled[date].map((item: any) => {
+                      const isTest = item.subject?.toLowerCase() === 'test';
+                      return (
+                        <TouchableOpacity 
+                          key={item._id}
+                          onPress={() => {
+                            setActiveClassSchedule(item);
+                            if (isTest) {
+                              navigateTo('TEST_INTRO');
+                            } else {
+                              navigateTo('CLASS_DETAILS');
+                            }
+                          }}
+                          className="bg-white rounded-2xl p-4.5 border border-slate-100 shadow-sm flex-row justify-between active:opacity-95 mb-3"
+                        >
+                          <View className="flex-1 pr-3 justify-between">
+                            <View>
+                              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13.5) }} className="text-slate-850 font-bold leading-snug">
+                                {item.title}
+                              </Text>
+                              <View className="bg-slate-100 py-0.5 px-2 rounded self-start mt-2">
+                                <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-500 text-[8.5px] uppercase font-bold">{item.subject}</Text>
+                              </View>
+                            </View>
+                            
+                            <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(11.5) }} className="text-[#FF5E00] font-bold mt-4">
+                              {item.time}
                             </Text>
-                            <View className="bg-slate-100 py-0.5 px-2 rounded self-start mt-2">
-                              <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-slate-500 text-[8.5px] uppercase font-bold">{item.subject}</Text>
-                            </View>
                           </View>
-                          
-                          <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(11.5) }} className="text-[#FF5E00] font-bold mt-4">
-                            {item.time}
-                          </Text>
-                        </View>
 
-                        <View className="items-end justify-between">
-                          {item.teacherAvatar ? (
-                            <Image 
-                              source={{ uri: getAvatarUrl(item.teacherAvatar) || item.teacherAvatar }} 
-                              className="w-14 h-14 rounded-full bg-slate-200"
-                            />
-                          ) : (
-                            <View className="w-14 h-14 rounded-full bg-slate-200 items-center justify-center">
-                              <Text>👩‍🏫</Text>
-                            </View>
-                          )}
-                          <TouchableOpacity 
-                            onPress={async (e) => {
-                              e.stopPropagation();
-                              showToast("Entering Live interactive Class...");
-                              try {
-                                await updateScheduleStatus(item._id, 'Finished');
-                              } catch (err) {
-                                console.error('Failed to update schedule status on Join Class:', err);
-                              }
-                            }}
-                            className="bg-[#00B6A6] py-1 px-3.5 rounded-full active:bg-teal-650 mt-3"
-                          >
-                            <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(10.5) }} className="text-white font-bold">Join Class</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </TouchableOpacity>
-                    ))}
+                          <View className="items-end justify-between">
+                            {isTest ? (
+                              <View className="w-14 h-14 rounded-full bg-slate-50 items-center justify-center border border-slate-100 shadow-sm">
+                                <MaterialCommunityIcons name="border-color" size={24} color="#00B6A6" />
+                              </View>
+                            ) : item.teacherAvatar ? (
+                              <Image 
+                                source={{ uri: getAvatarUrl(item.teacherAvatar) || item.teacherAvatar }} 
+                                className="w-14 h-14 rounded-full bg-slate-200"
+                              />
+                            ) : (
+                              <View className="w-14 h-14 rounded-full bg-slate-200 items-center justify-center">
+                                <Text>👩‍🏫</Text>
+                              </View>
+                            )}
+                            
+                            {isTest ? (
+                              <TouchableOpacity 
+                                onPress={() => {
+                                  setActiveClassSchedule(item);
+                                  navigateTo('TEST_INTRO');
+                                }}
+                                className="bg-[#00B6A6] py-1 px-3.5 rounded-full active:bg-teal-650 mt-3"
+                              >
+                                <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(10.5) }} className="text-white font-bold">Start Test</Text>
+                              </TouchableOpacity>
+                            ) : (
+                              <TouchableOpacity 
+                                onPress={async (e) => {
+                                  e.stopPropagation();
+                                  showToast("Entering Live interactive Class...");
+                                  try {
+                                    await updateScheduleStatus(item._id, 'Finished');
+                                  } catch (err) {
+                                    console.error('Failed to update schedule status on Join Class:', err);
+                                  }
+                                }}
+                                className="bg-[#00B6A6] py-1 px-3.5 rounded-full active:bg-teal-650 mt-3"
+                              >
+                                <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(10.5) }} className="text-white font-bold">Join Class</Text>
+                              </TouchableOpacity>
+                            )}
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
                 ))
               )}
@@ -345,14 +369,23 @@ export const CourseDetailsScreen: React.FC = () => {
                     {groupedFinished[date].map((item: any) => {
                       const isWelcomeTest = item.title?.toLowerCase().includes('welcome test') || 
                                             (item.subject?.toLowerCase() === 'test' && item.title?.toLowerCase().includes('welcome'));
+                      const isTest = item.subject?.toLowerCase() === 'test';
+                      const submission = homeworkSubmissions.find((sub: any) => sub.scheduleId === item._id);
+                      const isSubmitted = !!submission;
+
                       return (
                         <TouchableOpacity 
                           key={item._id} 
                           onPress={() => {
                             setActiveClassSchedule(item);
-                            // Welcome Test goes straight to report; class goes to details
                             if (isWelcomeTest) {
                               navigateTo('TEST_REPORT');
+                            } else if (isTest) {
+                              if (isSubmitted) {
+                                navigateTo('HOMEWORK_REPORT');
+                              } else {
+                                navigateTo('TEST_INTRO');
+                              }
                             } else {
                               navigateTo('CLASS_DETAILS');
                             }
@@ -374,12 +407,20 @@ export const CourseDetailsScreen: React.FC = () => {
                                   🎯 Welcome Test — Tap for Result
                                 </Text>
                               </View>
-                            ) : item.subject?.toLowerCase() === 'test' ? (
-                              <View className="bg-blue-50 border border-blue-100 py-0.5 px-2.5 rounded-full">
-                                <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9) }} className="text-blue-600 font-bold uppercase">
-                                  📝 Test
-                                </Text>
-                              </View>
+                            ) : isTest ? (
+                              isSubmitted ? (
+                                <View className="bg-emerald-50 border border-emerald-100 py-0.5 px-2.5 rounded-full">
+                                  <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9) }} className="text-emerald-650 font-bold uppercase">
+                                    ✅ Test Submitted ({submission.score}/{submission.totalQuestions})
+                                  </Text>
+                                </View>
+                              ) : (
+                                <View className="bg-blue-50 border border-blue-100 py-0.5 px-2.5 rounded-full">
+                                  <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9) }} className="text-blue-600 font-bold uppercase">
+                                    📝 Test Pending
+                                  </Text>
+                                </View>
+                              )
                             ) : item.subject?.toLowerCase() === 'ptm' ? (
                               <View className="bg-purple-50 border border-purple-100 py-0.5 px-2.5 rounded-full">
                                 <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9) }} className="text-purple-600 font-bold uppercase">
@@ -393,7 +434,7 @@ export const CourseDetailsScreen: React.FC = () => {
                                 );
                                 return isHwSubmitted ? (
                                   <View className="bg-emerald-50 border border-emerald-100 py-0.5 px-2.5 rounded-full">
-                                    <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9) }} className="text-emerald-650 font-bold uppercase">
+                                    <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9) }} className="text-emerald-655 font-bold uppercase">
                                       ✅ HW Completed
                                     </Text>
                                   </View>
@@ -413,27 +454,66 @@ export const CourseDetailsScreen: React.FC = () => {
                               </View>
                             )}
                           </View>
-
+ 
                           <View className="flex-row justify-between items-center mt-5 pt-3 border-t border-slate-55">
                             <Text style={{ fontFamily: Theme.fonts.poppinsMedium }} className="text-slate-505 text-xs font-medium">
                               {item.time}
                             </Text>
-                            <TouchableOpacity 
-                              onPress={() => {
-                                setActiveClassSchedule(item);
-                                navigateTo('TEST_REPORT');
-                              }}
-                              className="bg-[#E0F7F6] py-1 px-4.5 rounded-full active:bg-[#B2DFDB]"
-                            >
-                              <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(11.5) }} className="text-[#00B6A6] font-bold">
-                                View Report
-                              </Text>
-                            </TouchableOpacity>
+                            {isWelcomeTest ? (
+                              <TouchableOpacity 
+                                onPress={() => {
+                                  setActiveClassSchedule(item);
+                                  navigateTo('TEST_REPORT');
+                                }}
+                                className="bg-[#E0F7F6] py-1 px-4.5 rounded-full active:bg-[#B2DFDB]"
+                              >
+                                <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(11.5) }} className="text-[#00B6A6] font-bold">
+                                  View Report
+                                </Text>
+                              </TouchableOpacity>
+                            ) : isTest ? (
+                              isSubmitted ? (
+                                <TouchableOpacity 
+                                  onPress={() => {
+                                    setActiveClassSchedule(item);
+                                    navigateTo('HOMEWORK_REPORT');
+                                  }}
+                                  className="bg-[#E0F7F6] py-1 px-4.5 rounded-full active:bg-[#B2DFDB]"
+                                >
+                                  <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(11.5) }} className="text-[#00B6A6] font-bold">
+                                    View Report
+                                  </Text>
+                                </TouchableOpacity>
+                              ) : (
+                                <TouchableOpacity 
+                                  onPress={() => {
+                                    setActiveClassSchedule(item);
+                                    navigateTo('TEST_INTRO');
+                                  }}
+                                  className="bg-[#00B6A6] py-1 px-4.5 rounded-full active:bg-teal-650"
+                                >
+                                  <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(11.5) }} className="text-white font-bold">
+                                    Start Test
+                                  </Text>
+                                </TouchableOpacity>
+                              )
+                            ) : (
+                              <TouchableOpacity 
+                                onPress={() => {
+                                  setActiveClassSchedule(item);
+                                  navigateTo('CLASS_DETAILS');
+                                }}
+                                className="bg-slate-100 py-1 px-4.5 rounded-full active:bg-slate-200"
+                              >
+                                <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(11.5) }} className="text-slate-700 font-bold">
+                                  Watch Replay
+                                </Text>
+                              </TouchableOpacity>
+                            )}
                           </View>
                         </TouchableOpacity>
                       );
                     })}
-
                   </View>
                 ))
               )}

@@ -684,6 +684,9 @@ export const HomeworkQuizScreen: React.FC = () => {
 export const HomeworkReportScreen: React.FC = () => {
   const { goBackTo, homeworkSubmissions, activeClassSchedule, user } = useApp();
 
+  const isTest = activeClassSchedule?.subject?.toLowerCase() === 'test';
+  const backTarget = isTest ? 'COURSE_DETAILS' : 'CLASS_DETAILS';
+
   const questions = activeClassSchedule?.homework?.length > 0 ? activeClassSchedule.homework : [
     { text: 'Which number is smaller than -5?', options: { A: '-4', B: '-6', C: '0', D: '-1' }, correctAnswer: 'B' },
     { text: 'What is the absolute value of -15?', options: { A: '15', B: '-15', C: '0', D: '1' }, correctAnswer: 'A' },
@@ -705,7 +708,7 @@ export const HomeworkReportScreen: React.FC = () => {
 
       {/* HEADER */}
       <View className="flex-row items-center px-4 py-3 border-b border-slate-100 bg-white">
-        <TouchableOpacity onPress={() => goBackTo('CLASS_DETAILS')} className="p-1">
+        <TouchableOpacity onPress={() => goBackTo(backTarget)} className="p-1">
           <Feather name="chevron-left" size={26} color="#1E293B" strokeWidth={2.5} />
         </TouchableOpacity>
         <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(16.5) }} className="text-slate-800 font-bold text-center flex-1 mr-8">
@@ -799,11 +802,11 @@ export const HomeworkReportScreen: React.FC = () => {
         </View>
 
         <TouchableOpacity 
-          onPress={() => goBackTo('CLASS_DETAILS')}
+          onPress={() => goBackTo(backTarget)}
           className="w-full bg-[#00B6A6] py-3 rounded-xl active:bg-teal-650"
         >
           <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(13) }} className="text-white text-center font-bold">
-            Back to Class Details
+            {isTest ? 'Back to Course Details' : 'Back to Class Details'}
           </Text>
         </TouchableOpacity>
       </ScrollView>

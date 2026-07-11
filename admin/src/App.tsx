@@ -15,7 +15,8 @@ import {
   deleteMaterial,
   fetchWelcomeTest,
   saveWelcomeTest,
-  deleteWelcomeTest
+  deleteWelcomeTest,
+  API_BASE
 } from './api/configApi';
 
 // Reusable Section Component
@@ -128,7 +129,12 @@ export default function App() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
-  const [activeTab, setActiveTab] = useState<'config' | 'orders' | 'students' | 'schedules' | 'materials' | 'hw_reports' | 'welcome_test'>('config');
+  const [activeTab, setActiveTab] = useState<'config' | 'orders' | 'students' | 'schedules' | 'materials' | 'hw_reports' | 'welcome_test' | 'test_reports'>('config');
+  const [testSubmissions, setTestSubmissions] = useState<any[]>([]);
+  const [testSubmissionsLoading, setTestSubmissionsLoading] = useState(false);
+  const [testFilterClass, setTestFilterClass] = useState('all');
+  const [testReportsSubTab, setTestReportsSubTab] = useState<'welcome' | 'scheduled' | 'performance'>('welcome');
+  const [testSearchQuery, setTestSearchQuery] = useState('');
   const [orders, setOrders] = useState<any[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -156,7 +162,9 @@ export default function App() {
     teacherAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100',
     status: 'Scheduled',
     materials: [],
-    homework: []
+    homework: [],
+    questions: [],
+    durationMinutes: 30
   });
   const [tempMaterial, setTempMaterial] = useState({ title: '', size: '0.0 MB', url: '' });
   const [isUploadingMaterial, setIsUploadingMaterial] = useState(false);
@@ -287,6 +295,8 @@ export default function App() {
       loadMaterials();
     } else if (activeTab === 'welcome_test') {
       loadStudents();
+    } else if (activeTab === 'test_reports') {
+      loadTestReports();
     }
   }, [activeTab]);
 
@@ -737,7 +747,9 @@ export default function App() {
           teacherAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100',
           status: 'Scheduled',
           materials: [],
-          homework: []
+          homework: [],
+          questions: [],
+          durationMinutes: 30
         });
         setEditingScheduleId(null);
         loadSchedules();
@@ -777,11 +789,13 @@ export default function App() {
         dateText: item.dateText,
         gradeClass: item.gradeClass,
         courseType: item.courseType,
-        teacherName: item.teacherName,
-        teacherAvatar: item.teacherAvatar,
+        teacherName: item.teacherName || '',
+        teacherAvatar: item.teacherAvatar || '',
         status: item.status,
         materials: item.materials || [],
-        homework: item.homework || []
+        homework: item.homework || [],
+        questions: item.questions || [],
+        durationMinutes: item.durationMinutes || 30
       });
     };
 
@@ -882,239 +896,366 @@ export default function App() {
                 placeholder="e.g. 8:10 pm - 9:10 pm"
               />
             </div>
-            <div className="form-group">
-              <label>Teacher Name</label>
-              <input 
-                type="text" 
-                value={newSchedule.teacherName} 
-                onChange={(e) => setNewSchedule({...newSchedule, teacherName: e.target.value})} 
-                placeholder="e.g. Ninja Mam (Priyanka)"
-              />
-            </div>
-            <div className="form-group">
-              <ImageField 
-                label="Teacher Avatar URL" 
-                value={newSchedule.teacherAvatar} 
-                onChange={(url) => setNewSchedule({...newSchedule, teacherAvatar: url})} 
-              />
-            </div>
+            {newSchedule.subject === 'Test' ? (
+              <>
+                {/* 1. Test Duration */}
+                <div className="form-group span-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '15px' }}>
+                  <label style={{ fontSize: '14px', fontWeight: 650, color: '#00B6A6', marginBottom: '8px', display: 'block' }}>
+                    🎯 Test Duration Settings
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '13px', color: '#94A3B8' }}>Time limit:</span>
+                    <input
+                      type="number"
+                      required
+                      value={newSchedule.durationMinutes || 30}
+                      onChange={(e) => setNewSchedule({ ...newSchedule, durationMinutes: Math.max(1, Number(e.target.value)) })}
+                      style={{ width: '80px', padding: '8px 12px', borderRadius: '6px', border: '1px solid #475569', background: '#0F172A', color: 'white', textAlign: 'center', fontWeight: 'bold' }}
+                    />
+                    <span style={{ fontSize: '13px', color: '#94A3B8' }}>minutes</span>
+                  </div>
+                </div>
 
-            {/* Embedded Class Materials Upload Form Section */}
-            <div className="form-group span-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '15px' }}>
-              <label style={{ fontSize: '14px', fontWeight: 650, color: '#00B6A6', marginBottom: '8px', display: 'block' }}>
-                📂 Attach Study Materials / Notes for this Class
-              </label>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '10px' }}>
-                <div style={{ display: 'flex', gap: '10px' }}>
+                {/* 2. Questions Builder */}
+                <div className="form-group span-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '15px' }}>
+                  <label style={{ fontSize: '14px', fontWeight: 650, color: '#00B6A6', marginBottom: '8px', display: 'block' }}>
+                    ✏️ Configure MCQ Questions for this Test ({ (newSchedule.questions || []).length })
+                  </label>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {(newSchedule.questions || []).map((q: any, qIdx: number) => (
+                      <div key={qIdx} style={{ background: '#0F172A', border: '1px solid #334155', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#00B6A6' }}>Question {qIdx + 1}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = [...newSchedule.questions];
+                              updated.splice(qIdx, 1);
+                              setNewSchedule({ ...newSchedule, questions: updated });
+                            }}
+                            style={{ background: 'transparent', border: 'none', color: '#EF4444', fontSize: '12px', fontWeight: 650, cursor: 'pointer' }}
+                          >
+                            🗑️ Remove Question
+                          </button>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          <label style={{ fontSize: '11.5px', color: '#94A3B8' }}>Question Text</label>
+                          <input
+                            type="text"
+                            value={q.text || ''}
+                            onChange={(e) => {
+                              const updated = [...newSchedule.questions];
+                              updated[qIdx] = { ...updated[qIdx], text: e.target.value };
+                              setNewSchedule({ ...newSchedule, questions: updated });
+                            }}
+                            placeholder="Enter the question text..."
+                            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #475569', background: '#1E293B', color: 'white', fontSize: '13px' }}
+                          />
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
+                          {(['A', 'B', 'C', 'D'] as const).map(optKey => (
+                            <div key={optKey} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              <label style={{ fontSize: '11.5px', color: '#94A3B8' }}>Option {optKey}</label>
+                              <input
+                                type="text"
+                                value={q.options?.[optKey] || ''}
+                                onChange={(e) => {
+                                  const updated = [...newSchedule.questions];
+                                  const newOpts = { ...(updated[qIdx].options || {}) };
+                                  newOpts[optKey] = e.target.value;
+                                  updated[qIdx] = { ...updated[qIdx], options: newOpts };
+                                  setNewSchedule({ ...newSchedule, questions: updated });
+                                }}
+                                placeholder={`Option ${optKey}`}
+                                style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #475569', background: '#1E293B', color: 'white', fontSize: '13px' }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '200px' }}>
+                          <label style={{ fontSize: '11.5px', color: '#94A3B8' }}>Correct Option</label>
+                          <select
+                            value={q.correct || q.correctAnswer || 'A'}
+                            onChange={(e) => {
+                              const updated = [...newSchedule.questions];
+                              updated[qIdx] = { ...updated[qIdx], correct: e.target.value };
+                              setNewSchedule({ ...newSchedule, questions: updated });
+                            }}
+                            style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #475569', background: '#1E293B', color: 'white', fontSize: '13px', fontWeight: 'bold' }}
+                          >
+                            <option value="A">Option A</option>
+                            <option value="B">Option B</option>
+                            <option value="C">Option C</option>
+                            <option value="D">Option D</option>
+                          </select>
+                        </div>
+                      </div>
+                    ))}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const updated = [...(newSchedule.questions || []), { text: '', options: { A: '', B: '', C: '', D: '' }, correct: 'A' }];
+                        setNewSchedule({ ...newSchedule, questions: updated });
+                      }}
+                      style={{
+                        padding: '12px',
+                        borderRadius: '8px',
+                        border: '2px dashed #475569',
+                        background: 'transparent',
+                        color: '#94A3B8',
+                        fontSize: '13px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ➕ Add MCQ Question to Test
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="form-group">
+                  <label>Teacher Name</label>
                   <input 
                     type="text" 
-                    placeholder="Material File Title (filled on upload or type manually)"
-                    value={tempMaterial.title}
-                    onChange={(e) => setTempMaterial({...tempMaterial, title: e.target.value})}
-                    style={{ flex: 2, padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
-                  />
-                  <input 
-                    type="text" 
-                    placeholder="Size (e.g. 1.2 MB)"
-                    value={tempMaterial.size}
-                    onChange={(e) => setTempMaterial({...tempMaterial, size: e.target.value})}
-                    style={{ flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
+                    value={newSchedule.teacherName} 
+                    onChange={(e) => setNewSchedule({...newSchedule, teacherName: e.target.value})} 
+                    placeholder="e.g. Ninja Mam (Priyanka)"
                   />
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                  <label className="image-upload-btn-label" style={{ padding: '8px 14px', background: '#475569', color: 'white', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', display: 'inline-block', textAlign: 'center', margin: 0 }}>
-                    {isUploadingMaterial ? 'Uploading File...' : '📁 Upload Notes/Workbook File'}
-                    <input 
-                      type="file" 
-                      accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.txt,.ppt,.pptx"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        setIsUploadingMaterial(true);
-                        try {
-                          const reader = new FileReader();
-                          reader.onload = async () => {
-                            const base64 = (reader.result as string).split(',')[1];
-                            const url = await uploadFile(base64, file.name);
-                            setTempMaterial({
-                              title: file.name,
-                              size: (file.size / (1024 * 1024)).toFixed(1) + ' MB',
-                              url: url
-                            });
-                          };
-                          reader.readAsDataURL(file);
-                        } catch (err: any) {
-                          showToast('File upload failed: ' + err.message, 'error');
-                        } finally {
-                          setIsUploadingMaterial(false);
-                        }
-                      }}
-                      style={{ display: 'none' }}
-                      disabled={isUploadingMaterial}
-                    />
+                <div className="form-group">
+                  <ImageField 
+                    label="Teacher Avatar URL" 
+                    value={newSchedule.teacherAvatar} 
+                    onChange={(url) => setNewSchedule({...newSchedule, teacherAvatar: url})} 
+                  />
+                </div>
+
+                {/* Embedded Class Materials Upload Form Section */}
+                <div className="form-group span-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '15px' }}>
+                  <label style={{ fontSize: '14px', fontWeight: 650, color: '#00B6A6', marginBottom: '8px', display: 'block' }}>
+                    📂 Attach Study Materials / Notes for this Class
                   </label>
                   
-                  <button 
-                    type="button" 
-                    onClick={() => {
-                      if (!tempMaterial.title.trim()) return showToast('Type a title or upload a file first!', 'error');
-                      const updated = [...(newSchedule.materials || []), { title: tempMaterial.title, size: tempMaterial.size, url: tempMaterial.url }];
-                      setNewSchedule({...newSchedule, materials: updated});
-                      setTempMaterial({ title: '', size: '0.0 MB', url: '' });
-                    }}
-                    className="save-btn" 
-                    style={{ padding: '8px 16px', background: '#00B6A6', color: 'white', borderRadius: '6px' }}
-                  >
-                    ➕ Add to Materials List
-                  </button>
-                </div>
-              </div>
-
-              {/* Render lists of attached materials */}
-              {newSchedule.materials && newSchedule.materials.length > 0 ? (
-                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                  {newSchedule.materials.map((m: any, idx: number) => (
-                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: idx < newSchedule.materials.length - 1 ? '1px solid rgba(255,255,255,0.03)' : 'none' }}>
-                      <span style={{ fontSize: '13px', color: 'white' }}>📄 {m.title} <span style={{ color: '#94A3B8', fontSize: '11px' }}>({m.size})</span></span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '10px' }}>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <input 
+                        type="text" 
+                        placeholder="Material File Title (filled on upload or type manually)"
+                        value={tempMaterial.title}
+                        onChange={(e) => setTempMaterial({...tempMaterial, title: e.target.value})}
+                        style={{ flex: 2, padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
+                      />
+                      <input 
+                        type="text" 
+                        placeholder="Size (e.g. 1.2 MB)"
+                        value={tempMaterial.size}
+                        onChange={(e) => setTempMaterial({...tempMaterial, size: e.target.value})}
+                        style={{ flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                      <label className="image-upload-btn-label" style={{ padding: '8px 14px', background: '#475569', color: 'white', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', display: 'inline-block', textAlign: 'center', margin: 0 }}>
+                        {isUploadingMaterial ? 'Uploading File...' : '📁 Upload Notes/Workbook File'}
+                        <input 
+                          type="file" 
+                          accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.txt,.ppt,.pptx"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            setIsUploadingMaterial(true);
+                            try {
+                              const reader = new FileReader();
+                              reader.onload = async () => {
+                                const base64 = (reader.result as string).split(',')[1];
+                                const url = await uploadFile(base64, file.name);
+                                setTempMaterial({
+                                  title: file.name,
+                                  size: (file.size / (1024 * 1024)).toFixed(1) + ' MB',
+                                  url: url
+                                });
+                              };
+                              reader.readAsDataURL(file);
+                            } catch (err: any) {
+                              showToast('File upload failed: ' + err.message, 'error');
+                            } finally {
+                              setIsUploadingMaterial(false);
+                            }
+                          }}
+                          style={{ display: 'none' }}
+                          disabled={isUploadingMaterial}
+                        />
+                      </label>
+                      
                       <button 
                         type="button" 
                         onClick={() => {
-                          const updated = newSchedule.materials.filter((_: any, i: number) => i !== idx);
+                          if (!tempMaterial.title.trim()) return showToast('Type a title or upload a file first!', 'error');
+                          const updated = [...(newSchedule.materials || []), { title: tempMaterial.title, size: tempMaterial.size, url: tempMaterial.url }];
                           setNewSchedule({...newSchedule, materials: updated});
+                          setTempMaterial({ title: '', size: '0.0 MB', url: '' });
                         }}
-                        style={{ background: 'transparent', border: 'none', color: '#EF4444', cursor: 'pointer', fontSize: '12px' }}
+                        className="save-btn" 
+                        style={{ padding: '8px 16px', background: '#00B6A6', color: 'white', borderRadius: '6px' }}
                       >
-                        ❌ Remove
+                        ➕ Add to Materials List
                       </button>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <p style={{ fontSize: '12px', color: '#64748B', margin: '4px 0' }}>No materials attached. Student will see default handouts.</p>
-              )}
-            </div>
-
-            {/* Embedded Homework MCQ Question Editor Section */}
-            <div className="form-group span-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '15px', marginBottom: '10px' }}>
-              <label style={{ fontSize: '14px', fontWeight: 650, color: '#FF5E00', marginBottom: '8px', display: 'block' }}>
-                📝 Attach Homework MCQ Questions for this Class
-              </label>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.01)', marginBottom: '10px' }}>
-                <input 
-                  type="text" 
-                  placeholder="Question text (e.g. Which number is smaller than -5?)"
-                  value={tempHomework.text}
-                  onChange={(e) => setTempHomework({...tempHomework, text: e.target.value})}
-                  style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
-                />
-                
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                  <input 
-                    type="text" 
-                    placeholder="Option A"
-                    value={tempHomework.optA}
-                    onChange={(e) => setTempHomework({...tempHomework, optA: e.target.value})}
-                    style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
-                  />
-                  <input 
-                    type="text" 
-                    placeholder="Option B"
-                    value={tempHomework.optB}
-                    onChange={(e) => setTempHomework({...tempHomework, optB: e.target.value})}
-                    style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
-                  />
-                  <input 
-                    type="text" 
-                    placeholder="Option C"
-                    value={tempHomework.optC}
-                    onChange={(e) => setTempHomework({...tempHomework, optC: e.target.value})}
-                    style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
-                  />
-                  <input 
-                    type="text" 
-                    placeholder="Option D"
-                    value={tempHomework.optD}
-                    onChange={(e) => setTempHomework({...tempHomework, optD: e.target.value})}
-                    style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '12px', color: '#94A3B8' }}>Correct Answer:</span>
-                    <select 
-                      value={tempHomework.correct}
-                      onChange={(e) => setTempHomework({...tempHomework, correct: e.target.value})}
-                      style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
-                    >
-                      <option value="A">Option A</option>
-                      <option value="B">Option B</option>
-                      <option value="C">Option C</option>
-                      <option value="D">Option D</option>
-                    </select>
                   </div>
 
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      if (!tempHomework.text.trim()) return alert('Type a question text!');
-                      if (!tempHomework.optA.trim() || !tempHomework.optB.trim()) return alert('Options A and B are required!');
-                      const newQuestion = {
-                        text: tempHomework.text,
-                        options: {
-                          A: tempHomework.optA,
-                          B: tempHomework.optB,
-                          C: tempHomework.optC,
-                          D: tempHomework.optD
-                        },
-                        correctAnswer: tempHomework.correct
-                      };
-                      const updated = [...(newSchedule.homework || []), newQuestion];
-                      setNewSchedule({...newSchedule, homework: updated});
-                      setTempHomework({ text: '', optA: '', optB: '', optC: '', optD: '', correct: 'A' });
-                    }}
-                    className="save-btn"
-                    style={{ padding: '8px 16px', background: '#FF5E00' }}
-                  >
-                    ➕ Add Question
-                  </button>
-                </div>
-              </div>
-
-              {/* Render lists of attached homework questions */}
-              {newSchedule.homework && newSchedule.homework.length > 0 ? (
-                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {newSchedule.homework.map((q: any, idx: number) => (
-                    <div key={idx} style={{ padding: '8px 0', borderBottom: idx < newSchedule.homework.length - 1 ? '1px solid rgba(255,255,255,0.03)' : 'none' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '13px', fontWeight: 600, color: 'white' }}>{idx + 1}. {q.text}</span>
-                        <button 
-                          type="button" 
-                          onClick={() => {
-                            const updated = newSchedule.homework.filter((_: any, i: number) => i !== idx);
-                            setNewSchedule({...newSchedule, homework: updated});
-                          }}
-                          style={{ background: 'transparent', border: 'none', color: '#EF4444', cursor: 'pointer', fontSize: '12px' }}
-                        >
-                          ❌ Remove
-                        </button>
-                      </div>
-                      <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>
-                        <span>A: {q.options.A}</span>
-                        <span>B: {q.options.B}</span>
-                        {q.options.C ? <span>C: {q.options.C}</span> : null}
-                        {q.options.D ? <span>D: {q.options.D}</span> : null}
-                        <span style={{ color: '#10B981', fontWeight: 'bold' }}>(Correct: {q.correctAnswer})</span>
-                      </div>
+                  {/* Render lists of attached materials */}
+                  {newSchedule.materials && newSchedule.materials.length > 0 ? (
+                    <div style={{ background: 'rgba(255,255,255,0.02)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                      {newSchedule.materials.map((m: any, idx: number) => (
+                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: idx < newSchedule.materials.length - 1 ? '1px solid rgba(255,255,255,0.03)' : 'none' }}>
+                          <span style={{ fontSize: '13px', color: 'white' }}>📄 {m.title} <span style={{ color: '#94A3B8', fontSize: '11px' }}>({m.size})</span></span>
+                          <button 
+                            type="button" 
+                            onClick={() => {
+                              const updated = newSchedule.materials.filter((_: any, i: number) => i !== idx);
+                              setNewSchedule({...newSchedule, materials: updated});
+                            }}
+                            style={{ background: 'transparent', border: 'none', color: '#EF4444', cursor: 'pointer', fontSize: '12px' }}
+                          >
+                            ❌ Remove
+                          </button>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  ) : (
+                    <p style={{ fontSize: '12px', color: '#64748B', margin: '4px 0' }}>No materials attached. Student will see default handouts.</p>
+                  )}
                 </div>
-              ) : (
-                <p style={{ fontSize: '12px', color: '#64748B', margin: '4px 0' }}>No questions added. Student will see default quiz.</p>
-              )}
-            </div>
+
+                {/* Embedded Homework MCQ Question Editor Section */}
+                <div className="form-group span-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '15px', marginBottom: '10px' }}>
+                  <label style={{ fontSize: '14px', fontWeight: 650, color: '#FF5E00', marginBottom: '8px', display: 'block' }}>
+                    📝 Attach Homework MCQ Questions for this Class
+                  </label>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.01)', marginBottom: '10px' }}>
+                    <input 
+                      type="text" 
+                      placeholder="Question text (e.g. Which number is smaller than -5?)"
+                      value={tempHomework.text}
+                      onChange={(e) => setTempHomework({...tempHomework, text: e.target.value})}
+                      style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
+                    />
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                      <input 
+                        type="text" 
+                        placeholder="Option A"
+                        value={tempHomework.optA}
+                        onChange={(e) => setTempHomework({...tempHomework, optA: e.target.value})}
+                        style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
+                      />
+                      <input 
+                        type="text" 
+                        placeholder="Option B"
+                        value={tempHomework.optB}
+                        onChange={(e) => setTempHomework({...tempHomework, optB: e.target.value})}
+                        style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
+                      />
+                      <input 
+                        type="text" 
+                        placeholder="Option C"
+                        value={tempHomework.optC}
+                        onChange={(e) => setTempHomework({...tempHomework, optC: e.target.value})}
+                        style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
+                      />
+                      <input 
+                        type="text" 
+                        placeholder="Option D"
+                        value={tempHomework.optD}
+                        onChange={(e) => setTempHomework({...tempHomework, optD: e.target.value})}
+                        style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '12px', color: '#94A3B8' }}>Correct Answer:</span>
+                        <select 
+                          value={tempHomework.correct}
+                          onChange={(e) => setTempHomework({...tempHomework, correct: e.target.value})}
+                          style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
+                        >
+                          <option value="A">Option A</option>
+                          <option value="B">Option B</option>
+                          <option value="C">Option C</option>
+                          <option value="D">Option D</option>
+                        </select>
+                      </div>
+
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          if (!tempHomework.text.trim()) return alert('Type a question text!');
+                          if (!tempHomework.optA.trim() || !tempHomework.optB.trim()) return alert('Options A and B are required!');
+                          const newQuestion = {
+                            text: tempHomework.text,
+                            options: {
+                              A: tempHomework.optA,
+                              B: tempHomework.optB,
+                              C: tempHomework.optC,
+                              D: tempHomework.optD
+                            },
+                            correctAnswer: tempHomework.correct
+                          };
+                          const updated = [...(newSchedule.homework || []), newQuestion];
+                          setNewSchedule({...newSchedule, homework: updated});
+                          setTempHomework({ text: '', optA: '', optB: '', optC: '', optD: '', correct: 'A' });
+                        }}
+                        className="save-btn"
+                        style={{ padding: '8px 16px', background: '#FF5E00' }}
+                      >
+                        ➕ Add Question
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Render lists of attached homework questions */}
+                  {newSchedule.homework && newSchedule.homework.length > 0 ? (
+                    <div style={{ background: 'rgba(255,255,255,0.02)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {newSchedule.homework.map((q: any, idx: number) => (
+                        <div key={idx} style={{ padding: '8px 0', borderBottom: idx < newSchedule.homework.length - 1 ? '1px solid rgba(255,255,255,0.03)' : 'none' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '13px', fontWeight: 600, color: 'white' }}>{idx + 1}. {q.text}</span>
+                            <button 
+                              type="button" 
+                              onClick={() => {
+                                const updated = newSchedule.homework.filter((_: any, i: number) => i !== idx);
+                                const newScheduleUpdated = {...newSchedule, homework: updated};
+                                setNewSchedule(newScheduleUpdated);
+                              }}
+                              style={{ background: 'transparent', border: 'none', color: '#EF4444', cursor: 'pointer', fontSize: '12px' }}
+                            >
+                              ❌ Remove
+                            </button>
+                          </div>
+                          <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>
+                            <span>A: {q.options.A}</span>
+                            <span>B: {q.options.B}</span>
+                            {q.options.C ? <span>C: {q.options.C}</span> : null}
+                            {q.options.D ? <span>D: {q.options.D}</span> : null}
+                            <span style={{ color: '#10B981', fontWeight: 'bold' }}>(Correct: {q.correctAnswer})</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: '12px', color: '#64748B', margin: '4px 0' }}>No questions added. Student will see default quiz.</p>
+                  )}
+                </div>
+              </>
+            )}
 
             <div className="form-group span-2" style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
               <button type="submit" className="save-btn" style={{ flex: 1, padding: '12px' }}>
@@ -1134,7 +1275,11 @@ export default function App() {
                       courseType: 'booster',
                       teacherName: 'Ninja Mam (Priyanka)',
                       teacherAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100',
-                      status: 'Scheduled'
+                      status: 'Scheduled',
+                      materials: [],
+                      homework: [],
+                      questions: [],
+                      durationMinutes: 30
                     });
                   }} 
                   className="save-btn" 
@@ -1215,12 +1360,18 @@ export default function App() {
                       <div style={{ fontSize: '11.5px', color: '#FF5E00' }}>{item.time}</div>
                     </td>
                     <td style={{ verticalAlign: 'middle' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {item.teacherAvatar && (
-                          <img src={item.teacherAvatar} alt="" style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }} />
-                        )}
-                        <span style={{ fontSize: '12px' }}>{item.teacherName}</span>
-                      </div>
+                      {item.subject?.toLowerCase() === 'test' ? (
+                        <div style={{ fontSize: '12px', color: '#00B6A6', fontWeight: 600 }}>
+                          ⏱️ {item.durationMinutes || 30} mins | ✏️ {(item.questions || []).length} Qs
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {item.teacherAvatar && (
+                            <img src={item.teacherAvatar} alt="" style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }} />
+                          )}
+                          <span style={{ fontSize: '12px' }}>{item.teacherName}</span>
+                        </div>
+                      )}
                     </td>
                     <td>
                       <span className={`badge ${item.status === 'Finished' ? 'paid' : 'pending'}`} style={{
@@ -1270,6 +1421,462 @@ export default function App() {
             </table>
           )}
         </div>
+      </div>
+    );
+  };
+
+  // ─── TEST REPORTS & PERFORMANCE ANALYTICS ────────────────────────
+  const loadTestReports = async () => {
+    setTestSubmissionsLoading(true);
+    try {
+      const studData = await fetchStudents();
+      setStudents(studData || []);
+
+      const res = await fetch(`${API_BASE}/api/homework-submissions?subject=Test`);
+      const json = await res.json();
+      if (json.success) {
+        setTestSubmissions(json.data || []);
+      }
+    } catch (err) {
+      console.error('Failed to load test reports:', err);
+      showToast('Failed to load test reports.', 'error');
+    } finally {
+      setTestSubmissionsLoading(false);
+    }
+  };
+
+  const renderTestReports = () => {
+    const filteredStudents = students.filter((s: any) => {
+      const matchesSearch = !testSearchQuery || 
+        (s.name && s.name.toLowerCase().includes(testSearchQuery.toLowerCase())) ||
+        (s.phone && s.phone.includes(testSearchQuery));
+      const matchesClass = testFilterClass === 'all' || s.selectedClass === testFilterClass;
+      return matchesSearch && matchesClass;
+    });
+
+    const completedWelcomeTests = filteredStudents.filter((s: any) => s.welcomeTestStatus === 'completed');
+
+    const filteredSubmissions = testSubmissions.filter((r: any) => {
+      const matchesSearch = !testSearchQuery || 
+        (r.studentName && r.studentName.toLowerCase().includes(testSearchQuery.toLowerCase())) ||
+        (r.studentPhone && r.studentPhone.includes(testSearchQuery));
+      const matchesClass = testFilterClass === 'all' || r.gradeClass === testFilterClass;
+      return matchesSearch && matchesClass;
+    });
+
+    const totalWelcomeCount = completedWelcomeTests.length;
+    const avgWelcomeScore = totalWelcomeCount > 0
+      ? Math.round(completedWelcomeTests.reduce((sum, s) => sum + ((s.welcomeTestResult?.score || 0) / (s.welcomeTestResult?.totalQuestions || 10) * 100), 0) / totalWelcomeCount)
+      : 0;
+
+    const totalScheduledCount = filteredSubmissions.length;
+    const avgScheduledScore = totalScheduledCount > 0
+      ? Math.round(filteredSubmissions.reduce((sum, r) => sum + (r.percentage || 0), 0) / totalScheduledCount)
+      : 0;
+
+    const overallAverage = (totalWelcomeCount + totalScheduledCount) > 0
+      ? Math.round((
+          completedWelcomeTests.reduce((sum, s) => sum + ((s.welcomeTestResult?.score || 0) / (s.welcomeTestResult?.totalQuestions || 10) * 100), 0) +
+          filteredSubmissions.reduce((sum, r) => sum + (r.percentage || 0), 0)
+        ) / (totalWelcomeCount + totalScheduledCount))
+      : 0;
+
+    let highestPct = 0;
+    completedWelcomeTests.forEach(s => {
+      const pct = Math.round(((s.welcomeTestResult?.score || 0) / (s.welcomeTestResult?.totalQuestions || 10)) * 100);
+      if (pct > highestPct) highestPct = pct;
+    });
+    filteredSubmissions.forEach(r => {
+      if ((r.percentage || 0) > highestPct) highestPct = r.percentage;
+    });
+
+    let lowScoreCount = 0;
+    completedWelcomeTests.forEach(s => {
+      const pct = Math.round(((s.welcomeTestResult?.score || 0) / (s.welcomeTestResult?.totalQuestions || 10)) * 100);
+      if (pct < 50) lowScoreCount++;
+    });
+    filteredSubmissions.forEach(r => {
+      if ((r.percentage || 0) < 50) lowScoreCount++;
+    });
+
+    const studentPerformanceMap: Record<string, {
+      name: string;
+      phone: string;
+      gradeClass: string;
+      welcomeScore: number | null;
+      welcomeTotal: number;
+      scheduledCount: number;
+      scheduledTotalScore: number;
+      scheduledTotalQuestions: number;
+      scheduledPercentages: number[];
+      latestScoreDate: string | null;
+      latestScorePct: number | null;
+    }> = {};
+
+    filteredStudents.forEach((s: any) => {
+      const isWelcomeCompleted = s.welcomeTestStatus === 'completed';
+      const welcomeScore = isWelcomeCompleted ? s.welcomeTestResult?.score : null;
+      const welcomeTotal = isWelcomeCompleted ? (s.welcomeTestResult?.totalQuestions || 10) : 10;
+      
+      studentPerformanceMap[s.phone] = {
+        name: s.name || 'Anonymous Student',
+        phone: s.phone,
+        gradeClass: s.selectedClass || 'N/A',
+        welcomeScore: welcomeScore,
+        welcomeTotal: welcomeTotal,
+        scheduledCount: 0,
+        scheduledTotalScore: 0,
+        scheduledTotalQuestions: 0,
+        scheduledPercentages: [],
+        latestScoreDate: isWelcomeCompleted ? s.welcomeTestResult?.submittedAt : null,
+        latestScorePct: isWelcomeCompleted ? Math.round((welcomeScore / welcomeTotal) * 100) : null
+      };
+    });
+
+    filteredSubmissions.forEach((r: any) => {
+      const phone = r.studentPhone;
+      if (!studentPerformanceMap[phone]) {
+        studentPerformanceMap[phone] = {
+          name: r.studentName || 'Anonymous Student',
+          phone: phone,
+          gradeClass: r.gradeClass || 'N/A',
+          welcomeScore: null,
+          welcomeTotal: 10,
+          scheduledCount: 0,
+          scheduledTotalScore: 0,
+          scheduledTotalQuestions: 0,
+          scheduledPercentages: [],
+          latestScoreDate: null,
+          latestScorePct: null
+        };
+      }
+      const entry = studentPerformanceMap[phone];
+      entry.scheduledCount += 1;
+      entry.scheduledTotalScore += (r.score || 0);
+      entry.scheduledTotalQuestions += (r.totalQuestions || 0);
+      entry.scheduledPercentages.push(r.percentage || 0);
+      
+      const submittedDateStr = r.submittedAt ? new Date(r.submittedAt).toISOString() : '';
+      if (!entry.latestScoreDate || submittedDateStr > entry.latestScoreDate) {
+        entry.latestScoreDate = submittedDateStr;
+        entry.latestScorePct = r.percentage || 0;
+      }
+    });
+
+    const studentPerformanceList = Object.values(studentPerformanceMap).map(entry => {
+      let totalTestsWeight = 0;
+      let totalPercentageSum = 0;
+
+      if (entry.welcomeScore !== null) {
+        totalTestsWeight += 1;
+        totalPercentageSum += Math.round((entry.welcomeScore / entry.welcomeTotal) * 100);
+      }
+      if (entry.scheduledCount > 0) {
+        totalTestsWeight += entry.scheduledCount;
+        totalPercentageSum += entry.scheduledPercentages.reduce((s, p) => s + p, 0);
+      }
+
+      const overallAvg = totalTestsWeight > 0 ? Math.round(totalPercentageSum / totalTestsWeight) : 0;
+      
+      let level = 'Needs Improvement';
+      let levelColor = '#EF4444';
+      if (overallAvg >= 90) {
+        level = 'Outstanding';
+        levelColor = '#10B981';
+      } else if (overallAvg >= 75) {
+        level = 'Excellent';
+        levelColor = '#00B6A6';
+      } else if (overallAvg >= 60) {
+        level = 'Average';
+        levelColor = '#6366F1';
+      }
+
+      let trend = 'Steady';
+      let trendColor = '#94A3B8';
+      if (entry.latestScorePct !== null && totalTestsWeight > 1) {
+        const diff = entry.latestScorePct - overallAvg;
+        if (diff > 5) {
+          trend = 'Improving 📈';
+          trendColor = '#10B981';
+        } else if (diff < -5) {
+          trend = 'Needs Attention ⚠️';
+          trendColor = '#F59E0B';
+        }
+      }
+
+      return {
+        ...entry,
+        overallAvg,
+        totalTests: totalTestsWeight,
+        level,
+        levelColor,
+        trend,
+        trendColor
+      };
+    }).sort((a, b) => b.overallAvg - a.overallAvg);
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <header>
+          <div>
+            <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'white' }}>📊 Test Reports &amp; Analytics</h1>
+            <p style={{ margin: '4px 0 0', color: '#94A3B8', fontSize: '13px' }}>
+              Track student performance across diagnostic Welcome Tests and Scheduled Tests.
+            </p>
+          </div>
+          <button 
+            type="button" 
+            onClick={loadTestReports} 
+            className="save-btn" 
+            style={{ padding: '8px 16px', fontSize: '12px' }}
+            disabled={testSubmissionsLoading}
+          >
+            {testSubmissionsLoading ? 'Refreshing...' : '🔄 Refresh Analytics'}
+          </button>
+        </header>
+
+        {/* Filters & Search */}
+        <div className="search-container">
+          <div className="search-input-wrap">
+            <span className="search-icon-placeholder">🔍</span>
+            <input 
+              type="text" 
+              placeholder="Search students by name or phone..."
+              value={testSearchQuery}
+              onChange={(e) => setTestSearchQuery(e.target.value)}
+              style={{ width: '100%', boxSizing: 'border-box' }}
+            />
+          </div>
+          <select 
+            value={testFilterClass} 
+            onChange={(e) => setTestFilterClass(e.target.value)}
+            style={{ width: '180px', padding: '12px 14px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--card)', color: 'var(--text)' }}
+          >
+            <option value="all">All Grades</option>
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(n => (
+              <option key={n} value={`Class ${n}`}>Grade Class {n}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Dynamic Metric Cards */}
+        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+          {[
+            { label: 'Total Test Submissions', value: totalWelcomeCount + totalScheduledCount, desc: `${totalWelcomeCount} Welcome + ${totalScheduledCount} Scheduled`, color: '#38BDF8' },
+            { label: 'Overall Class Average', value: `${overallAverage}%`, desc: `Welcome Avg: ${avgWelcomeScore}% | Scheduled Avg: ${avgScheduledScore}%`, color: '#10B981' },
+            { label: 'Highest Percentage', value: `${highestPct}%`, desc: 'Top mark achieved', color: '#00B6A6' },
+            { label: 'Low Score Alerts (<50%)', value: lowScoreCount, desc: 'Needs academic support', color: lowScoreCount > 0 ? '#EF4444' : '#94A3B8' }
+          ].map(({ label, value, desc, color }) => (
+            <div key={label} style={{ flex: 1, minWidth: '200px', background: 'rgba(30, 41, 59, 0.7)', borderRadius: '12px', padding: '20px', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(10px)' }}>
+              <div style={{ fontSize: '28px', fontWeight: 800, color }}>{value}</div>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: 'white', marginTop: '6px' }}>{label}</div>
+              <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>{desc}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Sub-tab Selection Header */}
+        <div style={{ display: 'flex', borderBottom: '1px solid rgba(255, 255, 255, 0.1)', gap: '24px', margin: '10px 0 5px' }}>
+          {[
+            { id: 'welcome', label: '🎯 Welcome Diagnostic Tests' },
+            { id: 'scheduled', label: '📅 Scheduled Tests' },
+            { id: 'performance', label: '📈 Student Performance & Trends' }
+          ].map(t => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setTestReportsSubTab(t.id as any)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: testReportsSubTab === t.id ? '#00B6A6' : '#94A3B8',
+                paddingBottom: '12px',
+                borderBottom: testReportsSubTab === t.id ? '2px solid #00B6A6' : '2px solid transparent',
+                fontSize: '14px',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Sub-tab Contents */}
+        {testSubmissionsLoading ? (
+          <div style={{ padding: '60px', textAlign: 'center', background: 'var(--card)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+            <div className="spinner" style={{ margin: '0 auto 12px' }}></div>
+            <p style={{ color: '#94A3B8' }}>Loading test records and analytics...</p>
+          </div>
+        ) : testReportsSubTab === 'welcome' ? (
+          <div className="form-card" style={{ padding: '0', overflow: 'hidden' }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ background: '#0F172A', color: '#94A3B8', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                    {['Student Name', 'Phone Number', 'Grade Class', 'Status', 'Score', 'Percentage', 'Grade', 'Submitted At'].map(h => (
+                      <th key={h} style={{ padding: '12px 16px', fontWeight: 600 }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredStudents.map((s: any, idx: number) => {
+                    const result = s.welcomeTestResult;
+                    const score = result?.score ?? null;
+                    const total = result?.totalQuestions ?? 10;
+                    const pct = score !== null ? Math.round((score / total) * 100) : null;
+                    
+                    let grade = '—';
+                    if (pct !== null) {
+                      if (pct >= 90) grade = 'A';
+                      else if (pct >= 80) grade = 'B';
+                      else if (pct >= 60) grade = 'C';
+                      else if (pct >= 40) grade = 'D';
+                      else grade = 'E';
+                    }
+
+                    const isDone = s.welcomeTestStatus === 'completed';
+                    return (
+                      <tr key={s._id || idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', color: 'white' }}>
+                        <td style={{ padding: '12px 16px', fontWeight: 600 }}>{s.name || 'Anonymous Student'}</td>
+                        <td style={{ padding: '12px 16px', color: '#94A3B8' }}>{s.phone}</td>
+                        <td style={{ padding: '12px 16px', color: '#94A3B8' }}>{s.selectedClass || '—'}</td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <span style={{ 
+                            background: isDone ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.15)', 
+                            color: isDone ? '#10B981' : '#F59E0B', 
+                            padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600 
+                          }}>
+                            {isDone ? 'Completed' : 'Pending'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '12px 16px', fontWeight: 700, color: score !== null ? '#00B6A6' : '#64748B' }}>
+                          {score !== null ? `${score}/${total}` : '—'}
+                        </td>
+                        <td style={{ padding: '12px 16px', fontWeight: 700, color: pct !== null ? (pct >= 50 ? '#10B981' : '#EF4444') : '#64748B' }}>
+                          {pct !== null ? `${pct}%` : '—'}
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          {pct !== null ? (
+                            <span style={{
+                              background: grade === 'A' || grade === 'B' ? 'rgba(16,185,129,0.15)' : grade === 'C' ? 'rgba(99,102,241,0.15)' : 'rgba(239,68,68,0.15)',
+                              color: grade === 'A' || grade === 'B' ? '#10B981' : grade === 'C' ? '#6366F1' : '#EF4444',
+                              padding: '2px 8px', borderRadius: '4px', fontWeight: 700, fontSize: '12px'
+                            }}>{grade}</span>
+                          ) : '—'}
+                        </td>
+                        <td style={{ padding: '12px 16px', color: '#94A3B8', fontSize: '12px' }}>
+                          {result?.submittedAt ? new Date(result.submittedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {filteredStudents.length === 0 && (
+                    <tr>
+                      <td colSpan={8} style={{ padding: '30px', textAlign: 'center', color: '#94A3B8' }}>No students found matching current filters.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : testReportsSubTab === 'scheduled' ? (
+          <div className="form-card" style={{ padding: '0', overflow: 'hidden' }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ background: '#0F172A', color: '#94A3B8', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                    {['Student Name', 'Phone Number', 'Grade Class', 'Test Title', 'Score', 'Percentage', 'Grade', 'Submitted At'].map(h => (
+                      <th key={h} style={{ padding: '12px 16px', fontWeight: 600 }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredSubmissions.map((r: any, idx: number) => (
+                    <tr key={r._id || idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', color: 'white' }}>
+                      <td style={{ padding: '12px 16px', fontWeight: 600 }}>{r.studentName || 'Anonymous Student'}</td>
+                      <td style={{ padding: '12px 16px', color: '#94A3B8' }}>{r.studentPhone}</td>
+                      <td style={{ padding: '12px 16px', color: '#94A3B8' }}>{r.gradeClass}</td>
+                      <td style={{ padding: '12px 16px', color: '#94A3B8', fontWeight: 500 }}>{r.scheduleTitle}</td>
+                      <td style={{ padding: '12px 16px', fontWeight: 700, color: '#00B6A6' }}>{r.score}/{r.totalQuestions}</td>
+                      <td style={{ padding: '12px 16px', fontWeight: 700, color: r.percentage >= 50 ? '#10B981' : '#EF4444' }}>{r.percentage}%</td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <span style={{
+                          background: r.grade?.startsWith('A') ? 'rgba(16,185,129,0.15)' : r.grade === 'B' || r.grade === 'B+' ? 'rgba(99,102,241,0.15)' : 'rgba(239,68,68,0.15)',
+                          color: r.grade?.startsWith('A') ? '#10B981' : r.grade === 'B' || r.grade === 'B+' ? '#6366F1' : '#EF4444',
+                          padding: '2px 8px', borderRadius: '4px', fontWeight: 700, fontSize: '12px'
+                        }}>{r.grade}</span>
+                      </td>
+                      <td style={{ padding: '12px 16px', color: '#94A3B8', fontSize: '12px' }}>
+                        {r.submittedAt ? new Date(r.submittedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                  {filteredSubmissions.length === 0 && (
+                    <tr>
+                      <td colSpan={8} style={{ padding: '30px', textAlign: 'center', color: '#94A3B8' }}>No scheduled test submissions found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <div className="form-card" style={{ padding: '0', overflow: 'hidden' }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ background: '#0F172A', color: '#94A3B8', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                    {['Student Name', 'Phone Number', 'Grade', 'Welcome Score', 'Scheduled Taken', 'Overall Avg', 'Performance Level', 'Progress Tracker', 'Trend'].map(h => (
+                      <th key={h} style={{ padding: '12px 16px', fontWeight: 600 }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {studentPerformanceList.map((student, idx) => (
+                    <tr key={student.phone || idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', color: 'white' }}>
+                      <td style={{ padding: '12px 16px', fontWeight: 600 }}>{student.name}</td>
+                      <td style={{ padding: '12px 16px', color: '#94A3B8' }}>{student.phone}</td>
+                      <td style={{ padding: '12px 16px', color: '#94A3B8' }}>{student.gradeClass}</td>
+                      <td style={{ padding: '12px 16px', fontWeight: 600, color: student.welcomeScore !== null ? '#00B6A6' : '#64748B' }}>
+                        {student.welcomeScore !== null ? `${student.welcomeScore}/${student.welcomeTotal}` : '—'}
+                      </td>
+                      <td style={{ padding: '12px 16px', textAlign: 'center', color: '#94A3B8', fontWeight: 600 }}>
+                        {student.scheduledCount}
+                      </td>
+                      <td style={{ padding: '12px 16px', fontWeight: 800, color: student.overallAvg >= 50 ? '#10B981' : '#EF4444' }}>
+                        {student.overallAvg}%
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <span style={{
+                          background: student.level === 'Outstanding' ? 'rgba(16,185,129,0.15)' : student.level === 'Excellent' ? 'rgba(0,182,166,0.15)' : student.level === 'Average' ? 'rgba(99,102,241,0.15)' : 'rgba(239,68,68,0.15)',
+                          color: student.level === 'Outstanding' ? '#10B981' : student.level === 'Excellent' ? '#00B6A6' : student.level === 'Average' ? '#6366F1' : '#EF4444',
+                          padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 700
+                        }}>{student.level}</span>
+                      </td>
+                      <td style={{ padding: '12px 16px', minWidth: '150px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ flex: 1, height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '3px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)' }}>
+                            <div style={{ width: `${student.overallAvg}%`, height: '100%', background: student.levelColor, borderRadius: '3px' }} />
+                          </div>
+                          <span style={{ fontSize: '11px', color: '#94A3B8', width: '28px', textAlign: 'right' }}>{student.overallAvg}%</span>
+                        </div>
+                      </td>
+                      <td style={{ padding: '12px 16px', fontWeight: 600, color: student.trendColor }}>
+                        {student.trend}
+                      </td>
+                    </tr>
+                  ))}
+                  {studentPerformanceList.length === 0 && (
+                    <tr>
+                      <td colSpan={9} style={{ padding: '30px', textAlign: 'center', color: '#94A3B8' }}>No performance data available.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -1900,6 +2507,13 @@ export default function App() {
           >
             🎯 Welcome Test
           </button>
+          <button 
+            type="button" 
+            className={`nav-item ${activeTab === 'test_reports' ? 'active' : ''}`}
+            onClick={async () => { setActiveTab('test_reports'); await loadTestReports(); }}
+          >
+            📊 Test Reports &amp; Analytics
+          </button>
         </div>
 
         {activeTab === 'config' && (
@@ -1936,6 +2550,8 @@ export default function App() {
           renderHwReports()
         ) : activeTab === 'welcome_test' ? (
           renderWelcomeTestPanel()
+        ) : activeTab === 'test_reports' ? (
+          renderTestReports()
         ) : (
           <>
             <header>

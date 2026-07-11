@@ -82,6 +82,8 @@ export interface StudentProfile {
   state?: string | null;
   address?: string | null;
   enrollmentType?: 'none' | 'demo' | 'master';
+  welcomeTestStatus?: 'pending' | 'completed' | 'none';
+  welcomeTestResult?: { score: number; totalQuestions: number; submittedAt: string; answers: any[] };
 }
 
 export interface Teacher {
