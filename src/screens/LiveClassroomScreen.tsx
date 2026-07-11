@@ -11,36 +11,22 @@ import {
   Alert,
   AppState,
   AppStateStatus,
-  KeyboardAvoidingView,
-  Platform,
   ActivityIndicator,
   Animated,
   Vibration,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useApp } from '../context/AppContext';
 import { API_BASE } from '../services/api';
 
+
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
-// ────────────────────────────────────────────────────────────────
-//  LiveKit client hooks (graceful no-op if SDK is not fully set up)
-// ────────────────────────────────────────────────────────────────
-let useLiveKitHooks: any = null;
-let LiveKitRoom: any = null;
-let VideoTrack: any = null;
-let AudioSession: any = null;
+// Note: Real-time state sync is handled via backend polling (/api/schedules/:id/live-state)
+// The @livekit/react-native SDK requires native module prebuild and is not needed
+// for the current polling-based implementation.
 
-try {
-  const lk = require('@livekit/react-native');
-  useLiveKitHooks = lk;
-  LiveKitRoom = lk.LiveKitRoom;
-  VideoTrack = lk.VideoTrack;
-  AudioSession = lk.AudioSession;
-} catch {
-  // SDK not yet available — will show in-call UI mockup
-}
 
 // ────────────────────────────────────────────────────────────────
 //  Types
