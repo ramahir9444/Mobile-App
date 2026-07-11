@@ -131,3 +131,42 @@ export async function deleteMaterial(id: string) {
   if (!json.success) throw new Error(json.error || 'Failed to delete material');
   return json.data;
 }
+
+export async function fetchWelcomeTest(gradeClass: string) {
+  const res = await fetch(`${API_BASE}/api/welcome-tests/${encodeURIComponent(gradeClass)}`);
+  if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to fetch welcome test');
+  return json.data;
+}
+
+export async function saveWelcomeTest(gradeClass: string, data: any) {
+  const res = await fetch(`${API_BASE}/api/welcome-tests/${encodeURIComponent(gradeClass)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to save welcome test');
+  return json.data;
+}
+
+export async function deleteWelcomeTest(gradeClass: string) {
+  const res = await fetch(`${API_BASE}/api/welcome-tests/${encodeURIComponent(gradeClass)}`, {
+    method: 'DELETE'
+  });
+  if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to delete welcome test');
+  return json.data;
+}
+
+export async function fetchWelcomeTests() {
+  const res = await fetch(`${API_BASE}/api/welcome-tests`);
+  if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error || 'Failed to fetch welcome tests list');
+  return json.data;
+}
+

@@ -94,28 +94,55 @@ export const TestIntroScreen: React.FC = () => {
 // 2. TEST QUIZ SCREEN
 // ==========================================
 export const TestQuizScreen: React.FC = () => {
-  const { navigateTo, goBack, user, updateUser } = useApp();
-  const [currentQuestionIdx, setCurrentQuestionIdx] = useState<number>(0); // Start from first question
-  const [timeLeft, setTimeLeft] = useState<number>(1788); // 29:48 in seconds
+  const { navigateTo, goBack, user, updateUser, activeCourseClass } = useApp();
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [currentQuestionIdx, setCurrentQuestionIdx] = useState<number>(0);
+  const [timeLeft, setTimeLeft] = useState<number>(1800); // 30 mins default
 
-  // Mock Questions Data with correct option keys
-  const questions = [
-    { text: 'Solve for x: 3x + 5 = 20.', options: { A: '5', B: '4', C: '6', D: '3' }, correct: 'B' },
-    { text: 'Which is a prime number?', options: { A: '4', B: '9', C: '15', D: '17' }, correct: 'D' },
-    { text: 'Find the area of a rectangle with length 10 and width 5.', options: { A: '50', B: '15', C: '30', D: '25' }, correct: 'A' },
-    { text: 'What is 15% of 200?', options: { A: '35', B: '30', C: '25', D: '40' }, correct: 'B' },
-    { text: 'Two numbers are in the ratio 2 : 7. If the second number is 378, find the first.', options: { A: '105', B: '180', C: '108', D: '165' }, correct: 'C' },
-    { text: 'Calculate the average of 10, 20, and 30.', options: { A: '15', B: '20', C: '25', D: '30' }, correct: 'B' },
-    { text: 'If a triangle has angles 50° and 60°, what is the third angle?', options: { A: '70°', B: '80°', C: '90°', D: '60°' }, correct: 'A' },
-    { text: 'Solve: 12 x 11 - 10.', options: { A: '122', B: '132', C: '120', D: '112' }, correct: 'A' },
-    { text: 'Convert 4/5 into a percentage.', options: { A: '85%', B: '75%', C: '80%', D: '90%' }, correct: 'C' },
-    { text: 'What is the square root of 225?', options: { A: '15', B: '25', C: '12', D: '20' }, correct: 'A' }
-  ];
+  const [answers, setAnswers] = useState<string[]>([]);
 
-  const [answers, setAnswers] = useState<string[]>(Array(questions.length).fill(''));
+  // Fetch welcome test questions class-wise dynamically on mount
+  useEffect(() => {
+    const fetchWelcomeTestQuestions = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`http://localhost:3001/api/welcome-tests/${encodeURIComponent(activeCourseClass || 'Class 6')}`);
+        const json = await res.json();
+        if (json.success && json.questions && json.questions.length > 0) {
+          setQuestions(json.questions);
+          setTimeLeft((json.data?.durationMinutes || 30) * 60);
+          setAnswers(Array(json.questions.length).fill(''));
+        } else {
+          // Hardcoded fallback questions
+          const defaultQuestions = [
+            { text: 'Solve for x: 3x + 5 = 20.', options: { A: '5', B: '4', C: '6', D: '3' }, correct: 'B' },
+            { text: 'Which is a prime number?', options: { A: '4', B: '9', C: '15', D: '17' }, correct: 'D' },
+            { text: 'Find the area of a rectangle with length 10 and width 5.', options: { A: '50', B: '15', C: '30', D: '25' }, correct: 'A' },
+            { text: 'What is 15% of 200?', options: { A: '35', B: '30', C: '25', D: '40' }, correct: 'B' },
+            { text: 'Two numbers are in the ratio 2 : 7. If the second number is 378, find the first.', options: { A: '105', B: '180', C: '108', D: '165' }, correct: 'C' },
+            { text: 'Calculate the average of 10, 20, and 30.', options: { A: '15', B: '20', C: '25', D: '30' }, correct: 'B' },
+            { text: 'If a triangle has angles 50° and 60°, what is the third angle?', options: { A: '70°', B: '80°', C: '90°', D: '60°' }, correct: 'A' },
+            { text: 'Solve: 12 x 11 - 10.', options: { A: '122', B: '132', C: '120', D: '112' }, correct: 'A' },
+            { text: 'Convert 4/5 into a percentage.', options: { A: '85%', B: '75%', C: '80%', D: '90%' }, correct: 'C' },
+            { text: 'What is the square root of 225?', options: { A: '15', B: '25', C: '12', D: '20' }, correct: 'A' }
+          ];
+          setQuestions(defaultQuestions);
+          setTimeLeft(1800);
+          setAnswers(Array(defaultQuestions.length).fill(''));
+        }
+      } catch (err) {
+        console.error('Failed to fetch Welcome Test questions:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchWelcomeTestQuestions();
+  }, [activeCourseClass]);
 
   // Timer Tick
   useEffect(() => {
+    if (loading || questions.length === 0) return;
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
@@ -126,7 +153,7 @@ export const TestQuizScreen: React.FC = () => {
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [loading, questions.length]);
 
   const formatTimer = () => {
     const mins = Math.floor(timeLeft / 60);
@@ -140,7 +167,8 @@ export const TestQuizScreen: React.FC = () => {
       // Calculate score
       let score = 0;
       questions.forEach((q, idx) => {
-        if (updatedAnswers[idx] === q.correct) {
+        const correctAns = q.correct || q.correctAnswer;
+        if (updatedAnswers[idx] === correctAns) {
           score += 1;
         }
       });
@@ -150,7 +178,7 @@ export const TestQuizScreen: React.FC = () => {
         const res = await fetch(`http://localhost:3001/api/students/${user.phone}/welcome-test`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ score, answers: updatedAnswers })
+          body: JSON.stringify({ score, answers: updatedAnswers, totalQuestions: questions.length })
         });
         const json = await res.json();
         if (json.success && json.data) {
@@ -181,6 +209,15 @@ export const TestQuizScreen: React.FC = () => {
     newAnswers[currentQuestionIdx] = optKey;
     setAnswers(newAnswers);
   };
+
+  if (loading || questions.length === 0) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center' }} edges={['top', 'left', 'right', 'bottom']}>
+        <ActivityIndicator size="large" color="#00B6A6" />
+        <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(13), marginTop: 10, color: '#64748B' }}>Loading Welcome Test...</Text>
+      </SafeAreaView>
+    );
+  }
 
   const activeQuestion = questions[currentQuestionIdx];
   const selectedOption = answers[currentQuestionIdx] || null;

@@ -12,7 +12,11 @@ import {
   deleteSchedule,
   fetchMaterials,
   createMaterial,
-  deleteMaterial
+  deleteMaterial,
+  fetchWelcomeTest,
+  saveWelcomeTest,
+  deleteWelcomeTest,
+  fetchWelcomeTests
 } from './api/configApi';
 
 // Reusable Section Component
@@ -174,6 +178,12 @@ export default function App() {
   
   // Welcome Test panel state
   const [wtSearch, setWtSearch] = useState('');
+  const [selectedWTClass, setSelectedWTClass] = useState('Class 6');
+  const [wtQuestions, setWtQuestions] = useState<any[]>([]);
+  const [wtDuration, setWtDuration] = useState<number>(30);
+  const [wtLoading, setWtLoading] = useState(false);
+  const [wtSaving, setWtSaving] = useState(false);
+  const [wtActiveSubTab, setWtActiveSubTab] = useState<'results' | 'questions'>('results');
 
   const [newMaterial, setNewMaterial] = useState({
     fileName: '',
@@ -237,6 +247,38 @@ export default function App() {
     }
   };
 
+  const loadWelcomeTestConfig = async (gradeClass: string) => {
+    setWtLoading(true);
+    try {
+      const data = await fetchWelcomeTest(gradeClass);
+      if (data && data.questions) {
+        setWtQuestions(data.questions);
+        setWtDuration(data.durationMinutes || 30);
+      } else {
+        // Default seed fallback
+        const defaultQuestions = [
+          { text: 'Solve for x: 3x + 5 = 20.', options: { A: '5', B: '4', C: '6', D: '3' }, correct: 'B' },
+          { text: 'Which is a prime number?', options: { A: '4', B: '9', C: '15', D: '17' }, correct: 'D' },
+          { text: 'Find the area of a rectangle with length 10 and width 5.', options: { A: '50', B: '15', C: '30', D: '25' }, correct: 'A' },
+          { text: 'What is 15% of 200?', options: { A: '35', B: '30', C: '25', D: '40' }, correct: 'B' },
+          { text: 'Two numbers are in the ratio 2 : 7. If the second number is 378, find the first.', options: { A: '105', B: '180', C: '108', D: '165' }, correct: 'C' },
+          { text: 'Calculate the average of 10, 20, and 30.', options: { A: '15', B: '20', C: '25', D: '30' }, correct: 'B' },
+          { text: 'If a triangle has angles 50° and 60°, what is the third angle?', options: { A: '70°', B: '80°', C: '90°', D: '60°' }, correct: 'A' },
+          { text: 'Solve: 12 x 11 - 10.', options: { A: '122', B: '132', C: '120', D: '112' }, correct: 'A' },
+          { text: 'Convert 4/5 into a percentage.', options: { A: '85%', B: '75%', C: '80%', D: '90%' }, correct: 'C' },
+          { text: 'What is the square root of 225?', options: { A: '15', B: '25', C: '12', D: '20' }, correct: 'A' }
+        ];
+        setWtQuestions(defaultQuestions);
+        setWtDuration(30);
+      }
+    } catch (err: any) {
+      console.error(err);
+      showToast('Failed to load welcome test config.');
+    } finally {
+      setWtLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'orders') {
       loadOrders();
@@ -247,9 +289,16 @@ export default function App() {
     } else if (activeTab === 'materials') {
       loadMaterials();
     } else if (activeTab === 'welcome_test') {
-      loadStudents(); // reuse students fetch to get welcomeTestStatus
+      loadStudents();
+      loadWelcomeTestConfig(selectedWTClass);
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'welcome_test') {
+      loadWelcomeTestConfig(selectedWTClass);
+    }
+  }, [selectedWTClass]);
 
   // Fetch configs upon selection
   useEffect(() => {
@@ -1666,6 +1715,36 @@ export default function App() {
     );
   };
 
+  const handleSaveWelcomeTest = async () => {
+    setWtSaving(true);
+    try {
+      await saveWelcomeTest(selectedWTClass, {
+        questions: wtQuestions,
+        durationMinutes: wtDuration
+      });
+      showToast('Welcome Test updated successfully! ✨', 'success');
+      loadWelcomeTestConfig(selectedWTClass);
+    } catch (err: any) {
+      showToast('Failed to save welcome test: ' + err.message, 'error');
+    } finally {
+      setWtSaving(false);
+    }
+  };
+
+  const handleDeleteWelcomeTest = async () => {
+    if (!window.confirm(`Are you sure you want to delete the Welcome Test for ${selectedWTClass}?`)) return;
+    setWtSaving(true);
+    try {
+      await deleteWelcomeTest(selectedWTClass);
+      showToast('Welcome Test deleted successfully! 🗑️', 'success');
+      loadWelcomeTestConfig(selectedWTClass);
+    } catch (err: any) {
+      showToast('Failed to delete welcome test: ' + err.message, 'error');
+    } finally {
+      setWtSaving(false);
+    }
+  };
+
   const renderWelcomeTestPanel = () => {
     const demoStudents = students.filter((s: any) =>
       s.enrollmentType === 'demo' || s.welcomeTestStatus === 'pending' || s.welcomeTestStatus === 'completed'
@@ -1680,79 +1759,304 @@ export default function App() {
     const completedCount = demoStudents.filter((s: any) => s.welcomeTestStatus === 'completed').length;
 
     return (
-      <div style={{ padding: '24px' }}>
-        <header style={{ marginBottom: '24px' }}>
-          <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 700 }}>🎯 Welcome Test — Student Results</h1>
-          <p style={{ margin: '6px 0 0', color: '#94A3B8', fontSize: '13px' }}>
-            Showing all Demo Class students and their Welcome Diagnostic Test status.
-          </p>
+      <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 700 }}>🎯 Welcome Test Manager</h1>
+            <p style={{ margin: '4px 0 0', color: '#94A3B8', fontSize: '13px' }}>
+              Configure class-wise diagnostic tests and monitor student performance.
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <span style={{ fontSize: '13px', color: '#94A3B8' }}>Select Grade Class:</span>
+            <select
+              value={selectedWTClass}
+              onChange={(e) => setSelectedWTClass(e.target.value)}
+              style={{
+                padding: '10px 14px',
+                borderRadius: '8px',
+                border: '1px solid #334155',
+                background: '#1E293B',
+                color: 'white',
+                fontSize: '13px',
+                fontWeight: 600,
+                outline: 'none'
+              }}
+            >
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(n => (
+                <option key={n} value={`Class ${n}`}>Grade Class {n}</option>
+              ))}
+            </select>
+          </div>
         </header>
 
-        <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
-          {[
-            { label: 'Demo Students', value: demoStudents.length, color: '#00B6A6' },
-            { label: 'Pending', value: pendingCount, color: '#F59E0B' },
-            { label: 'Completed', value: completedCount, color: '#10B981' }
-          ].map(({ label, value, color }) => (
-            <div key={label} style={{ flex: 1, minWidth: '140px', background: 'linear-gradient(135deg, #0F172A, #1E293B)', borderRadius: '12px', padding: '16px', border: '1px solid #334155' }}>
-              <div style={{ fontSize: '28px', fontWeight: 700, color }}>{value}</div>
-              <div style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px' }}>{label}</div>
+        {/* Sub Navigation Tabs */}
+        <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #334155', paddingBottom: '1px' }}>
+          <button
+            type="button"
+            onClick={() => setWtActiveSubTab('results')}
+            style={{
+              padding: '10px 20px',
+              background: wtActiveSubTab === 'results' ? '#1E293B' : 'transparent',
+              border: 'none',
+              borderBottom: wtActiveSubTab === 'results' ? '2px solid #00B6A6' : 'none',
+              color: wtActiveSubTab === 'results' ? '#00B6A6' : '#94A3B8',
+              fontWeight: 600,
+              fontSize: '13.5px',
+              cursor: 'pointer'
+            }}
+          >
+            📊 Student Results
+          </button>
+          <button
+            type="button"
+            onClick={() => setWtActiveSubTab('questions')}
+            style={{
+              padding: '10px 20px',
+              background: wtActiveSubTab === 'questions' ? '#1E293B' : 'transparent',
+              border: 'none',
+              borderBottom: wtActiveSubTab === 'questions' ? '2px solid #00B6A6' : 'none',
+              color: wtActiveSubTab === 'questions' ? '#00B6A6' : '#94A3B8',
+              fontWeight: 600,
+              fontSize: '13.5px',
+              cursor: 'pointer'
+            }}
+          >
+            ✏️ Manage Questions ({wtQuestions.length})
+          </button>
+        </div>
+
+        {wtActiveSubTab === 'results' ? (
+          /* Sub-tab 1: Student Results (Original view, slightly enhanced) */
+          <>
+            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+              {[
+                { label: 'Demo Students', value: demoStudents.length, color: '#00B6A6' },
+                { label: 'Pending Completion', value: pendingCount, color: '#F59E0B' },
+                { label: 'Completed Result', value: completedCount, color: '#10B981' }
+              ].map(({ label, value, color }) => (
+                <div key={label} style={{ flex: 1, minWidth: '140px', background: 'linear-gradient(135deg, #0F172A, #1E293B)', borderRadius: '12px', padding: '16px', border: '1px solid #334155' }}>
+                  <div style={{ fontSize: '28px', fontWeight: 700, color }}>{value}</div>
+                  <div style={{ fontSize: '12px', color: '#94A3B8', marginTop: '4px' }}>{label}</div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
 
-        <div style={{ marginBottom: '16px' }}>
-          <input
-            type="text"
-            placeholder="Search by name or phone..."
-            value={wtSearch}
-            onChange={(e) => setWtSearch(e.target.value)}
-            style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #334155', background: '#1E293B', color: 'white', fontSize: '13px', boxSizing: 'border-box' }}
-          />
-        </div>
+            <div style={{ marginTop: '8px' }}>
+              <input
+                type="text"
+                placeholder="Search demo student name or phone..."
+                value={wtSearch}
+                onChange={(e) => setWtSearch(e.target.value)}
+                style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', border: '1px solid #334155', background: '#1E293B', color: 'white', fontSize: '13px', boxSizing: 'border-box' }}
+              />
+            </div>
 
-        {studentsLoading ? (
-          <div style={{ textAlign: 'center', padding: '40px', color: '#94A3B8' }}>Loading...</div>
-        ) : filtered.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px', color: '#64748B', fontSize: '14px' }}>No demo class students found.</div>
-        ) : (
-          <div style={{ overflowX: 'auto', background: '#1E293B', borderRadius: '12px', border: '1px solid #334155' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-              <thead>
-                <tr style={{ background: '#0F172A', color: '#94A3B8', textAlign: 'left' }}>
-                  {['Student', 'Phone', 'Class', 'Status', 'Score', 'Grade', 'Submitted At'].map(h => (
-                    <th key={h} style={{ padding: '12px 16px', fontWeight: 600 }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((s: any, idx: number) => {
-                  const result = s.welcomeTestResult;
-                  const score = result?.score ?? null;
-                  const grade = score !== null ? (score >= 9 ? 'A' : score >= 8 ? 'B' : score >= 6 ? 'C' : score >= 4 ? 'D' : 'E') : '—';
-                  const isDone = s.welcomeTestStatus === 'completed';
-                  return (
-                    <tr key={s._id || idx} style={{ borderTop: '1px solid #334155', color: 'white' }}>
-                      <td style={{ padding: '12px 16px', fontWeight: 600 }}>{s.name || 'Unknown'}</td>
-                      <td style={{ padding: '12px 16px', color: '#94A3B8' }}>{s.phone}</td>
-                      <td style={{ padding: '12px 16px', color: '#94A3B8' }}>{s.selectedClass || '—'}</td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <span style={{ background: isDone ? '#D1FAE5' : '#FEF3C7', color: isDone ? '#059669' : '#D97706', padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600 }}>
-                          {isDone ? 'Completed' : 'Pending'}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px 16px', fontWeight: 700, color: score !== null ? '#00B6A6' : '#64748B' }}>
-                        {score !== null ? `${score}/10` : '—'}
-                      </td>
-                      <td style={{ padding: '12px 16px', fontWeight: 700, color: '#E2E8F0' }}>{grade}</td>
-                      <td style={{ padding: '12px 16px', color: '#94A3B8', fontSize: '12px' }}>
-                        {result?.submittedAt ? new Date(result.submittedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
-                      </td>
+            {studentsLoading ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: '#94A3B8' }}>Loading...</div>
+            ) : filtered.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: '#64748B', fontSize: '14px' }}>No demo class students found.</div>
+            ) : (
+              <div style={{ overflowX: 'auto', background: '#1E293B', borderRadius: '12px', border: '1px solid #334155' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                  <thead>
+                    <tr style={{ background: '#0F172A', color: '#94A3B8', textAlign: 'left' }}>
+                      {['Student', 'Phone', 'Class', 'Status', 'Score', 'Grade', 'Submitted At'].map(h => (
+                        <th key={h} style={{ padding: '12px 16px', fontWeight: 600 }}>{h}</th>
+                      ))}
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody>
+                    {filtered.map((s: any, idx: number) => {
+                      const result = s.welcomeTestResult;
+                      const score = result?.score ?? null;
+                      const grade = score !== null ? (score >= 9 ? 'A' : score >= 8 ? 'B' : score >= 6 ? 'C' : score >= 4 ? 'D' : 'E') : '—';
+                      const isDone = s.welcomeTestStatus === 'completed';
+                      return (
+                        <tr key={s._id || idx} style={{ borderTop: '1px solid #334155', color: 'white' }}>
+                          <td style={{ padding: '12px 16px', fontWeight: 600 }}>{s.name || 'Unknown'}</td>
+                          <td style={{ padding: '12px 16px', color: '#94A3B8' }}>{s.phone}</td>
+                          <td style={{ padding: '12px 16px', color: '#94A3B8' }}>{s.selectedClass || '—'}</td>
+                          <td style={{ padding: '12px 16px' }}>
+                            <span style={{ background: isDone ? '#D1FAE5' : '#FEF3C7', color: isDone ? '#059669' : '#D97706', padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 600 }}>
+                              {isDone ? 'Completed' : 'Pending'}
+                            </span>
+                          </td>
+                          <td style={{ padding: '12px 16px', fontWeight: 700, color: score !== null ? '#00B6A6' : '#64748B' }}>
+                            {score !== null ? `${score}/10` : '—'}
+                          </td>
+                          <td style={{ padding: '12px 16px', fontWeight: 700, color: '#E2E8F0' }}>{grade}</td>
+                          <td style={{ padding: '12px 16px', color: '#94A3B8', fontSize: '12px' }}>
+                            {result?.submittedAt ? new Date(result.submittedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
+        ) : (
+          /* Sub-tab 2: Manage Questions (Dynamic CRUD Editor) */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ background: '#1E293B', padding: '16px', borderRadius: '12px', border: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <span style={{ fontSize: '14px', fontWeight: 600 }}>Duration Setting</span>
+                <span style={{ fontSize: '12px', color: '#94A3B8' }}>Set duration limit of the diagnostic test in minutes.</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="number"
+                  value={wtDuration}
+                  onChange={(e) => setWtDuration(Math.max(1, Number(e.target.value)))}
+                  style={{ width: '80px', padding: '8px 12px', borderRadius: '6px', border: '1px solid #475569', background: '#0F172A', color: 'white', outline: 'none', fontWeight: 600, textAlign: 'center' }}
+                />
+                <span style={{ fontSize: '13px', color: '#94A3B8' }}>mins</span>
+              </div>
+            </div>
+
+            {wtLoading ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: '#94A3B8' }}>Loading Welcome Test configuration...</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {wtQuestions.map((q, qIdx) => (
+                  <div key={qIdx} style={{ background: '#1E293B', border: '1px solid #334155', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '14px', fontWeight: 700, color: '#00B6A6' }}>Question {qIdx + 1}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = [...wtQuestions];
+                          updated.splice(qIdx, 1);
+                          setWtQuestions(updated);
+                        }}
+                        style={{ background: 'transparent', border: 'none', color: '#EF4444', fontSize: '12.5px', fontWeight: 650, cursor: 'pointer' }}
+                      >
+                        🗑️ Delete Question
+                      </button>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <label style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 600 }}>Question Text</label>
+                      <input
+                        type="text"
+                        value={q.text || ''}
+                        onChange={(e) => {
+                          const updated = [...wtQuestions];
+                          updated[qIdx] = { ...updated[qIdx], text: e.target.value };
+                          setWtQuestions(updated);
+                        }}
+                        placeholder="Enter the question text..."
+                        style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #475569', background: '#0F172A', color: 'white', fontSize: '13px' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+                      {(['A', 'B', 'C', 'D'] as const).map(optKey => (
+                        <div key={optKey} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <label style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 600 }}>Option {optKey}</label>
+                          <input
+                            type="text"
+                            value={q.options?.[optKey] || ''}
+                            onChange={(e) => {
+                              const updated = [...wtQuestions];
+                              const newOpts = { ...(updated[qIdx].options || {}) };
+                              newOpts[optKey] = e.target.value;
+                              updated[qIdx] = { ...updated[qIdx], options: newOpts };
+                              setWtQuestions(updated);
+                            }}
+                            placeholder={`Option ${optKey} value`}
+                            style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #475569', background: '#0F172A', color: 'white', fontSize: '13px' }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '200px' }}>
+                      <label style={{ fontSize: '12px', color: '#94A3B8', fontWeight: 600 }}>Correct Option Answer</label>
+                      <select
+                        value={q.correct || q.correctAnswer || 'A'}
+                        onChange={(e) => {
+                          const updated = [...wtQuestions];
+                          updated[qIdx] = { ...updated[qIdx], correct: e.target.value };
+                          setWtQuestions(updated);
+                        }}
+                        style={{ padding: '10px 14px', borderRadius: '8px', border: '1px solid #475569', background: '#0F172A', color: 'white', fontSize: '13px', fontWeight: 600 }}
+                      >
+                        <option value="A">Option A</option>
+                        <option value="B">Option B</option>
+                        <option value="C">Option C</option>
+                        <option value="D">Option D</option>
+                      </select>
+                    </div>
+                  </div>
+                ))}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setWtQuestions([
+                      ...wtQuestions,
+                      { text: '', options: { A: '', B: '', C: '', D: '' }, correct: 'A' }
+                    ]);
+                  }}
+                  style={{
+                    padding: '14px',
+                    borderRadius: '12px',
+                    border: '2px dashed #475569',
+                    background: 'transparent',
+                    color: '#94A3B8',
+                    fontSize: '13.5px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  ➕ Add Question
+                </button>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '12px', marginTop: '20px', borderTop: '1px solid #334155', paddingTop: '20px' }}>
+              <button
+                type="button"
+                onClick={handleSaveWelcomeTest}
+                disabled={wtSaving || wtLoading}
+                style={{
+                  background: '#00B6A6',
+                  color: 'white',
+                  border: 'none',
+                  padding: '12px 24px',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  fontSize: '13.5px',
+                  cursor: 'pointer'
+                }}
+              >
+                {wtSaving ? 'Saving questions...' : '💾 Save Welcome Test Questions'}
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteWelcomeTest}
+                disabled={wtSaving || wtLoading}
+                style={{
+                  background: 'transparent',
+                  color: '#EF4444',
+                  border: '1px solid #EF4444',
+                  padding: '12px 24px',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  fontSize: '13.5px',
+                  cursor: 'pointer'
+                }}
+              >
+                🗑️ Delete Welcome Test
+              </button>
+            </div>
           </div>
         )}
       </div>

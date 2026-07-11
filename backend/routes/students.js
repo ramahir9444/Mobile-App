@@ -317,8 +317,10 @@ router.post('/:phone/homework', async (req, res) => {
 // POST /api/students/:phone/welcome-test — submit welcome test score
 router.post('/:phone/welcome-test', async (req, res) => {
   try {
-    const { score, answers } = req.body;
+    const { score, answers, totalQuestions } = req.body;
     const db = getDB();
+
+    const questionsCount = totalQuestions || (answers ? answers.length : 10);
 
     const result = await db.collection('students').findOneAndUpdate(
       { phone: req.params.phone },
@@ -327,7 +329,7 @@ router.post('/:phone/welcome-test', async (req, res) => {
           welcomeTestStatus: 'completed',
           welcomeTestResult: {
             score: Number(score),
-            totalQuestions: 10,
+            totalQuestions: Number(questionsCount),
             answers: answers || [],
             submittedAt: new Date()
           },
