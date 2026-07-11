@@ -27,7 +27,8 @@ export type AppScreen =
   | 'HOMEWORK_REPORT'
   | 'FAQ'
   | 'MY_ORDERS'
-  | 'ABOUT_ODA';
+  | 'ABOUT_ODA'
+  | 'LIVE_CLASSROOM';
 
 export interface UserProfile {
   _id?: string;

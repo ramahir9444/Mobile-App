@@ -161,6 +161,12 @@ export default function App() {
     teacherName: 'Ninja Mam (Priyanka)',
     teacherAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100',
     status: 'Scheduled',
+    isLiveClass: true,
+    enableRecording: true,
+    enableQuiz: true,
+    allowStage: true,
+    allowChat: true,
+    maxStageStudents: 4,
     materials: [],
     homework: [],
     questions: [],
@@ -170,6 +176,11 @@ export default function App() {
   const [isUploadingMaterial, setIsUploadingMaterial] = useState(false);
   const [tempHomework, setTempHomework] = useState({ text: '', optA: '', optB: '', optC: '', optD: '', correct: 'A' });
   const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
+
+  // Live Classroom Control states
+  const [activeControlSchedule, setActiveControlSchedule] = useState<any>(null);
+  const [liveRoomState, setLiveRoomState] = useState<any>(null);
+  const [selectedControlQuizIdx, setSelectedControlQuizIdx] = useState<number>(0);
 
   // Materials states
   const [materials, setMaterials] = useState<any[]>([]);
@@ -299,6 +310,18 @@ export default function App() {
       loadTestReports();
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    if (!activeControlSchedule) return;
+    
+    syncLiveRoomState(activeControlSchedule._id);
+
+    const interval = setInterval(() => {
+      syncLiveRoomState(activeControlSchedule._id);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [activeControlSchedule]);
 
   // Fetch configs upon selection
   useEffect(() => {
@@ -716,7 +739,340 @@ export default function App() {
     );
   };
 
+  const syncLiveRoomState = async (scheduleId: string) => {
+    try {
+      const [liveStateRes, roomInfoRes] = await Promise.allSettled([
+        fetch(`${API_BASE}/schedules/${scheduleId}/live-state`).then(r => r.json()),
+        fetch(`${API_BASE}/live-classroom/room-info?scheduleId=${scheduleId}`).then(r => r.json()),
+      ]);
+
+      if (liveStateRes.status === 'fulfilled' && liveStateRes.value.success) {
+        setLiveRoomState((prev: any) => ({
+          ...(prev || {}),
+          ...liveStateRes.value.data?.liveState,
+          isLive: liveStateRes.value.data?.isLive,
+          liveStatus: liveStateRes.value.data?.liveStatus,
+        }));
+      }
+
+      if (roomInfoRes.status === 'fulfilled' && roomInfoRes.value.success) {
+        const participants = roomInfoRes.value.data?.participants || [];
+        setLiveRoomState((prev: any) => ({
+          ...(prev || {}),
+          participants,
+          participantCount: participants.length,
+        }));
+      }
+    } catch {}
+  };
+
+  const renderLiveControlCenter = () => {
+    const schedule = activeControlSchedule;
+    const state = liveRoomState || {};
+    const isLive = state.isLive || false;
+    const participants = state.participants || [];
+    const raiseHands = state.raiseHands || [];
+    const stageStudents = state.stageStudents || [];
+    const quizActive = state.quizActive || false;
+    const chatMuted = state.chatMuted || false;
+
+    const updateState = async (updates: any) => {
+      try {
+        await fetch(`${API_BASE}/schedules/${schedule._id}/live-state`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates),
+        });
+        await syncLiveRoomState(schedule._id);
+      } catch (e: any) {
+        showToast('Failed to update state: ' + e.message, 'error');
+      }
+    };
+
+    const handleStartClass = async () => {
+      try {
+        showToast('🔴 Starting class and creating LiveKit room...');
+        const res = await fetch(`${API_BASE}/live-classroom/create-room`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scheduleId: schedule._id }),
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error || 'Failed to start room');
+        showToast(`✅ Class started! Room: ${json.data.roomName}`);
+        setActiveControlSchedule({ ...schedule, isLive: true, liveStatus: 'live', roomName: json.data.roomName });
+        await syncLiveRoomState(schedule._id);
+        loadSchedules();
+      } catch (e: any) {
+        showToast('Error starting class: ' + e.message, 'error');
+      }
+    };
+
+    const handleEndClass = async () => {
+      if (!confirm('Are you sure you want to end this live class? All students will be disconnected.')) return;
+      try {
+        showToast('Ending live class...');
+        const res = await fetch(`${API_BASE}/live-classroom/end-room`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scheduleId: schedule._id }),
+        });
+        const json = await res.json();
+        if (!json.success) throw new Error(json.error || 'Failed to end room');
+        showToast('✅ Class ended successfully');
+        setActiveControlSchedule(null);
+        loadSchedules();
+      } catch (e: any) {
+        showToast('Error ending class: ' + e.message, 'error');
+      }
+    };
+
+    const handleInviteToStage = async (identity: string) => {
+      const updated = stageStudents.includes(identity)
+        ? stageStudents.filter((s: string) => s !== identity)
+        : [...stageStudents, identity];
+      await updateState({ stageStudents: updated });
+    };
+
+    const handleLaunchQuiz = async () => {
+      const questions = schedule.homework || [];
+      if (questions.length === 0) { showToast('No questions in this schedule!', 'error'); return; }
+      const q = questions[selectedControlQuizIdx];
+      await updateState({ quizActive: true, activeQuizId: q._id || q.text });
+    };
+
+    const handleEndQuiz = async () => {
+      await updateState({ quizActive: false, activeQuizId: null });
+    };
+
+    const handleMuteParticipant = async (identity: string) => {
+      try {
+        await fetch(`${API_BASE}/live-classroom/mute-participant`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scheduleId: schedule._id, participantIdentity: identity, mute: true }),
+        });
+        showToast('Participant muted');
+      } catch {}
+    };
+
+    const handleKickParticipant = async (identity: string) => {
+      if (!confirm(`Remove participant ${identity} from the room?`)) return;
+      try {
+        await fetch(`${API_BASE}/live-classroom/remove-participant`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scheduleId: schedule._id, participantIdentity: identity }),
+        });
+        showToast('Participant removed');
+      } catch {}
+    };
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {/* Header */}
+        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button
+              type="button"
+              onClick={() => setActiveControlSchedule(null)}
+              style={{ background: '#1E293B', border: 'none', color: '#94A3B8', padding: '8px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }}
+            >
+              ← Back to Schedules
+            </button>
+            <div>
+              <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'white', margin: 0 }}>
+                🖥️ Live Control Center
+              </h1>
+              <p style={{ margin: '4px 0 0', color: '#94A3B8', fontSize: '12px' }}>
+                {schedule.title} · {schedule.subject} · {schedule.gradeClass}
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            {isLive && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '20px', padding: '6px 14px', fontSize: '12px', color: '#EF4444', fontWeight: 700 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#EF4444', display: 'inline-block', animation: 'pulse 1.2s infinite' }} />
+                LIVE · {state.participantCount || 0} participants
+              </span>
+            )}
+
+            {!isLive ? (
+              <button type="button" onClick={handleStartClass} className="save-btn" style={{ background: '#10B981', padding: '10px 20px' }}>
+                ▶ Start Live Class
+              </button>
+            ) : (
+              <button type="button" onClick={handleEndClass} className="save-btn" style={{ background: '#EF4444', padding: '10px 20px' }}>
+                ■ End Class
+              </button>
+            )}
+          </div>
+        </header>
+
+        {/* Stats Row */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+          {[
+            { label: 'Participants', value: state.participantCount || 0, color: '#00B6A6' },
+            { label: 'On Stage', value: stageStudents.length, color: '#8B5CF6' },
+            { label: 'Raised Hands', value: raiseHands.length, color: '#FBBF24' },
+            { label: 'Quiz Active', value: quizActive ? 'YES' : 'NO', color: quizActive ? '#10B981' : '#475569' },
+          ].map((stat) => (
+            <div key={stat.label} className="card" style={{ textAlign: 'center', padding: '14px' }}>
+              <div style={{ fontSize: '26px', fontWeight: 800, color: stat.color }}>{stat.value}</div>
+              <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>{stat.label}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          {/* Left: Participants + Stage */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* Raised Hands */}
+            <div className="card">
+              <h3 style={{ color: '#FBBF24', fontSize: '13px', fontWeight: 700, marginBottom: '12px' }}>✋ Raised Hands</h3>
+              {raiseHands.length === 0 ? (
+                <p style={{ color: '#475569', fontSize: '12px' }}>No raised hands</p>
+              ) : (
+                raiseHands.map((identity: string) => (
+                  <div key={identity} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                    <span style={{ color: 'white', fontSize: '13px' }}>{identity}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleInviteToStage(identity)}
+                      style={{ background: '#8B5CF6', border: 'none', color: 'white', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: 600 }}
+                    >
+                      {stageStudents.includes(identity) ? 'Remove Stage' : 'Invite Stage'}
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Participants */}
+            <div className="card">
+              <h3 style={{ color: '#00B6A6', fontSize: '13px', fontWeight: 700, marginBottom: '12px' }}>👥 Live Participants</h3>
+              {participants.length === 0 ? (
+                <p style={{ color: '#475569', fontSize: '12px' }}>{isLive ? 'Waiting for students to join...' : 'Class not started yet'}</p>
+              ) : (
+                participants.map((p: any) => (
+                  <div key={p.identity} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                    <div>
+                      <div style={{ color: 'white', fontSize: '12px', fontWeight: 600 }}>{p.name || p.identity}</div>
+                      <div style={{ color: '#64748B', fontSize: '10px' }}>{p.identity}</div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button
+                        type="button"
+                        onClick={() => handleMuteParticipant(p.identity)}
+                        style={{ background: '#F59E0B', border: 'none', color: 'white', padding: '4px 8px', borderRadius: '5px', fontSize: '10px', cursor: 'pointer' }}
+                      >
+                        Mute
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleKickParticipant(p.identity)}
+                        style={{ background: '#EF4444', border: 'none', color: 'white', padding: '4px 8px', borderRadius: '5px', fontSize: '10px', cursor: 'pointer' }}
+                      >
+                        Kick
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Right: Quiz + Chat Controls */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* Quiz Launcher */}
+            <div className="card">
+              <h3 style={{ color: '#8B5CF6', fontSize: '13px', fontWeight: 700, marginBottom: '12px' }}>📝 Live Quiz Control</h3>
+
+              {(schedule.homework || []).length === 0 ? (
+                <p style={{ color: '#475569', fontSize: '12px' }}>No questions added to this schedule</p>
+              ) : (
+                <>
+                  <label style={{ fontSize: '11px', color: '#94A3B8', marginBottom: '6px', display: 'block' }}>Select Question</label>
+                  <select
+                    value={selectedControlQuizIdx}
+                    onChange={(e) => setSelectedControlQuizIdx(Number(e.target.value))}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', marginBottom: '10px', fontSize: '12px' }}
+                  >
+                    {(schedule.homework || []).map((q: any, i: number) => (
+                      <option key={i} value={i}>Q{i + 1}: {q.text?.slice(0, 60)}...</option>
+                    ))}
+                  </select>
+
+                  {!quizActive ? (
+                    <button
+                      type="button"
+                      onClick={handleLaunchQuiz}
+                      disabled={!isLive}
+                      className="save-btn"
+                      style={{ width: '100%', padding: '10px', opacity: isLive ? 1 : 0.4 }}
+                    >
+                      🚀 Launch Quiz to Students
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleEndQuiz}
+                      className="save-btn"
+                      style={{ width: '100%', padding: '10px', background: '#EF4444' }}
+                    >
+                      ⏹️ End Quiz
+                    </button>
+                  )}
+                </>
+              )}
+
+              {quizActive && (
+                <div style={{ marginTop: '12px', background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', padding: '10px' }}>
+                  <p style={{ color: '#A78BFA', fontSize: '12px', fontWeight: 700, margin: 0 }}>✅ Quiz is live! Students are answering...</p>
+                </div>
+              )}
+            </div>
+
+            {/* Chat Control */}
+            <div className="card">
+              <h3 style={{ color: '#00B6A6', fontSize: '13px', fontWeight: 700, marginBottom: '12px' }}>💬 Chat Control</h3>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ color: '#CBD5E1', fontSize: '13px' }}>Student Chat</span>
+                <button
+                  type="button"
+                  onClick={() => updateState({ chatMuted: !chatMuted })}
+                  style={{
+                    background: chatMuted ? '#EF4444' : '#10B981',
+                    border: 'none', color: 'white', padding: '8px 16px',
+                    borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 700
+                  }}
+                >
+                  {chatMuted ? '🔇 Unmute Chat' : '💬 Mute Chat'}
+                </button>
+              </div>
+            </div>
+
+            {/* Room Info */}
+            <div className="card">
+              <h3 style={{ color: '#64748B', fontSize: '13px', fontWeight: 700, marginBottom: '12px' }}>🔗 Room Details</h3>
+              <div style={{ fontSize: '11px', color: '#64748B', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div>Status: <span style={{ color: isLive ? '#10B981' : '#FBBF24', fontWeight: 700 }}>{state.liveStatus || 'upcoming'}</span></div>
+                <div style={{ wordBreak: 'break-all' }}>Room: <span style={{ color: '#94A3B8' }}>{schedule.roomName || '—'}</span></div>
+                <div>Server: <span style={{ color: '#94A3B8' }}>wss://live-learning-tr4x3rds.livekit.cloud</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderSchedulesManager = () => {
+    if (activeControlSchedule) {
+      return renderLiveControlCenter();
+    }
+
     const filteredSchedules = schedules.filter((s: any) => {
       const matchesSearch = s.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
         s.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -746,6 +1102,12 @@ export default function App() {
           teacherName: 'Ninja Mam (Priyanka)',
           teacherAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100',
           status: 'Scheduled',
+          isLiveClass: true,
+          enableRecording: true,
+          enableQuiz: true,
+          allowStage: true,
+          allowChat: true,
+          maxStageStudents: 4,
           materials: [],
           homework: [],
           questions: [],
@@ -792,6 +1154,12 @@ export default function App() {
         teacherName: item.teacherName || '',
         teacherAvatar: item.teacherAvatar || '',
         status: item.status,
+        isLiveClass: item.isLiveClass !== undefined ? item.isLiveClass : true,
+        enableRecording: item.enableRecording !== undefined ? item.enableRecording : true,
+        enableQuiz: item.enableQuiz !== undefined ? item.enableQuiz : true,
+        allowStage: item.allowStage !== undefined ? item.allowStage : true,
+        allowChat: item.allowChat !== undefined ? item.allowChat : true,
+        maxStageStudents: item.maxStageStudents || 4,
         materials: item.materials || [],
         homework: item.homework || [],
         questions: item.questions || [],
@@ -896,6 +1264,65 @@ export default function App() {
                 placeholder="e.g. 8:10 pm - 9:10 pm"
               />
             </div>
+
+            <div className="form-group span-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '15px', marginTop: '10px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#00B6A6' }}>🌐 Live Classroom Settings</span>
+            </div>
+            <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+              <input 
+                type="checkbox"
+                id="isLiveClass"
+                checked={newSchedule.isLiveClass !== false}
+                onChange={(e) => setNewSchedule({...newSchedule, isLiveClass: e.target.checked})}
+              />
+              <label htmlFor="isLiveClass" style={{ cursor: 'pointer', fontSize: '13px', color: 'white' }}>Is Live Classroom Class</label>
+            </div>
+            <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+              <input 
+                type="checkbox"
+                id="enableRecording"
+                checked={newSchedule.enableRecording !== false}
+                onChange={(e) => setNewSchedule({...newSchedule, enableRecording: e.target.checked})}
+              />
+              <label htmlFor="enableRecording" style={{ cursor: 'pointer', fontSize: '13px', color: 'white' }}>Enable Recording</label>
+            </div>
+            <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+              <input 
+                type="checkbox"
+                id="enableQuiz"
+                checked={newSchedule.enableQuiz !== false}
+                onChange={(e) => setNewSchedule({...newSchedule, enableQuiz: e.target.checked})}
+              />
+              <label htmlFor="enableQuiz" style={{ cursor: 'pointer', fontSize: '13px', color: 'white' }}>Enable In-Class Quizzes</label>
+            </div>
+            <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+              <input 
+                type="checkbox"
+                id="allowStage"
+                checked={newSchedule.allowStage !== false}
+                onChange={(e) => setNewSchedule({...newSchedule, allowStage: e.target.checked})}
+              />
+              <label htmlFor="allowStage" style={{ cursor: 'pointer', fontSize: '13px', color: 'white' }}>Allow Student Stage Speaking</label>
+            </div>
+            <div className="form-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+              <input 
+                type="checkbox"
+                id="allowChat"
+                checked={newSchedule.allowChat !== false}
+                onChange={(e) => setNewSchedule({...newSchedule, allowChat: e.target.checked})}
+              />
+              <label htmlFor="allowChat" style={{ cursor: 'pointer', fontSize: '13px', color: 'white' }}>Allow In-Class Chat</label>
+            </div>
+            <div className="form-group">
+              <label>Maximum Stage Students</label>
+              <input 
+                type="number"
+                value={newSchedule.maxStageStudents || 4}
+                onChange={(e) => setNewSchedule({...newSchedule, maxStageStudents: Math.max(1, Number(e.target.value))})}
+                placeholder="4"
+              />
+            </div>
+
             {newSchedule.subject === 'Test' ? (
               <>
                 {/* 1. Test Duration */}
@@ -1276,6 +1703,12 @@ export default function App() {
                       teacherName: 'Ninja Mam (Priyanka)',
                       teacherAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100',
                       status: 'Scheduled',
+                      isLiveClass: true,
+                      enableRecording: true,
+                      enableQuiz: true,
+                      allowStage: true,
+                      allowChat: true,
+                      maxStageStudents: 4,
                       materials: [],
                       homework: [],
                       questions: [],
@@ -1389,6 +1822,18 @@ export default function App() {
                     </td>
                     <td style={{ textAlign: 'right' }}>
                       <div style={{ display: 'inline-flex', gap: '8px' }}>
+                        {item.isLiveClass && item.status !== 'Finished' && (
+                          <button 
+                            type="button" 
+                            onClick={() => {
+                              setActiveControlSchedule(item);
+                            }}
+                            className="action-btn"
+                            style={{ background: '#8B5CF6', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '5px', fontSize: '11.5px', cursor: 'pointer', fontWeight: 600 }}
+                          >
+                            🖥️ Live Control
+                          </button>
+                        )}
                         <button 
                           type="button" 
                           onClick={() => handleToggleStatus(item)}

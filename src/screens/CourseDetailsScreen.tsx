@@ -330,16 +330,25 @@ export const CourseDetailsScreen: React.FC = () => {
                               <TouchableOpacity 
                                 onPress={async (e) => {
                                   e.stopPropagation();
-                                  showToast("Entering Live interactive Class...");
-                                  try {
-                                    await updateScheduleStatus(item._id, 'Finished');
-                                  } catch (err) {
-                                    console.error('Failed to update schedule status on Join Class:', err);
+                                  setActiveClassSchedule(item);
+                                  if (item.isLiveClass && item.isLive) {
+                                    navigateTo('LIVE_CLASSROOM');
+                                  } else if (item.isLiveClass) {
+                                    showToast("Class hasn't started yet. Check back soon!");
+                                  } else {
+                                    showToast("Entering Live interactive Class...");
+                                    try {
+                                      await updateScheduleStatus(item._id, 'Finished');
+                                    } catch (err) {
+                                      console.error('Failed to update schedule status on Join Class:', err);
+                                    }
                                   }
                                 }}
-                                className="bg-[#00B6A6] py-1 px-3.5 rounded-full active:bg-teal-650 mt-3"
+                                className={`py-1 px-3.5 rounded-full active:opacity-80 mt-3 ${item.isLive ? 'bg-red-500' : 'bg-[#00B6A6]'}`}
                               >
-                                <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(10.5) }} className="text-white font-bold">Join Class</Text>
+                                <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(10.5) }} className="text-white font-bold">
+                                  {item.isLive ? '🔴 Join Live' : 'Join Class'}
+                                </Text>
                               </TouchableOpacity>
                             )}
                           </View>
@@ -501,12 +510,16 @@ export const CourseDetailsScreen: React.FC = () => {
                               <TouchableOpacity 
                                 onPress={() => {
                                   setActiveClassSchedule(item);
-                                  navigateTo('CLASS_DETAILS');
+                                  if (item.isLiveClass) {
+                                    navigateTo('LIVE_CLASSROOM');
+                                  } else {
+                                    navigateTo('CLASS_DETAILS');
+                                  }
                                 }}
                                 className="bg-slate-100 py-1 px-4.5 rounded-full active:bg-slate-200"
                               >
                                 <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(11.5) }} className="text-slate-700 font-bold">
-                                  Watch Replay
+                                  {item.isLiveClass ? '▶️ Watch Replay' : 'Watch Replay'}
                                 </Text>
                               </TouchableOpacity>
                             )}

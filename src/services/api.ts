@@ -9,6 +9,7 @@
 //     For Android emulator use: http://10.0.2.2:3001
 //     For physical device: http://<YOUR_PC_IP>:3001
 const BASE_URL = 'http://localhost:3001';
+export const API_BASE = `${BASE_URL}/api`;
 
 export function getAvatarUrl(path: string | null | undefined): string | null {
   if (!path) return null;

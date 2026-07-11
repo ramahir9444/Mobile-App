@@ -19,6 +19,7 @@ const scheduleRoutes      = require('./routes/schedules');
 const materialRoutes      = require('./routes/materials');
 const hwSubmissionRoutes  = require('./routes/homeworkSubmissions');
 const welcomeTestRoutes   = require('./routes/welcomeTests');
+const liveClassroomRoutes = require('./routes/liveClassroom');
 
 const app  = express();
 const PORT = process.env.PORT || 3001;
@@ -72,6 +73,7 @@ app.use('/api/schedules', scheduleRoutes);
 app.use('/api/materials', materialRoutes);
 app.use('/api/homework-submissions', hwSubmissionRoutes);
 app.use('/api/welcome-tests', welcomeTestRoutes);
+app.use('/api/live-classroom', liveClassroomRoutes);
 
 // ── 404 Handler ──────────────────────────────────────────────────
 app.use((req, res) => {

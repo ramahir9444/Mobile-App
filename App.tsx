@@ -53,6 +53,7 @@ import {
   MyOrdersScreen,
   AboutOdaClassScreen,
 } from './src/screens/MeScreens';
+import { LiveClassroomScreen } from './src/screens/LiveClassroomScreen';
 
 const { width } = Dimensions.get('window');
 
@@ -126,6 +127,8 @@ const RootApp: React.FC = () => {
         return <MyOrdersScreen />;
       case 'ABOUT_ODA':
         return <AboutOdaClassScreen />;
+      case 'LIVE_CLASSROOM':
+        return <LiveClassroomScreen />;
       default:
         return <SplashScreen />;
     }
