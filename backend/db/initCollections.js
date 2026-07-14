@@ -87,10 +87,12 @@ async function initCollections() {
               { title: '[Lecture-Notes] Integers Core.pdf', size: '1.4 MB' },
               { title: '[Workbook] Absolute Value Exercises.pdf', size: '0.8 MB' }
             ],
+            quizzes: [
+              { text: 'Which number is smaller than -5?', options: { A: '-4', B: '-6', C: '0', D: '-1' }, correctAnswer: 'B', chapter: 'Integers', topic: 'Comparison' },
+              { text: 'What is the absolute value of -15?', options: { A: '15', B: '-15', C: '0', D: '1' }, correctAnswer: 'A', chapter: 'Integers', topic: 'Absolute Value' }
+            ],
             homework: [
-              { text: 'Which number is smaller than -5?', options: { A: '-4', B: '-6', C: '0', D: '-1' }, correctAnswer: 'B' },
-              { text: 'What is the absolute value of -15?', options: { A: '15', B: '-15', C: '0', D: '1' }, correctAnswer: 'A' },
-              { text: 'Calculate: (-3) x (-4) + (-5).', options: { A: '17', B: '7', C: '-7', D: '-17' }, correctAnswer: 'B' }
+              { text: 'Calculate: (-3) x (-4) + (-5).', options: { A: '17', B: '7', C: '-7', D: '-17' }, correctAnswer: 'B', chapter: 'Integers', topic: 'Arithmetic' }
             ]
           },
           {
@@ -107,8 +109,11 @@ async function initCollections() {
             materials: [
               { title: '[Lecture-Notes] Vedic Tricks.pdf', size: '2.1 MB' }
             ],
+            quizzes: [
+              { text: 'What is 99 x 99 using Vedic method?', options: { A: '9801', B: '9901', C: '9999', D: '9701' }, correctAnswer: 'A', chapter: 'Vedic Maths', topic: 'Multiplication' }
+            ],
             homework: [
-              { text: 'What is 99 x 99 using Vedic method?', options: { A: '9801', B: '9901', C: '9999', D: '9701' }, correctAnswer: 'A' }
+              { text: 'Vedic HW: What is 11 x 11?', options: { A: '121', B: '111', C: '131', D: '101' }, correctAnswer: 'A', chapter: 'Vedic Maths', topic: 'Square' }
             ]
           },
           {
@@ -125,6 +130,7 @@ async function initCollections() {
             materials: [
               { title: '[Slide] Parent Teacher Meet guidelines.pdf', size: '1.1 MB' }
             ],
+            quizzes: [],
             homework: []
           },
           {
@@ -139,6 +145,7 @@ async function initCollections() {
             status: 'Finished',
             createdAt: new Date(),
             materials: [],
+            quizzes: [],
             homework: []
           }
         );

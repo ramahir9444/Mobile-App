@@ -74,6 +74,19 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/schedules/teacher-schedules?teacherName=xxx — Teacher's own schedules (all, sorted by date)
+router.get('/teacher-schedules', async (req, res) => {
+  try {
+    const { teacherName } = req.query;
+    const db = getDB();
+    const query = teacherName ? { teacherName: { $regex: new RegExp(teacherName, 'i') } } : {};
+    const list = await db.collection('schedules').find(query).sort({ createdAt: -1 }).toArray();
+    res.json({ success: true, data: list });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // GET /api/schedules/:id — Fetch a single schedule by ID
 router.get('/:id', async (req, res) => {
   try {
@@ -86,10 +99,11 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+
 // POST /api/schedules — Create a new schedule entry
 router.post('/', async (req, res) => {
   try {
-    const { title, subject, time, dateText, gradeClass, courseType, teacherName, teacherAvatar, status, materials, homework, questions, durationMinutes } = req.body;
+    const { title, subject, time, dateText, gradeClass, courseType, teacherName, teacherAvatar, status, materials, homework, quizzes, questions, durationMinutes, slides } = req.body;
     
     if (!title || !subject || !time || !dateText || !gradeClass || !courseType) {
       return res.status(400).json({ success: false, error: 'Missing required schedule fields' });
@@ -108,7 +122,9 @@ router.post('/', async (req, res) => {
       status: status || 'Scheduled', // 'Scheduled' or 'Finished'
       materials: materials || [],
       homework: homework || [],
+      quizzes: quizzes || [],
       questions: questions || [],
+      slides: slides || [],
       durationMinutes: durationMinutes !== undefined ? Number(durationMinutes) : 30,
       createdAt: new Date()
     };
@@ -124,7 +140,7 @@ router.post('/', async (req, res) => {
 // PUT /api/schedules/:id — Update a schedule entry
 router.put('/:id', async (req, res) => {
   try {
-    const { title, subject, time, dateText, gradeClass, courseType, teacherName, teacherAvatar, status, materials, homework, questions, durationMinutes } = req.body;
+    const { title, subject, time, dateText, gradeClass, courseType, teacherName, teacherAvatar, status, materials, homework, quizzes, questions, durationMinutes, slides } = req.body;
     const db = getDB();
 
     const updateDoc = {};
@@ -139,7 +155,9 @@ router.put('/:id', async (req, res) => {
     if (status !== undefined) updateDoc.status = status;
     if (materials !== undefined) updateDoc.materials = materials;
     if (homework !== undefined) updateDoc.homework = homework;
+    if (quizzes !== undefined) updateDoc.quizzes = quizzes;
     if (questions !== undefined) updateDoc.questions = questions;
+    if (slides !== undefined) updateDoc.slides = slides;
     if (durationMinutes !== undefined) updateDoc.durationMinutes = Number(durationMinutes);
 
     const result = await db.collection('schedules').findOneAndUpdate(
@@ -215,7 +233,8 @@ router.post('/:id/start', async (req, res) => {
       mutedStageStudents: [],
       raiseHands: [],
       whiteboardDrawings: [],
-      activePage: 0
+      activePage: 0,
+      hwReleased: false
     };
 
     const result = await db.collection('schedules').findOneAndUpdate(
@@ -264,6 +283,7 @@ router.post('/:id/end', async (req, res) => {
           isLive: false,
           liveStatus: 'ended',
           status: 'Finished',
+          'liveState.hwReleased': true,
           recordingUrl,
           endedAt: new Date(),
           updatedAt: new Date()
@@ -289,8 +309,19 @@ router.post('/:id/end', async (req, res) => {
 router.get('/:id/live-state', async (req, res) => {
   try {
     const db = getDB();
+    const { phone, name } = req.query;
+    const scheduleId = req.params.id;
+
+    if (phone && phone !== 'teacher' && phone !== 'undefined') {
+      await db.collection('live_classroom_presence').updateOne(
+        { scheduleId, phone },
+        { $set: { lastSeen: new Date(), name: name || 'Student' } },
+        { upsert: true }
+      );
+    }
+
     const schedule = await db.collection('schedules').findOne(
-      { _id: new ObjectId(req.params.id) },
+      { _id: new ObjectId(scheduleId) },
       { projection: { isLive: 1, liveStatus: 1, roomName: 1, liveState: 1 } }
     );
     if (!schedule) {
@@ -302,7 +333,7 @@ router.get('/:id/live-state', async (req, res) => {
   }
 });
 
-// PUT /api/schedules/:id/live-state — Update live state (chat, stage, whiteboard, quiz)
+// PUT /api/schedules/:id/live-state — Update live state (chat, stage, whiteboard, quiz, hw)
 router.put('/:id/live-state', async (req, res) => {
   try {
     const db = getDB();
@@ -315,7 +346,9 @@ router.put('/:id/live-state', async (req, res) => {
       mutedStageStudents, 
       raiseHands, 
       whiteboardDrawings, 
-      activePage 
+      activePage,
+      drawings,
+      hwReleased
     } = req.body;
 
     const updateFields = {};
@@ -327,6 +360,8 @@ router.put('/:id/live-state', async (req, res) => {
     if (raiseHands !== undefined) updateFields['liveState.raiseHands'] = raiseHands;
     if (whiteboardDrawings !== undefined) updateFields['liveState.whiteboardDrawings'] = whiteboardDrawings;
     if (activePage !== undefined) updateFields['liveState.activePage'] = Number(activePage);
+    if (drawings !== undefined) updateFields['liveState.drawings'] = drawings;
+    if (hwReleased !== undefined) updateFields['liveState.hwReleased'] = !!hwReleased;
 
     const result = await db.collection('schedules').findOneAndUpdate(
       { _id: new ObjectId(scheduleId) },
@@ -441,6 +476,25 @@ router.post('/:id/quiz-submit', async (req, res) => {
   }
 });
 
+// GET /api/schedules/:id/live-events — Retrieve live events (chat messages, reactions) for a schedule
+router.get('/:id/live-events', async (req, res) => {
+  try {
+    const db = getDB();
+    const scheduleId = req.params.id;
+    // Default to last 1 hour of events to keep payload size small
+    const since = req.query.since ? new Date(req.query.since) : new Date(Date.now() - 60 * 60 * 1000);
+
+    const events = await db.collection('live_classroom_events')
+      .find({ scheduleId, timestamp: { $gt: since } })
+      .sort({ timestamp: 1 })
+      .toArray();
+
+    res.json({ success: true, data: events });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // POST /api/schedules/:id/live-events — Log student micro-event (e.g. Raise Hand, Mic Toggle)
 router.post('/:id/live-events', async (req, res) => {
   try {
@@ -462,6 +516,20 @@ router.post('/:id/live-events', async (req, res) => {
     };
 
     await db.collection('live_classroom_events').insertOne(doc);
+
+    // Sync hand raising state in real-time in the schedule document
+    if (eventType === 'RaiseHand') {
+      await db.collection('schedules').updateOne(
+        { _id: new ObjectId(scheduleId) },
+        { $addToSet: { 'liveState.raiseHands': studentPhone } }
+      );
+    } else if (eventType === 'LowerHand') {
+      await db.collection('schedules').updateOne(
+        { _id: new ObjectId(scheduleId) },
+        { $pull: { 'liveState.raiseHands': studentPhone } }
+      );
+    }
+
     res.status(201).json({ success: true, message: 'Event logged successfully' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

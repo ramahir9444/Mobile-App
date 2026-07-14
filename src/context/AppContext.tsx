@@ -1,6 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getStudentByPhone, updateStudentClass, fetchHomeworkSubmissions } from '../services/api';
+import { getStudentByPhone, updateStudentClass, fetchHomeworkSubmissions, getOrdersByPhone } from '../services/api';
+
+export const CLASSES_LIST = [
+  'Class 1', 'Class 2', 'Class 3',
+  'Class 4', 'Class 5', 'Class 6',
+  'Class 7', 'Class 8', 'Class 9',
+  'Class 10', 'Class 11'
+];
 
 export type AppScreen =
   | 'SPLASH'
@@ -48,6 +55,7 @@ export interface UserProfile {
   enrollmentType?: 'none' | 'demo' | 'master';
   welcomeTestStatus?: 'pending' | 'completed' | 'none';
   welcomeTestResult?: { score: number; totalQuestions: number; submittedAt: string; answers: any[] };
+  role?: 'student' | 'teacher'; // user role — determines which dashboard to show
   // homeworkSubmissions removed from UserProfile — always fetched fresh from DB
 }
 
@@ -148,6 +156,8 @@ interface AppContextType {
   setActiveCourseType: (type: 'booster' | 'master') => void;
   activeClassSchedule: any;
   setActiveClassSchedule: (schedule: any) => void;
+  redirectTarget: AppScreen | null;
+  setRedirectTarget: (screen: AppScreen | null) => void;
 }
 
 const defaultUser: UserProfile = {
@@ -265,6 +275,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     language: 'English',
   });
 
+  const [redirectTarget, setRedirectTarget] = useState<AppScreen | null>(null);
+
+  const autoSelectClassForUser = async (phone: string, fallbackClass?: string) => {
+    try {
+      const ordersRes = await getOrdersByPhone(phone);
+      if (ordersRes.success && ordersRes.data && ordersRes.data.length > 0) {
+        // Find if they are enrolled in any paid master program
+        const paidMasterOrder = ordersRes.data.find((o: any) => {
+          const title = (o.courseTitle || '').toLowerCase();
+          const isBooster = title.includes('booster') || title.includes('demo') || title.includes('6-day') || title.includes('6 day') || Number(o.amount) < 500;
+          return o.status === 'paid' && !isBooster;
+        });
+
+        if (paidMasterOrder && paidMasterOrder.classInfo) {
+          console.log('🎯 [autoSelectClass] Setting default class to enrolled master class:', paidMasterOrder.classInfo);
+          await setSelectedClass(paidMasterOrder.classInfo);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('🎯 [autoSelectClass] failed to query master orders:', err);
+    }
+
+    // If not enrolled or query failed, show a random grade!
+    if (fallbackClass && CLASSES_LIST.includes(fallbackClass)) {
+      console.log('🎯 [autoSelectClass] User not enrolled in master program, using fallback:', fallbackClass);
+      await setSelectedClass(fallbackClass);
+    } else {
+      const randomClass = CLASSES_LIST[Math.floor(Math.random() * CLASSES_LIST.length)];
+      console.log('🎯 [autoSelectClass] User has no master course, setting random class:', randomClass);
+      await setSelectedClass(randomClass);
+    }
+  };
+
   const updateBookingDetails = (fields: Partial<BookingDetails>) => {
     setBookingDetails((prev) => ({ ...prev, ...fields }));
   };
@@ -274,13 +318,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const loadSession = async () => {
       console.log('🔄 [loadSession] Starting session recovery...');
       try {
-        // Load persisted guest class if exists
-        const savedClass = await AsyncStorage.getItem('@selected_class');
-        console.log('🔄 [loadSession] AsyncStorage @selected_class:', savedClass);
-        if (savedClass) {
-          setSelectedClassState(savedClass);
-        }
-
         const savedPhone = await AsyncStorage.getItem('@user_phone');
         console.log('🔄 [loadSession] AsyncStorage @user_phone:', savedPhone);
         if (savedPhone) {
@@ -305,13 +342,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               enrollmentType: res.data.enrollmentType || 'none',
               welcomeTestStatus: res.data.welcomeTestStatus || 'none',
               welcomeTestResult: res.data.welcomeTestResult || undefined,
+              role: res.data.role || 'student',
             });
-            if (res.data.selectedClass) {
-              setSelectedClassState(res.data.selectedClass);
-              try {
-                await AsyncStorage.setItem('@selected_class', res.data.selectedClass);
-              } catch {}
-            }
+            
+            // Automatically select correct master grade or fallback
+            await autoSelectClassForUser(savedPhone, res.data.selectedClass);
+
             setIsEnrolled(!!(res.data.enrollmentType && res.data.enrollmentType !== 'none'));
             setAuthPhone(savedPhone);
             // Fetch homework submissions from DB — never from local state
@@ -324,9 +360,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             console.log('🔄 [loadSession] Session recovered successfully! Routing to DASHBOARD.');
           } else {
             console.log('🔄 [loadSession] No student data found for phone:', savedPhone);
+            // Guest fallback
+            const savedClass = await AsyncStorage.getItem('@selected_class');
+            if (savedClass) {
+              setSelectedClassState(savedClass);
+            } else {
+              const randomClass = CLASSES_LIST[Math.floor(Math.random() * CLASSES_LIST.length)];
+              setSelectedClassState(randomClass);
+              await AsyncStorage.setItem('@selected_class', randomClass);
+            }
           }
         } else {
-          console.log('🔄 [loadSession] No saved phone found in AsyncStorage.');
+          console.log('🔄 [loadSession] No saved phone found in AsyncStorage (Guest mode).');
+          // Guest first launch: pick random class if none saved
+          const savedClass = await AsyncStorage.getItem('@selected_class');
+          if (savedClass) {
+            setSelectedClassState(savedClass);
+          } else {
+            const randomClass = CLASSES_LIST[Math.floor(Math.random() * CLASSES_LIST.length)];
+            setSelectedClassState(randomClass);
+            await AsyncStorage.setItem('@selected_class', randomClass);
+          }
         }
       } catch (err) {
         console.error('🔄 [loadSession] Exception occurred during session recovery:', err);
@@ -334,6 +388,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     loadSession();
   }, []);
+
+  // Sync / Auto-select grade when logging in
+  useEffect(() => {
+    if (user.phone) {
+      autoSelectClassForUser(user.phone);
+    }
+  }, [user.phone]);
 
   // Trigger splash skeleton loader effect on screen change if global loading is toggled
   useEffect(() => {
@@ -451,6 +512,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setActiveClassSchedule,
         homeworkSubmissions,
         refreshHomeworkSubmissions,
+        redirectTarget,
+        setRedirectTarget,
       }}
     >
       {children}

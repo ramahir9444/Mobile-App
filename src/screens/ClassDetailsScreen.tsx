@@ -152,13 +152,12 @@ export const ClassDetailsScreen: React.FC = () => {
               
               <TouchableOpacity 
                 onPress={async () => {
-                  showToast(activeClassSchedule?.status === 'Finished' ? "Opening replay recording..." : "Entering Live interactive Class...");
-                  if (activeClassSchedule && activeClassSchedule.status !== 'Finished') {
-                    try {
-                      await updateScheduleStatus(activeClassSchedule._id, 'Finished');
-                    } catch (err) {
-                      console.error('Failed to update schedule status on Join Class:', err);
-                    }
+                  if (activeClassSchedule?.status === 'Finished') {
+                    showToast("Opening replay recording...");
+                    // Switch to live classroom in replay mode
+                    navigateTo('LIVE_CLASSROOM');
+                  } else {
+                    navigateTo('LIVE_CLASSROOM');
                   }
                 }}
                 className="bg-[#00B6A6] py-1 px-4.5 rounded-full"
@@ -412,6 +411,19 @@ export const ClassDetailsScreen: React.FC = () => {
               ) : (
                 /* Homework Card */
                 (() => {
+                  const isHwReleased = activeClassSchedule?.status === 'Finished' || activeClassSchedule?.liveState?.hwReleased === true;
+                  if (!isHwReleased) {
+                    return (
+                      <View className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm items-center py-8">
+                        <MaterialCommunityIcons name="lock-outline" size={36} color="#94A3B8" />
+                        <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(14) }} className="text-slate-700 font-bold mt-3">Homework is Locked</Text>
+                        <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(11.5) }} className="text-slate-400 mt-1 text-center px-4">
+                          🔒 Homework will be assigned automatically when the class finishes, or when released by the teacher during class.
+                        </Text>
+                      </View>
+                    );
+                  }
+
                   // Always check from DB-fetched context array — persists across refreshes
                   const submission = homeworkSubmissions.find(
                     (s: any) => s.scheduleId === activeClassSchedule?._id

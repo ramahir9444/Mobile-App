@@ -15,8 +15,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
-import { useApp } from '../context/AppContext';
-import { getAvatarUrl, getHomepageConfig, HomepageConfig, getOrdersByPhone, OrderItem, updateScheduleStatus } from '../services/api';
+import { useApp, CLASSES_LIST } from '../context/AppContext';
+import { getAvatarUrl, getHomepageConfig, HomepageConfig, getOrdersByPhone, OrderItem, updateScheduleStatus, getSchedules } from '../services/api';
 
 
 const { width, height } = Dimensions.get('window');
@@ -25,13 +25,6 @@ const getFontSize = (baseSize: number) => {
   if (width > 400) return baseSize;
   return baseSize - 1.5;
 };
-
-const CLASSES_LIST = [
-  'Class 1', 'Class 2', 'Class 3',
-  'Class 4', 'Class 5', 'Class 6',
-  'Class 7', 'Class 8', 'Class 9',
-  'Class 10', 'Class 11'
-];
 
 export const DashboardScreen: React.FC = () => {
   const { 
@@ -45,18 +38,80 @@ export const DashboardScreen: React.FC = () => {
     activeTab,
     setActiveTab,
     user,
+    updateUser,
     setActiveCourseClass,
-    setActiveCourseType
+    setActiveCourseType,
+    setActiveClassSchedule
   } = useApp();
   const [isClassSheetVisible, setIsClassSheetVisible] = useState<boolean>(false);
   const [studyTab, setStudyTab] = useState<'Bridge' | 'All'>('Bridge');
 
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [dbOrders, setDbOrders] = useState<OrderItem[]>([]);
+  const [isOrdersLoading, setIsOrdersLoading] = useState<boolean>(false);
+
   const [homeConfig, setHomeConfig] = useState<HomepageConfig | null>(null);
   const [isConfigLoading, setIsConfigLoading] = useState(false);
+  const [dynamicUpcoming, setDynamicUpcoming] = useState<any>(null);
+  const [isSchedulesLoading, setIsSchedulesLoading] = useState(false);
+
+  const fetchSchedulesList = async () => {
+    try {
+      const res = await getSchedules();
+      if (res.success && res.data) {
+        let targetGrade = selectedClass;
+
+        // Find if user has a paid master program order
+        const paidMasterOrder = dbOrders.find((o: any) => {
+          const title = (o.courseTitle || '').toLowerCase();
+          const isBooster = title.includes('booster') || title.includes('demo') || title.includes('6-day') || title.includes('6 day') || Number(o.amount) < 500;
+          return o.status === 'paid' && !isBooster;
+        });
+
+        if (paidMasterOrder && paidMasterOrder.classInfo) {
+          targetGrade = paidMasterOrder.classInfo;
+        }
+
+        // Filter classes matching the current class grade (e.g. "Class 6")
+        const matchingSchedules = res.data.filter((s: any) => s.gradeClass === targetGrade);
+        
+        // Find if any class is currently live
+        const liveClass = matchingSchedules.find((s: any) => s.isLive === true);
+        if (liveClass) {
+          setDynamicUpcoming(liveClass);
+          return;
+        }
+        
+        // Else, find the first upcoming class whose status is Scheduled
+        const upcoming = matchingSchedules.find((s: any) => s.status === 'Scheduled');
+        if (upcoming) {
+          setDynamicUpcoming(upcoming);
+        } else {
+          // Fallback to selectedClass if there was no upcoming schedule in master program
+          if (targetGrade !== selectedClass) {
+            const fallbackSchedules = res.data.filter((s: any) => s.gradeClass === selectedClass);
+            const fbLive = fallbackSchedules.find((s: any) => s.isLive === true);
+            if (fbLive) {
+              setDynamicUpcoming(fbLive);
+              return;
+            }
+            const fbUpcoming = fallbackSchedules.find((s: any) => s.status === 'Scheduled');
+            if (fbUpcoming) {
+              setDynamicUpcoming(fbUpcoming);
+              return;
+            }
+          }
+          setDynamicUpcoming(null);
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to load upcoming class:', err);
+    }
+  };
 
   useEffect(() => {
+    setIsConfigLoading(true);
     const fetchConfig = async () => {
-      setIsConfigLoading(true);
       try {
         const res = await getHomepageConfig(selectedClass);
         if (res.success && res.data) {
@@ -69,13 +124,12 @@ export const DashboardScreen: React.FC = () => {
       }
     };
     fetchConfig();
-  }, [selectedClass]);
+    fetchSchedulesList();
 
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  // Dynamic MongoDB Enrolled Courses states & real-time loading
-  const [dbOrders, setDbOrders] = useState<OrderItem[]>([]);
-  const [isOrdersLoading, setIsOrdersLoading] = useState<boolean>(false);
+    // Poll schedules every 10 seconds for real-time live banner updates
+    const interval = setInterval(fetchSchedulesList, 10000);
+    return () => clearInterval(interval);
+  }, [selectedClass, dbOrders]);
 
   const fetchUserOrders = async () => {
     if (!user.phone) return;
@@ -209,7 +263,8 @@ export const DashboardScreen: React.FC = () => {
         ? 'Linear Equations & Algebraic Identities' 
         : 'IIT/JEE Foundation: Quadratic Functions';
 
-    const upcoming = homeConfig?.upcomingClass || {
+    const hasDynamic = !!dynamicUpcoming;
+    const upcoming = dynamicUpcoming || homeConfig?.upcomingClass || {
       title: defaultUpcomingTitle,
       subject: classNum <= 5 ? 'Maths' : 'Mathematics',
       time: 'Today, 6:00 PM',
@@ -217,19 +272,26 @@ export const DashboardScreen: React.FC = () => {
       teacherAvatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=120'
     };
 
+    const isClassLive = hasDynamic && dynamicUpcoming.isLive;
+    const isDifferentGrade = hasDynamic && dynamicUpcoming.gradeClass !== selectedClass;
+    
+    const badgeText = isClassLive
+      ? (isDifferentGrade ? `🔴 LIVE NOW (${dynamicUpcoming.gradeClass})` : '🔴 LIVE NOW')
+      : (isDifferentGrade ? `Upcoming Live (${dynamicUpcoming.gradeClass})` : 'Upcoming Live Class');
+
     return (
       <View style={styles.upcomingContainer} className="mx-5 my-3 p-4 bg-white rounded-2xl relative overflow-hidden shadow-sm">
         <View style={styles.upcomingGlow} />
         
         <View className="flex-row items-center justify-between mb-3 z-10">
-          <View className="flex-row items-center bg-[#E0F7F6] px-2.5 py-0.5 rounded-full">
-            <View className="w-1.5 h-1.5 rounded-full bg-[#00B6A6] mr-1.5" />
-            <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9.5) }} className="text-[#00B6A6] font-bold uppercase tracking-wider">
-              Upcoming Live Class
+          <View className="flex-row items-center bg-[#E0F7F6] px-2.5 py-0.5 rounded-full" style={{ backgroundColor: isClassLive ? '#FEE2E2' : '#E0F7F6' }}>
+            <View className="w-1.5 h-1.5 rounded-full mr-1.5" style={{ backgroundColor: isClassLive ? '#EF4444' : '#00B6A6' }} />
+            <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9.2), color: isClassLive ? '#EF4444' : '#00B6A6' }} className="font-bold uppercase tracking-wider">
+              {badgeText}
             </Text>
           </View>
           <Text style={{ fontFamily: Theme.fonts.poppinsMedium, fontSize: getFontSize(11) }} className="text-slate-400 font-medium">
-            {upcoming.time}
+            {hasDynamic ? `${dynamicUpcoming.dateText}, ${dynamicUpcoming.time}` : upcoming.time}
           </Text>
         </View>
 
@@ -240,7 +302,7 @@ export const DashboardScreen: React.FC = () => {
         <View className="flex-row items-center justify-between mt-1 pt-3 border-t border-slate-100/60 z-10">
           <View className="flex-row items-center">
             <Image 
-              source={{ uri: getAvatarUrl(upcoming.teacherAvatar) || undefined }} 
+              source={{ uri: getAvatarUrl(upcoming.teacherAvatar) || upcoming.teacherAvatar }} 
               className="w-9 h-9 rounded-full bg-slate-200 mr-2.5 border border-slate-100"
             />
             <View>
@@ -254,12 +316,25 @@ export const DashboardScreen: React.FC = () => {
           </View>
 
           <TouchableOpacity 
-            onPress={() => navigateTo('CLASS_DETAILS')}
-            style={styles.joinBtn}
-            className="px-5 py-2 rounded-full bg-[#00B6A6] active:opacity-90 shadow-sm"
+            onPress={() => {
+              if (hasDynamic) {
+                setActiveCourseClass(dynamicUpcoming.gradeClass);
+                setActiveCourseType(dynamicUpcoming.courseType);
+                setActiveClassSchedule(dynamicUpcoming);
+                if (isClassLive) {
+                  navigateTo('LIVE_CLASSROOM');
+                } else {
+                  navigateTo('CLASS_DETAILS');
+                }
+              } else {
+                navigateTo('COURSE_DETAILS');
+              }
+            }}
+            style={[styles.joinBtn, { backgroundColor: isClassLive ? '#EF4444' : '#00B6A6' }]}
+            className="px-5 py-2 rounded-full active:opacity-90 shadow-sm"
           >
             <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(12) }} className="text-white font-bold">
-              Join
+              {isClassLive ? '🔴 Join Live' : 'Join'}
             </Text>
           </TouchableOpacity>
         </View>

@@ -8,24 +8,44 @@
 //     localhost works on web and iOS simulator.
 //     For Android emulator use: http://10.0.2.2:3001
 //     For physical device: http://<YOUR_PC_IP>:3001
-const BASE_URL = 'http://localhost:3001';
+let BASE_URL = 'http://localhost:3001';
+if (typeof window !== 'undefined' && window.location && window.location.hostname) {
+  const protocol = window.location.protocol;
+  const hostname = window.location.hostname;
+  BASE_URL = `${protocol}//${hostname}:3001`;
+}
 export const API_BASE = `${BASE_URL}/api`;
 
 export function getAvatarUrl(path: string | null | undefined): string | null {
   if (!path) return null;
-  
-  if (!path.startsWith('http://') && !path.startsWith('https://') && !path.startsWith('data:image')) {
-    return `${BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
+
+  // Already a full external URL (CDN, Cloudflare, etc.)
+  if (path.startsWith('https://') && !path.includes('localhost') && !path.includes('127.0.0.1')) {
+    return path;
   }
 
-  if (path.includes('localhost:3001') || path.includes('127.0.0.1:3001')) {
-    const parts = path.split('/uploads/');
-    if (parts.length > 1) {
-      return `${BASE_URL}/uploads/${parts[1]}`;
+  // Already a data URI
+  if (path.startsWith('data:')) return path;
+
+  // If it's a full localhost URL, normalize it (strip double /api/uploads mistakes)
+  if (path.includes('localhost') || path.includes('127.0.0.1')) {
+    // Fix: http://localhost:3001/api/uploads/... → http://localhost:3001/uploads/...
+    const normalized = path.replace(/\/api\/uploads\//g, '/uploads/');
+    // Ensure it points to BASE_URL
+    const uploadIdx = normalized.indexOf('/uploads/');
+    if (uploadIdx !== -1) {
+      return `${BASE_URL}${normalized.substring(uploadIdx)}`;
     }
+    return normalized;
   }
 
-  return path;
+  // Relative path: /uploads/... or uploads/...
+  if (path.startsWith('/uploads/') || path.startsWith('uploads/')) {
+    return `${BASE_URL}/${path.replace(/^\//, '')}`;
+  }
+
+  // Any other relative path
+  return `${BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
 }
 
 
@@ -85,6 +105,7 @@ export interface StudentProfile {
   enrollmentType?: 'none' | 'demo' | 'master';
   welcomeTestStatus?: 'pending' | 'completed' | 'none';
   welcomeTestResult?: { score: number; totalQuestions: number; submittedAt: string; answers: any[] };
+  role?: 'student' | 'teacher';
 }
 
 export interface Teacher {
@@ -341,6 +362,10 @@ export async function updateScheduleStatus(
   status: 'Scheduled' | 'Finished'
 ): Promise<{ success: boolean; data: any }> {
   return apiCall('PUT', `/api/schedules/${id}/status`, { status });
+}
+
+export async function getSchedules(): Promise<{ success: boolean; data: any[] }> {
+  return apiCall('GET', '/api/schedules');
 }
 
 /** Fetch details for a single schedule by ID */

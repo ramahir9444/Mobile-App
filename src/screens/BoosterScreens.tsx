@@ -9,7 +9,8 @@ import {
   Dimensions, 
   StatusBar,
   Modal,
-  ActivityIndicator
+  ActivityIndicator,
+  Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, MaterialCommunityIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
@@ -31,7 +32,7 @@ const getFontSize = (baseSize: number) => {
 // 1. BOOSTER DETAILS SCREEN
 // ==========================================
 export const BoosterDetailsScreen: React.FC = () => {
-  const { navigateTo, goBack, selectedClass } = useApp();
+  const { navigateTo, goBack, selectedClass, user, setRedirectTarget } = useApp();
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [homeConfig, setHomeConfig] = useState<HomepageConfig | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -534,7 +535,26 @@ export const BoosterDetailsScreen: React.FC = () => {
         </View>
 
         <TouchableOpacity 
-          onPress={() => navigateTo('BOOSTER_SELECT_CLASS')}
+          onPress={() => {
+            if (!user.phone) {
+              Alert.alert(
+                'Login Required',
+                'Please log in to reserve your seat for the Concept Booster Course.',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { 
+                    text: 'Login', 
+                    onPress: () => {
+                      setRedirectTarget('BOOSTER_SELECT_CLASS');
+                      navigateTo('LOGIN');
+                    } 
+                  }
+                ]
+              );
+            } else {
+              navigateTo('BOOSTER_SELECT_CLASS');
+            }
+          }}
           style={styles.enrollButton}
           className="py-3 px-8 rounded-full shadow-sm active:scale-[0.98]"
         >
@@ -551,7 +571,7 @@ export const BoosterDetailsScreen: React.FC = () => {
 // 2. BOOSTER SELECT CLASS SCREEN
 // ==========================================
 export const BoosterSelectClassScreen: React.FC = () => {
-  const { navigateTo, goBack, selectedClass, setSelectedClass, setIsEnrolled, authPhone } = useApp();
+  const { navigateTo, goBack, selectedClass, setSelectedClass, setIsEnrolled, authPhone, user, setRedirectTarget } = useApp();
   const [paySheetVisible, setPaySheetVisible] = useState<boolean>(false);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [paySuccess, setPaySuccess] = useState<boolean>(false);
@@ -791,7 +811,26 @@ export const BoosterSelectClassScreen: React.FC = () => {
         </View>
         
         <TouchableOpacity 
-          onPress={() => setPaySheetVisible(true)}
+          onPress={() => {
+            if (!user.phone) {
+              Alert.alert(
+                'Login Required',
+                'Please log in to purchase and enroll in the Concept Booster Course.',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { 
+                    text: 'Login', 
+                    onPress: () => {
+                      setRedirectTarget('BOOSTER_SELECT_CLASS');
+                      navigateTo('LOGIN');
+                    } 
+                  }
+                ]
+              );
+            } else {
+              setPaySheetVisible(true);
+            }
+          }}
           style={styles.enrollButton}
           className="py-3 px-10 rounded-full active:scale-[0.98] shadow-sm"
         >

@@ -9,7 +9,8 @@ import {
   Dimensions, 
   StatusBar,
   Animated,
-  ImageBackground
+  ImageBackground,
+  Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
@@ -22,7 +23,7 @@ const { width } = Dimensions.get('window');
 type TabType = 'Course' | 'Outline' | 'Ratings' | 'Details';
 
 export const MasterProgramScreen: React.FC = () => {
-  const { goBack, navigateTo, selectedClass } = useApp();
+  const { goBack, navigateTo, selectedClass, user, setRedirectTarget } = useApp();
   const [activeTab, setActiveTab] = useState<TabType>('Course');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [teacherIndex, setTeacherIndex] = useState<number>(0);
@@ -928,7 +929,26 @@ export const MasterProgramScreen: React.FC = () => {
       {/* STICKY BOTTOM ACTION BAR */}
       <View style={styles.bottomStickyBar} className="absolute bottom-0 left-0 right-0 py-4 px-5 z-40 bg-[#FF5E00] items-center justify-center">
         <TouchableOpacity 
-          onPress={() => navigateTo('ORDER_LOADING')}
+          onPress={() => {
+            if (!user.phone) {
+              Alert.alert(
+                'Login Required',
+                'Please log in to register and reserve your seat for the Master Program.',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { 
+                    text: 'Login', 
+                    onPress: () => {
+                      setRedirectTarget('ORDER_LOADING');
+                      navigateTo('LOGIN');
+                    } 
+                  }
+                ]
+              );
+            } else {
+              navigateTo('ORDER_LOADING');
+            }
+          }}
           className="w-full items-center justify-center active:scale-[0.98]"
         >
           <Text style={{ fontFamily: Theme.fonts.poppinsBold }} className="text-white text-base font-bold tracking-wide">

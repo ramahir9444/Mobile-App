@@ -7,7 +7,7 @@ import { Theme } from '../constants/theme';
 import { verifyOtp } from '../services/api';
 
 export const OtpScreen: React.FC = () => {
-  const { navigateTo, authPhone, updateUser, setSelectedClass } = useApp();
+  const { navigateTo, authPhone, updateUser, setSelectedClass, redirectTarget, setRedirectTarget } = useApp();
 
   const [code, setCode]             = useState('');
   const [timer, setTimer]           = useState(54);
@@ -50,11 +50,19 @@ export const OtpScreen: React.FC = () => {
             board: res.student.board || '',
             state: res.student.state || '',
             address: res.student.address || '',
+            role: res.student.role || 'student',
           });
           if (res.student.selectedClass) {
             setSelectedClass(res.student.selectedClass);
           }
-          navigateTo('DASHBOARD');
+          
+          if (redirectTarget) {
+            const target = redirectTarget;
+            setRedirectTarget(null);
+            navigateTo(target);
+          } else {
+            navigateTo('DASHBOARD');
+          }
         } else {
           setError(res.error || 'Invalid OTP. Please try again.');
           setIsLoggingIn(false);

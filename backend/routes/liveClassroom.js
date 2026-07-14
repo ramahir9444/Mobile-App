@@ -48,7 +48,7 @@ router.post('/token', async (req, res) => {
     }
 
     if (!schedule.roomName) {
-      return res.status(400).json({ success: false, error: 'Room not started yet. Admin must start the class first.' });
+      return res.json({ success: false, error: 'Room not started yet. Admin must start the class first.' });
     }
 
     // Build access token with appropriate permissions
@@ -96,6 +96,9 @@ router.post('/token', async (req, res) => {
  * Body: { scheduleId }
  * Creates the LiveKit room and updates schedule.roomName in DB
  */
+// Track active auto-end timers keyed by scheduleId
+const autoEndTimers = {};
+
 router.post('/create-room', async (req, res) => {
   try {
     const { scheduleId } = req.body;
@@ -133,6 +136,7 @@ router.post('/create-room', async (req, res) => {
       raiseHands: [],
       whiteboardDrawings: [],
       activePage: 0,
+      hwReleased: false,
     };
 
     await db.collection('schedules').updateOne(
@@ -147,6 +151,58 @@ router.post('/create-room', async (req, res) => {
         },
       }
     );
+
+    // ─── Auto-end after 2 hours ───────────────────────────────────
+    // Cancel any previous timer for this schedule
+    if (autoEndTimers[scheduleId]) {
+      clearTimeout(autoEndTimers[scheduleId]);
+    }
+
+    const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+    autoEndTimers[scheduleId] = setTimeout(async () => {
+      try {
+        const currentSchedule = await db.collection('schedules').findOne({ _id: new ObjectId(scheduleId) });
+        // Only auto-end if still live
+        if (currentSchedule && currentSchedule.isLive) {
+          console.log(`[AutoEnd] Auto-ending class ${scheduleId} after 2 hours`);
+          // Delete LiveKit room
+          try {
+            await roomService.deleteRoom(roomName);
+          } catch (lkErr) {
+            console.warn('[AutoEnd] Could not delete LiveKit room:', lkErr.message);
+          }
+          // Mark as ended in DB
+          const recordingUrl = `https://d2j1w2b3c4d5e6.cloudfront.net/recordings/${scheduleId}.mp4`;
+          await db.collection('schedules').updateOne(
+            { _id: new ObjectId(scheduleId) },
+            {
+              $set: {
+                isLive: false,
+                liveStatus: 'ended',
+                status: 'Finished',
+                'liveState.hwReleased': true,
+                recordingUrl,
+                endedAt: new Date(),
+                updatedAt: new Date(),
+                autoEnded: true,
+              },
+            }
+          );
+          await db.collection('live_classroom_events').insertOne({
+            scheduleId,
+            event: 'ClassAutoEnded',
+            reason: 'Auto-ended after 2 hours',
+            timestamp: new Date(),
+          });
+        }
+        delete autoEndTimers[scheduleId];
+      } catch (err) {
+        console.error('[AutoEnd] Error auto-ending class:', err.message);
+      }
+    }, TWO_HOURS_MS);
+
+    console.log(`[LiveKit] Class ${scheduleId} will auto-end in 2 hours`);
+    // ─────────────────────────────────────────────────────────────
 
     res.json({
       success: true,
@@ -174,6 +230,13 @@ router.post('/end-room', async (req, res) => {
       return res.status(400).json({ success: false, error: 'scheduleId is required' });
     }
 
+    // Cancel any pending auto-end timer for this class
+    if (autoEndTimers[scheduleId]) {
+      clearTimeout(autoEndTimers[scheduleId]);
+      delete autoEndTimers[scheduleId];
+      console.log(`[LiveKit] Auto-end timer cancelled for ${scheduleId} (teacher ended manually)`);
+    }
+
     const db = getDB();
     const schedule = await db.collection('schedules').findOne({ _id: new ObjectId(scheduleId) });
     if (!schedule) {
@@ -190,6 +253,9 @@ router.post('/end-room', async (req, res) => {
       }
     }
 
+    // Save a recording URL (real recording integration can replace this)
+    const recordingUrl = `https://d2j1w2b3c4d5e6.cloudfront.net/recordings/${scheduleId}.mp4`;
+
     // Mark as ended in DB
     await db.collection('schedules').updateOne(
       { _id: new ObjectId(scheduleId) },
@@ -198,11 +264,20 @@ router.post('/end-room', async (req, res) => {
           isLive: false,
           liveStatus: 'ended',
           status: 'Finished',
+          recordingUrl,
           endedAt: new Date(),
           updatedAt: new Date(),
         },
       }
     );
+
+    // Log class-ended event
+    await db.collection('live_classroom_events').insertOne({
+      scheduleId,
+      event: 'ClassEnded',
+      reason: 'Teacher ended manually',
+      timestamp: new Date(),
+    });
 
     res.json({ success: true, message: 'Room ended and schedule marked as Finished' });
   } catch (err) {
@@ -255,6 +330,25 @@ router.get('/room-info', async (req, res) => {
     } catch (livekitErr) {
       console.warn('[LiveKit] Could not list participants:', livekitErr.message);
     }
+
+    // Clean up stale heartbeats older than 12 seconds
+    const cutoff = new Date(Date.now() - 12000);
+    await db.collection('live_classroom_presence').deleteMany({
+      scheduleId: scheduleId.toString(),
+      lastSeen: { $lt: cutoff }
+    });
+
+    const activeDbParticipants = await db.collection('live_classroom_presence').find({ scheduleId: scheduleId.toString() }).toArray();
+    activeDbParticipants.forEach((dbP) => {
+      if (!participants.some((p) => p.identity === dbP.phone)) {
+        participants.push({
+          identity: dbP.phone,
+          name: dbP.name,
+          isPublishing: false,
+          joinedAt: dbP.lastSeen,
+        });
+      }
+    });
 
     res.json({
       success: true,

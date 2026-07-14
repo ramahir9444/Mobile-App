@@ -71,6 +71,8 @@ export const CourseDetailsScreen: React.FC = () => {
   const pendingHwList = schedules.filter((s: any) => {
     const hasHw = s.homework && s.homework.length > 0;
     if (!hasHw) return false;
+    const isHwReleased = s.status === 'Finished' || s.liveState?.hwReleased === true;
+    if (!isHwReleased) return false;
     // Always check against DB-fetched homeworkSubmissions — accurate across app restarts
     const isSubmitted = homeworkSubmissions.some(
       (sub: any) => sub.scheduleId === s._id
@@ -327,22 +329,11 @@ export const CourseDetailsScreen: React.FC = () => {
                                 <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(10.5) }} className="text-white font-bold">Start Test</Text>
                               </TouchableOpacity>
                             ) : (
-                              <TouchableOpacity 
-                                onPress={async (e) => {
+                              <TouchableOpacity
+                                onPress={(e) => {
                                   e.stopPropagation();
                                   setActiveClassSchedule(item);
-                                  if (item.isLiveClass && item.isLive) {
-                                    navigateTo('LIVE_CLASSROOM');
-                                  } else if (item.isLiveClass) {
-                                    showToast("Class hasn't started yet. Check back soon!");
-                                  } else {
-                                    showToast("Entering Live interactive Class...");
-                                    try {
-                                      await updateScheduleStatus(item._id, 'Finished');
-                                    } catch (err) {
-                                      console.error('Failed to update schedule status on Join Class:', err);
-                                    }
-                                  }
+                                  navigateTo('LIVE_CLASSROOM');
                                 }}
                                 className={`py-1 px-3.5 rounded-full active:opacity-80 mt-3 ${item.isLive ? 'bg-red-500' : 'bg-[#00B6A6]'}`}
                               >
@@ -438,6 +429,16 @@ export const CourseDetailsScreen: React.FC = () => {
                               </View>
                             ) : item.homework && item.homework.length > 0 ? (
                               (() => {
+                                const isHwReleased = item.status === 'Finished' || item.liveState?.hwReleased === true;
+                                if (!isHwReleased) {
+                                  return (
+                                    <View className="bg-slate-100 border border-slate-200 py-0.5 px-2.5 rounded-full">
+                                      <Text style={{ fontFamily: Theme.fonts.poppinsBold, fontSize: getFontSize(9) }} className="text-slate-500 font-bold uppercase">
+                                        🔒 HW Locked
+                                      </Text>
+                                    </View>
+                                  );
+                                }
                                 const isHwSubmitted = homeworkSubmissions.some(
                                   (sub: any) => sub.scheduleId === item._id
                                 );

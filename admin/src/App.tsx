@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Room, RoomEvent } from 'livekit-client';
 import { 
   fetchHomepageConfig, 
   saveHomepageConfig, 
@@ -18,6 +19,45 @@ import {
   deleteWelcomeTest,
   API_BASE
 } from './api/configApi';
+
+// PDF.js Dynamic Loader
+const loadPdfJS = () => {
+  return new Promise<any>((resolve, reject) => {
+    if ((window as any).pdfjsLib) {
+      resolve((window as any).pdfjsLib);
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js';
+    script.onload = () => {
+      const pdfjsLib = (window as any).pdfjsLib;
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+      resolve(pdfjsLib);
+    };
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+};
+
+const StudentVideoView: React.FC<{ track: any }> = ({ track }) => {
+  const ref = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    if (!track || !ref.current) return;
+    track.attach(ref.current);
+    return () => {
+      track.detach(ref.current);
+    };
+  }, [track]);
+
+  return (
+    <video
+      ref={ref}
+      autoPlay
+      playsInline
+      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+    />
+  );
+};
 
 // Reusable Section Component
 const FormSection: React.FC<{
@@ -129,7 +169,7 @@ export default function App() {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
-  const [activeTab, setActiveTab] = useState<'config' | 'orders' | 'students' | 'schedules' | 'materials' | 'hw_reports' | 'welcome_test' | 'test_reports'>('config');
+  const [activeTab, setActiveTab] = useState<'config' | 'orders' | 'students' | 'schedules' | 'materials' | 'hw_reports' | 'welcome_test' | 'test_reports' | 'teacher_desk'>('config');
   const [testSubmissions, setTestSubmissions] = useState<any[]>([]);
   const [testSubmissionsLoading, setTestSubmissionsLoading] = useState(false);
   const [testFilterClass, setTestFilterClass] = useState('all');
@@ -169,18 +209,39 @@ export default function App() {
     maxStageStudents: 4,
     materials: [],
     homework: [],
+    quizzes: [],
     questions: [],
+    slides: [],
     durationMinutes: 30
   });
   const [tempMaterial, setTempMaterial] = useState({ title: '', size: '0.0 MB', url: '' });
   const [isUploadingMaterial, setIsUploadingMaterial] = useState(false);
-  const [tempHomework, setTempHomework] = useState({ text: '', optA: '', optB: '', optC: '', optD: '', correct: 'A' });
+  const [tempHomework, setTempHomework] = useState({ text: '', optA: '', optB: '', optC: '', optD: '', correct: 'A', chapter: '', topic: '' });
+  const [tempQuiz, setTempQuiz] = useState({ text: '', optA: '', optB: '', optC: '', optD: '', correct: 'A', chapter: '', topic: '' });
+  const [tempSlideUrl, setTempSlideUrl] = useState('');
+  const [isUploadingSlide, setIsUploadingSlide] = useState(false);
+  const [uploadingStatus, setUploadingStatus] = useState('');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [studentVideoTracks, setStudentVideoTracks] = useState<{ [identity: string]: any }>({});
   const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
 
   // Live Classroom Control states
   const [activeControlSchedule, setActiveControlSchedule] = useState<any>(null);
   const [liveRoomState, setLiveRoomState] = useState<any>(null);
   const [selectedControlQuizIdx, setSelectedControlQuizIdx] = useState<number>(0);
+  const [livekitRoom, setLivekitRoom] = useState<any>(null);
+  const [lkCameraEnabled, setLkCameraEnabled] = useState<boolean>(true);
+  const [lkMicEnabled, setLkMicEnabled] = useState<boolean>(true);
+  const [drawColor, setDrawColor] = useState<string>('#EF4444');
+  const [drawTool, setDrawTool] = useState<'pen' | 'eraser'>('pen');
+  const [drawSize, setDrawSize] = useState<number>(3);
+  const [localDrawings, setLocalDrawings] = useState<any[]>([]); // instant local drawings (no flicker)
+  const [controlTab, setControlTab] = useState<'chat' | 'quiz' | 'roster'>('chat');
+  const [teacherChatInput, setTeacherChatInput] = useState<string>('');
+  const [teacherChatMessages, setTeacherChatMessages] = useState<any[]>([]);
+  const isDrawingRef = useRef(false);
+  const currentPathRef = useRef<string>('');
+  const lastPosRef = useRef({ x: 0, y: 0 });
 
   // Materials states
   const [materials, setMaterials] = useState<any[]>([]);
@@ -314,14 +375,147 @@ export default function App() {
   useEffect(() => {
     if (!activeControlSchedule) return;
     
+    const fetchChatEvents = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/schedules/${activeControlSchedule._id}/live-events`);
+        const json = await res.json();
+        if (json.success && json.data) {
+          const chatEvts = json.data.filter((evt: any) => evt.eventType === 'ChatMessage');
+          setTeacherChatMessages(chatEvts);
+        }
+      } catch (err) {
+        console.error('Error fetching teacher chat events:', err);
+      }
+    };
+
     syncLiveRoomState(activeControlSchedule._id);
+    fetchChatEvents();
 
     const interval = setInterval(() => {
       syncLiveRoomState(activeControlSchedule._id);
+      fetchChatEvents();
     }, 3000);
 
     return () => clearInterval(interval);
   }, [activeControlSchedule]);
+
+  // ─── Teacher LiveKit Integration ─────────────────────────────
+  useEffect(() => {
+    if (!activeControlSchedule || !activeControlSchedule.roomName) {
+      if (livekitRoom) {
+        livekitRoom.disconnect();
+        setLivekitRoom(null);
+      }
+      return;
+    }
+
+    let active = true;
+    let roomInstance: any = null;
+
+    async function connectToLiveKit() {
+      try {
+        const scheduleId = activeControlSchedule._id;
+        const tokenRes = await fetch(`${API_BASE}/api/live-classroom/token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            scheduleId,
+            participantName: activeControlSchedule.teacherName || 'Teacher',
+            participantIdentity: `teacher-${scheduleId}`,
+            isTeacher: true
+          })
+        });
+        const tokenJson = await tokenRes.json();
+        if (!tokenJson.success) throw new Error(tokenJson.error || 'Failed to get teacher token');
+
+        const { token, wsUrl } = tokenJson.data;
+        if (!active) return;
+
+        showToast('🎥 Connecting to LiveKit Media server...');
+
+        roomInstance = new Room();
+        setLivekitRoom(roomInstance);
+
+        await roomInstance.connect(wsUrl, token);
+        await roomInstance.localParticipant.setCameraEnabled(lkCameraEnabled);
+        await roomInstance.localParticipant.setMicrophoneEnabled(lkMicEnabled);
+
+        showToast('✅ Video broadcasting started!');
+
+        const attachLocalTrack = () => {
+          const videoElement = document.getElementById('teacher-local-video') as HTMLVideoElement;
+          if (!videoElement) return;
+          const videoPub = roomInstance.localParticipant.videoTrackPublications.values().next().value;
+          if (videoPub && videoPub.track) {
+            videoPub.track.attach(videoElement);
+          }
+        };
+
+        setTimeout(attachLocalTrack, 500);
+        roomInstance.on(RoomEvent.LocalTrackPublished, attachLocalTrack);
+
+        // Listen for remote student video tracks (stage participants)
+        roomInstance.on(RoomEvent.TrackSubscribed, (track: any, _publication: any, participant: any) => {
+          if (!participant?.identity?.startsWith('teacher-') && track.kind === 'video') {
+            setStudentVideoTracks((prev: any) => ({ ...prev, [participant.identity]: track }));
+          }
+        });
+
+        roomInstance.on(RoomEvent.TrackUnsubscribed, (track: any, _publication: any, participant: any) => {
+          if (!participant?.identity?.startsWith('teacher-') && track.kind === 'video') {
+            setStudentVideoTracks((prev: any) => {
+              const copy = { ...prev };
+              delete copy[participant.identity];
+              return copy;
+            });
+          }
+        });
+
+        // Collect existing remote tracks
+        for (const p of roomInstance.remoteParticipants.values()) {
+          if (!p.identity.startsWith('teacher-')) {
+            const videoPub = Array.from(p.videoTrackPublications.values())[0] as any;
+            if (videoPub && videoPub.track) {
+              setStudentVideoTracks((prev: any) => ({ ...prev, [p.identity]: videoPub.track }));
+            }
+          }
+        }
+
+      } catch (err: any) {
+        console.error('LiveKit connection error:', err);
+        showToast('Failed to connect video: ' + err.message, 'error');
+      }
+    }
+
+    connectToLiveKit();
+
+    return () => {
+      active = false;
+      if (roomInstance) {
+        roomInstance.disconnect();
+      }
+      setLivekitRoom(null);
+      setStudentVideoTracks({});
+    };
+  }, [activeControlSchedule?.roomName, activeControlSchedule?._id]);
+
+  const handleToggleCamera = async () => {
+    const nextState = !lkCameraEnabled;
+    setLkCameraEnabled(nextState);
+    if (livekitRoom) {
+      await livekitRoom.localParticipant.setCameraEnabled(nextState);
+      showToast(nextState ? '📷 Camera Enabled' : '📷 Camera Disabled');
+    }
+  };
+
+  const handleToggleMic = async () => {
+    const nextState = !lkMicEnabled;
+    setLkMicEnabled(nextState);
+    if (livekitRoom) {
+      await livekitRoom.localParticipant.setMicrophoneEnabled(nextState);
+      showToast(nextState ? '🎙️ Mic Active' : '🎙️ Mic Muted');
+    }
+  };
 
   // Fetch configs upon selection
   useEffect(() => {
@@ -742,25 +936,35 @@ export default function App() {
   const syncLiveRoomState = async (scheduleId: string) => {
     try {
       const [liveStateRes, roomInfoRes] = await Promise.allSettled([
-        fetch(`${API_BASE}/schedules/${scheduleId}/live-state`).then(r => r.json()),
-        fetch(`${API_BASE}/live-classroom/room-info?scheduleId=${scheduleId}`).then(r => r.json()),
+        fetch(`${API_BASE}/api/schedules/${scheduleId}/live-state`).then(r => r.json()),
+        fetch(`${API_BASE}/api/live-classroom/room-info?scheduleId=${scheduleId}`).then(r => r.json()),
       ]);
 
       if (liveStateRes.status === 'fulfilled' && liveStateRes.value.success) {
+        const serverLiveState = liveStateRes.value.data?.liveState;
         setLiveRoomState((prev: any) => ({
           ...(prev || {}),
-          ...liveStateRes.value.data?.liveState,
+          ...serverLiveState,
           isLive: liveStateRes.value.data?.isLive,
           liveStatus: liveStateRes.value.data?.liveStatus,
         }));
+        // Once server has confirmed drawings, clear localDrawings to avoid duplication
+        if (serverLiveState?.drawings?.length !== undefined) {
+          setLocalDrawings([]);
+        }
       }
 
       if (roomInfoRes.status === 'fulfilled' && roomInfoRes.value.success) {
-        const participants = roomInfoRes.value.data?.participants || [];
+        const rawParticipants = roomInfoRes.value.data?.participants || [];
+        // Filter out teacher identity from student count display (teacher starts with 'teacher-')
+        const studentParticipants = rawParticipants.filter(
+          (p: any) => !p.identity?.startsWith('teacher-')
+        );
         setLiveRoomState((prev: any) => ({
           ...(prev || {}),
-          participants,
-          participantCount: participants.length,
+          participants: rawParticipants, // keep all for internal use
+          studentParticipants, // students only for count display
+          participantCount: studentParticipants.length,
         }));
       }
     } catch {}
@@ -771,6 +975,7 @@ export default function App() {
     const state = liveRoomState || {};
     const isLive = state.isLive || false;
     const participants = state.participants || [];
+    const studentParticipants = state.studentParticipants || participants.filter((p: any) => !p.identity?.startsWith('teacher-'));
     const raiseHands = state.raiseHands || [];
     const stageStudents = state.stageStudents || [];
     const quizActive = state.quizActive || false;
@@ -778,7 +983,7 @@ export default function App() {
 
     const updateState = async (updates: any) => {
       try {
-        await fetch(`${API_BASE}/schedules/${schedule._id}/live-state`, {
+        await fetch(`${API_BASE}/api/schedules/${schedule._id}/live-state`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updates),
@@ -792,7 +997,7 @@ export default function App() {
     const handleStartClass = async () => {
       try {
         showToast('🔴 Starting class and creating LiveKit room...');
-        const res = await fetch(`${API_BASE}/live-classroom/create-room`, {
+        const res = await fetch(`${API_BASE}/api/live-classroom/create-room`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ scheduleId: schedule._id }),
@@ -812,7 +1017,7 @@ export default function App() {
       if (!confirm('Are you sure you want to end this live class? All students will be disconnected.')) return;
       try {
         showToast('Ending live class...');
-        const res = await fetch(`${API_BASE}/live-classroom/end-room`, {
+        const res = await fetch(`${API_BASE}/api/live-classroom/end-room`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ scheduleId: schedule._id }),
@@ -828,15 +1033,22 @@ export default function App() {
     };
 
     const handleInviteToStage = async (identity: string) => {
-      const updated = stageStudents.includes(identity)
-        ? stageStudents.filter((s: string) => s !== identity)
-        : [...stageStudents, identity];
+      let updated = [];
+      if (stageStudents.includes(identity)) {
+        updated = stageStudents.filter((s: string) => s !== identity);
+      } else {
+        if (stageStudents.length >= 5) {
+          showToast('Stage is full! (Max 5 students). Use Rotate Stage to cycle.', 'error');
+          return;
+        }
+        updated = [...stageStudents, identity];
+      }
       await updateState({ stageStudents: updated });
     };
 
     const handleLaunchQuiz = async () => {
-      const questions = schedule.homework || [];
-      if (questions.length === 0) { showToast('No questions in this schedule!', 'error'); return; }
+      const questions = schedule.quizzes || [];
+      if (questions.length === 0) { showToast('No live quiz questions in this schedule!', 'error'); return; }
       const q = questions[selectedControlQuizIdx];
       await updateState({ quizActive: true, activeQuizId: q._id || q.text });
     };
@@ -847,7 +1059,7 @@ export default function App() {
 
     const handleMuteParticipant = async (identity: string) => {
       try {
-        await fetch(`${API_BASE}/live-classroom/mute-participant`, {
+        await fetch(`${API_BASE}/api/live-classroom/mute-participant`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ scheduleId: schedule._id, participantIdentity: identity, mute: true }),
@@ -859,7 +1071,7 @@ export default function App() {
     const handleKickParticipant = async (identity: string) => {
       if (!confirm(`Remove participant ${identity} from the room?`)) return;
       try {
-        await fetch(`${API_BASE}/live-classroom/remove-participant`, {
+        await fetch(`${API_BASE}/api/live-classroom/remove-participant`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ scheduleId: schedule._id, participantIdentity: identity }),
@@ -868,202 +1080,939 @@ export default function App() {
       } catch {}
     };
 
+    const isPointNearPath = (px: number, py: number, pathStr: string, threshold = 18) => {
+      const matches = pathStr.match(/[-+]?[0-9]*\.?[0-9]+/g);
+      if (!matches) return false;
+      for (let i = 0; i < matches.length; i += 2) {
+        const x = parseFloat(matches[i]);
+        const y = parseFloat(matches[i+1]);
+        if (!isNaN(x) && !isNaN(y)) {
+          const dist = Math.sqrt((x - px) ** 2 + (y - py) ** 2);
+          if (dist <= threshold) return true;
+        }
+      }
+      return false;
+    };
+
+    const handleCanvasMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+      if (!isLive) return;
+      const canvas = e.currentTarget;
+      const rect = canvas.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 800;
+      const y = ((e.clientY - rect.top) / rect.height) * 450;
+
+      isDrawingRef.current = true;
+
+      if (drawTool === 'eraser') {
+        const currentDrawings = state.drawings || [];
+        const nextDrawings = currentDrawings.filter((d: any) => !isPointNearPath(x, y, d.path));
+        if (nextDrawings.length !== currentDrawings.length) {
+          updateState({ drawings: nextDrawings });
+        }
+      } else {
+        lastPosRef.current = { x, y };
+        currentPathRef.current = `M ${x.toFixed(1)} ${y.toFixed(1)}`;
+
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.beginPath();
+          ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+          ctx.strokeStyle = drawColor;
+          ctx.lineWidth = 3;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
+        }
+      }
+    };
+
+    const handleCanvasMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+      if (!isDrawingRef.current || !isLive) return;
+      const canvas = e.currentTarget;
+      const rect = canvas.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 800;
+      const y = ((e.clientY - rect.top) / rect.height) * 450;
+
+      if (drawTool === 'eraser') {
+        const currentDrawings = state.drawings || [];
+        const nextDrawings = currentDrawings.filter((d: any) => !isPointNearPath(x, y, d.path));
+        if (nextDrawings.length !== currentDrawings.length) {
+          updateState({ drawings: nextDrawings });
+        }
+      } else {
+        currentPathRef.current += ` L ${x.toFixed(1)} ${y.toFixed(1)}`;
+        lastPosRef.current = { x, y };
+
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+          ctx.stroke();
+        }
+      }
+    };
+
+    const handleCanvasMouseUpOrLeave = async (e: React.MouseEvent<HTMLCanvasElement>) => {
+      if (!isDrawingRef.current || !isLive) return;
+      isDrawingRef.current = false;
+
+      if (drawTool === 'eraser') {
+        return;
+      }
+
+      const canvas = e.currentTarget;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+
+      const newPath = currentPathRef.current;
+      currentPathRef.current = '';
+
+      if (newPath) {
+        const newStroke = { color: drawColor, width: drawSize, path: newPath };
+        // INSTANT local update — no flicker waiting for server round-trip
+        setLocalDrawings(prev => [...prev, newStroke]);
+        // Async background save to DB (don't await — fire and forget)
+        const nextDrawings = [...(state.drawings || []), newStroke];
+        updateState({ drawings: nextDrawings });
+      }
+    };
+
+    const handleClearDrawings = async () => {
+      setLocalDrawings([]);
+      await updateState({ drawings: [] });
+    };
+
+    const sendTeacherChatMessage = async () => {
+      if (!teacherChatInput.trim()) return;
+      try {
+        await fetch(`${API_BASE}/api/schedules/${schedule._id}/live-events`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            studentPhone: 'teacher',
+            studentName: 'Teacher (' + (schedule.teacherName || 'Mam') + ')',
+            eventType: 'ChatMessage',
+            detail: teacherChatInput.trim(),
+          }),
+        });
+        setTeacherChatInput('');
+        const res = await fetch(`${API_BASE}/api/schedules/${schedule._id}/live-events`);
+        const json = await res.json();
+        if (json.success && json.data) {
+          const chatEvts = json.data.filter((evt: any) => evt.eventType === 'ChatMessage');
+          setTeacherChatMessages(chatEvts);
+        }
+      } catch (err) {
+        console.error('Error sending teacher message:', err);
+      }
+    };
+
+    const handleNextSlide = async () => {
+      const current = Number(state.activePage || 0);
+      const maxPages = schedule.slides?.length ? schedule.slides.length - 1 : 9;
+      if (current < maxPages) {
+        await updateState({ activePage: current + 1, drawings: [] });
+      }
+    };
+
+    const handlePrevSlide = async () => {
+      const current = Number(state.activePage || 0);
+      if (current > 0) {
+        await updateState({ activePage: current - 1, drawings: [] });
+      }
+    };
+
+    const handleRotateStage = async () => {
+      if (raiseHands.length === 0) {
+        showToast('No raised hands queue to rotate stage with!', 'error');
+        return;
+      }
+      const nextStage = raiseHands.slice(0, 5);
+      const nextRaiseHands = raiseHands.slice(5);
+
+      await updateState({
+        stageStudents: nextStage,
+        raiseHands: nextRaiseHands
+      });
+      showToast(`Rotated stage with ${nextStage.length} students.`);
+    };
+
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {/* Header */}
-        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: '#0B132B', padding: '16px', borderRadius: '16px', color: 'white', minHeight: '80vh' }}>
+        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <button
               type="button"
-              onClick={() => setActiveControlSchedule(null)}
-              style={{ background: '#1E293B', border: 'none', color: '#94A3B8', padding: '8px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }}
+              onClick={() => {
+                setActiveControlSchedule(null);
+                setIsSidebarCollapsed(false);
+              }}
+              className="save-btn"
+              style={{ background: '#1E293B', padding: '8px 14px' }}
             >
-              ← Back to Schedules
+              ← Back to Desk
             </button>
-            <div>
-              <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'white', margin: 0 }}>
-                🖥️ Live Control Center
-              </h1>
-              <p style={{ margin: '4px 0 0', color: '#94A3B8', fontSize: '12px' }}>
-                {schedule.title} · {schedule.subject} · {schedule.gradeClass}
-              </p>
+            <button
+              type="button"
+              onClick={() => setIsSidebarCollapsed(prev => !prev)}
+              className="save-btn"
+              style={{ background: '#334155', padding: '8px 14px', border: 'none', color: 'white', borderRadius: '6px', cursor: 'pointer', fontWeight: 600 }}
+            >
+              {isSidebarCollapsed ? '🖥️ Show Sidebar' : '🖥️ Collapse Sidebar'}
+            </button>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '15px', fontWeight: 800 }}>{schedule.title}</span>
+                {isLive ? (
+                  <>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#EF4444', borderRadius: '4px', padding: '2px 6px', fontSize: '9px', fontWeight: '800', letterSpacing: '0.5px' }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'white', display: 'inline-block', animation: 'pulse 1.2s infinite' }} />
+                      LIVE
+                    </span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#10B981', borderRadius: '4px', padding: '2px 8px', fontSize: '11px', fontWeight: '750' }}>
+                      🟢 {studentParticipants.length} attending
+                    </span>
+                  </>
+                ) : (
+                  <span style={{ backgroundColor: '#475569', borderRadius: '4px', padding: '2px 6px', fontSize: '9px', fontWeight: '800' }}>STANDBY</span>
+                )}
+                <span style={{ fontSize: '11px', color: '#00B6A6', fontWeight: '700', textTransform: 'uppercase' }}>{schedule.subject}</span>
+              </div>
+              <span style={{ fontSize: '11px', color: '#94A3B8', marginTop: '2px' }}>Class Live Stream Dashboard (Teacher Desk)</span>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            {isLive && (
-              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '20px', padding: '6px 14px', fontSize: '12px', color: '#EF4444', fontWeight: 700 }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#EF4444', display: 'inline-block', animation: 'pulse 1.2s infinite' }} />
-                LIVE · {state.participantCount || 0} participants
-              </span>
-            )}
-
+          <div>
             {!isLive ? (
-              <button type="button" onClick={handleStartClass} className="save-btn" style={{ background: '#10B981', padding: '10px 20px' }}>
-                ▶ Start Live Class
+              <button
+                type="button"
+                onClick={handleStartClass}
+                className="save-btn"
+                style={{ background: '#10B981', padding: '10px 20px', fontWeight: 700, fontSize: '13px' }}
+              >
+                ▶ Start Class & Go Live
               </button>
             ) : (
-              <button type="button" onClick={handleEndClass} className="save-btn" style={{ background: '#EF4444', padding: '10px 20px' }}>
-                ■ End Class
+              <button
+                type="button"
+                onClick={handleEndClass}
+                className="save-btn"
+                style={{ background: '#EF4444', padding: '10px 20px', fontWeight: 700, fontSize: '13px' }}
+              >
+                ⏹️ End Class
               </button>
             )}
           </div>
         </header>
 
-        {/* Stats Row */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
-          {[
-            { label: 'Participants', value: state.participantCount || 0, color: '#00B6A6' },
-            { label: 'On Stage', value: stageStudents.length, color: '#8B5CF6' },
-            { label: 'Raised Hands', value: raiseHands.length, color: '#FBBF24' },
-            { label: 'Quiz Active', value: quizActive ? 'YES' : 'NO', color: quizActive ? '#10B981' : '#475569' },
-          ].map((stat) => (
-            <div key={stat.label} className="card" style={{ textAlign: 'center', padding: '14px' }}>
-              <div style={{ fontSize: '26px', fontWeight: 800, color: stat.color }}>{stat.value}</div>
-              <div style={{ fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>{stat.label}</div>
-            </div>
-          ))}
-        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#1C2541', borderRadius: '12px', padding: '8px 16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  onClick={() => setDrawTool('pen')}
+                  style={{ background: drawTool === 'pen' ? '#0EA5E9' : '#1E293B', border: 'none', color: 'white', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontWeight: 700 }}
+                >
+                  ✏️ Pen
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDrawTool('eraser')}
+                  style={{ background: drawTool === 'eraser' ? '#0EA5E9' : '#1E293B', border: 'none', color: 'white', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontWeight: 700 }}
+                >
+                  🧹 Eraser
+                </button>
+                <button
+                  type="button"
+                  onClick={handleClearDrawings}
+                  style={{ background: '#3A506B', border: 'none', color: 'white', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}
+                >
+                  🗑️ Clear Board
+                </button>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-          {/* Left: Participants + Stage */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* Raised Hands */}
-            <div className="card">
-              <h3 style={{ color: '#FBBF24', fontSize: '13px', fontWeight: 700, marginBottom: '12px' }}>✋ Raised Hands</h3>
-              {raiseHands.length === 0 ? (
-                <p style={{ color: '#475569', fontSize: '12px' }}>No raised hands</p>
-              ) : (
-                raiseHands.map((identity: string) => (
-                  <div key={identity} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                    <span style={{ color: 'white', fontSize: '13px' }}>{identity}</span>
-                    <button
-                      type="button"
-                      onClick={() => handleInviteToStage(identity)}
-                      style={{ background: '#8B5CF6', border: 'none', color: 'white', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: 600 }}
-                    >
-                      {stageStudents.includes(identity) ? 'Remove Stage' : 'Invite Stage'}
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* Participants */}
-            <div className="card">
-              <h3 style={{ color: '#00B6A6', fontSize: '13px', fontWeight: 700, marginBottom: '12px' }}>👥 Live Participants</h3>
-              {participants.length === 0 ? (
-                <p style={{ color: '#475569', fontSize: '12px' }}>{isLive ? 'Waiting for students to join...' : 'Class not started yet'}</p>
-              ) : (
-                participants.map((p: any) => (
-                  <div key={p.identity} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                    <div>
-                      <div style={{ color: 'white', fontSize: '12px', fontWeight: 600 }}>{p.name || p.identity}</div>
-                      <div style={{ color: '#64748B', fontSize: '10px' }}>{p.identity}</div>
-                    </div>
-                    <div style={{ display: 'flex', gap: '6px' }}>
-                      <button
-                        type="button"
-                        onClick={() => handleMuteParticipant(p.identity)}
-                        style={{ background: '#F59E0B', border: 'none', color: 'white', padding: '4px 8px', borderRadius: '5px', fontSize: '10px', cursor: 'pointer' }}
-                      >
-                        Mute
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleKickParticipant(p.identity)}
-                        style={{ background: '#EF4444', border: 'none', color: 'white', padding: '4px 8px', borderRadius: '5px', fontSize: '10px', cursor: 'pointer' }}
-                      >
-                        Kick
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Right: Quiz + Chat Controls */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* Quiz Launcher */}
-            <div className="card">
-              <h3 style={{ color: '#8B5CF6', fontSize: '13px', fontWeight: 700, marginBottom: '12px' }}>📝 Live Quiz Control</h3>
-
-              {(schedule.homework || []).length === 0 ? (
-                <p style={{ color: '#475569', fontSize: '12px' }}>No questions added to this schedule</p>
-              ) : (
-                <>
-                  <label style={{ fontSize: '11px', color: '#94A3B8', marginBottom: '6px', display: 'block' }}>Select Question</label>
-                  <select
-                    value={selectedControlQuizIdx}
-                    onChange={(e) => setSelectedControlQuizIdx(Number(e.target.value))}
-                    style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text)', marginBottom: '10px', fontSize: '12px' }}
+                {/* Stage Rotation and Mic Controls */}
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '8px', marginLeft: '4px' }}>
+                  <button
+                    type="button"
+                    onClick={handleRotateStage}
+                    disabled={!isLive}
+                    style={{ background: '#8B5CF6', border: 'none', color: 'white', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontWeight: 700, opacity: isLive ? 1 : 0.4 }}
+                    title="Rotate stage students using raised hands queue"
                   >
-                    {(schedule.homework || []).map((q: any, i: number) => (
-                      <option key={i} value={i}>Q{i + 1}: {q.text?.slice(0, 60)}...</option>
-                    ))}
-                  </select>
+                    🔄 Rotate Stage ({raiseHands.length})
+                  </button>
 
-                  {!quizActive ? (
-                    <button
-                      type="button"
-                      onClick={handleLaunchQuiz}
-                      disabled={!isLive}
-                      className="save-btn"
-                      style={{ width: '100%', padding: '10px', opacity: isLive ? 1 : 0.4 }}
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const anyUnmuted = stageStudents.some((phone: string) => !state.mutedStageStudents?.includes(phone));
+                      const updatedMuted = anyUnmuted ? [...stageStudents] : [];
+                      await updateState({ mutedStageStudents: updatedMuted });
+                      showToast(anyUnmuted ? '🔇 Muted all stage students' : '🔊 Unmuted all stage students');
+                    }}
+                    disabled={!isLive || stageStudents.length === 0}
+                    style={{ background: '#F59E0B', border: 'none', color: 'white', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontWeight: 700, opacity: (isLive && stageStudents.length > 0) ? 1 : 0.4 }}
+                  >
+                    🎙️ {stageStudents.some((phone: string) => !state.mutedStageStudents?.includes(phone)) ? 'Mute Stage' : 'Unmute Stage'}
+                  </button>
+
+                  {stageStudents.length > 0 && (
+                    <select
+                      onChange={async (e) => {
+                        const selectedPhone = e.target.value;
+                        if (!selectedPhone) return;
+                        const isCurrentlyMuted = state.mutedStageStudents?.includes(selectedPhone);
+                        const updatedMuted = isCurrentlyMuted
+                          ? (state.mutedStageStudents || []).filter((p: string) => p !== selectedPhone)
+                          : [...(state.mutedStageStudents || []), selectedPhone];
+                        await updateState({ mutedStageStudents: updatedMuted });
+                        showToast(`${isCurrentlyMuted ? '🔊 Unmuted' : '🔇 Muted'} ${selectedPhone}`);
+                        e.target.value = ''; // Reset select
+                      }}
+                      style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)', background: '#1E293B', color: 'white', fontSize: '11.5px', outline: 'none', cursor: 'pointer' }}
                     >
-                      🚀 Launch Quiz to Students
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={handleEndQuiz}
-                      className="save-btn"
-                      style={{ width: '100%', padding: '10px', background: '#EF4444' }}
-                    >
-                      ⏹️ End Quiz
-                    </button>
+                      <option value="">-- Indiv Mic --</option>
+                      {stageStudents.map((phone: string) => {
+                        const isMuted = state.mutedStageStudents?.includes(phone);
+                        const participant = participants.find((p: any) => p.identity === phone);
+                        const label = participant ? participant.name : phone;
+                        return (
+                          <option key={phone} value={phone}>
+                            {label} {isMuted ? '🔇' : '🔊'}
+                          </option>
+                        );
+                      })}
+                    </select>
                   )}
-                </>
-              )}
 
-              {quizActive && (
-                <div style={{ marginTop: '12px', background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', padding: '10px' }}>
-                  <p style={{ color: '#A78BFA', fontSize: '12px', fontWeight: 700, margin: 0 }}>✅ Quiz is live! Students are answering...</p>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await updateState({ hwReleased: true });
+                      showToast('📝 Homework assigned successfully!');
+                    }}
+                    disabled={!isLive || state.hwReleased}
+                    style={{ background: state.hwReleased ? '#10B981' : '#3B82F6', border: 'none', color: 'white', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontWeight: 700, opacity: isLive ? 1 : 0.4 }}
+                    title="Assign Homework to all students now"
+                  >
+                    {state.hwReleased ? '✅ HW Assigned' : '📝 Assign HW'}
+                  </button>
+                </div>
+              </div>
+
+              {drawTool === 'pen' && (
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <span style={{ fontSize: '11px', color: '#94A3B8', marginRight: '4px' }}>Color:</span>
+                  {[
+                    { hex: '#EF4444', label: 'Red' },
+                    { hex: '#3B82F6', label: 'Blue' },
+                    { hex: '#10B981', label: 'Green' },
+                    { hex: '#F59E0B', label: 'Yellow' },
+                    { hex: '#0F172A', label: 'Black' }
+                  ].map((color) => (
+                    <button
+                      key={color.hex}
+                      type="button"
+                      onClick={() => setDrawColor(color.hex)}
+                      style={{
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        background: color.hex,
+                        border: drawColor === color.hex ? '2px solid white' : '1px solid rgba(255,255,255,0.2)',
+                        cursor: 'pointer',
+                        transform: drawColor === color.hex ? 'scale(1.15)' : 'none'
+                      }}
+                      title={color.label}
+                    />
+                  ))}
                 </div>
               )}
             </div>
 
-            {/* Chat Control */}
-            <div className="card">
-              <h3 style={{ color: '#00B6A6', fontSize: '13px', fontWeight: 700, marginBottom: '12px' }}>💬 Chat Control</h3>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ color: '#CBD5E1', fontSize: '13px' }}>Student Chat</span>
+            <div style={{ background: '#F8FAFC', borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', position: 'relative', aspectRatio: '16/9', display: 'flex', flexDirection: 'column', color: '#0B1120', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)' }}>
+              
+              {/* Custom Slide Background Render */}
+              {schedule.slides && schedule.slides.length > 0 ? (
+                <>
+                  <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 1, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#1E293B' }}>
+                    {(() => {
+                      const slides = schedule.slides || [];
+                      const url = slides[Number(state.activePage || 0)];
+                      if (!url) return <div style={{ color: 'white' }}>No slide content</div>;
+                      const isImage = url.match(/\.(jpeg|jpg|gif|png|webp)/i) || !url.includes('.');
+                      const isVideo = url.match(/\.(mp4|webm|ogg)/i);
+                      const isPdf = url.match(/\.pdf/i);
+                      const resolvedUrl = url.startsWith('/') && !url.startsWith('http') ? `${API_BASE}${url}` : url;
+                      
+                      if (isImage) {
+                        return <img src={resolvedUrl} style={{ width: '100%', height: '100%', objectFit: 'contain' }} alt="slide content" />;
+                      }
+                      if (isVideo) {
+                        return <video src={resolvedUrl} autoPlay loop muted style={{ width: '100%', height: '100%', objectFit: 'contain' }} />;
+                      }
+                      if (isPdf) {
+                        return <iframe src={`${resolvedUrl}#toolbar=0`} style={{ width: '100%', height: '100%', border: 'none' }} title="slide pdf" />;
+                      }
+                      return <img src={resolvedUrl} style={{ width: '100%', height: '100%', objectFit: 'contain' }} alt="slide content" />;
+                    })()}
+                  </div>
+                  <div style={{ position: 'absolute', bottom: '12px', left: '12px', zIndex: 10, background: 'rgba(0,0,0,0.7)', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' }}>
+                    SLIDE {Number(state.activePage || 0) + 1} / {schedule.slides.length}
+                  </div>
+                </>
+              ) : (
+                <div style={{ flex: 1, padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 1 }}>
+                  <h2 style={{ fontSize: '20px', fontWeight: 800, margin: '0 0 6px 0', color: '#0B1120' }}>📘 {schedule.subject}</h2>
+                  <h4 style={{ fontSize: '14px', fontWeight: 500, color: '#475569', margin: '0 0 16px 0' }}>{schedule.title}</h4>
+                  <div style={{ fontSize: '12px', color: '#94A3B8', marginBottom: '16px', fontWeight: 600 }}>SLIDE {Number(state.activePage || 0) + 1} / 10</div>
+                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginBottom: '24px' }}>
+                    {[...Array(6)].map((_, i) => (
+                      <div key={i} style={{ width: '60px', height: '40px', background: '#E2E8F0', borderRadius: '6px' }} />
+                    ))}
+                  </div>
+                  <p style={{ margin: 0, fontSize: '11px', color: '#94A3B8', fontStyle: 'italic' }}>📺 Drag mouse below to write or edit on whiteboard. Drawing is synced live.</p>
+                </div>
+              )}
+
+              {(() => {
+                // Merge server drawings + local drawings (deduplicate by path)
+                const serverDrawings = state.drawings || [];
+                const allDrawings = [
+                  ...serverDrawings,
+                  ...localDrawings.filter(
+                    (ld: any) => !serverDrawings.some((sd: any) => sd.path === ld.path)
+                  )
+                ];
+                return allDrawings.length > 0 ? (
+                  <svg
+                    viewBox="0 0 800 450"
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      pointerEvents: 'none',
+                      zIndex: 5,
+                    }}
+                  >
+                    {allDrawings.map((line: any, idx: number) => (
+                      <path
+                        key={idx}
+                        d={line.path}
+                        stroke={line.color || '#FF5E00'}
+                        strokeWidth={line.width || 3}
+                        fill="none"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    ))}
+                  </svg>
+                ) : null;
+              })()}
+
+              <canvas
+                ref={(el) => {
+                  if (el) {
+                    el.width = el.offsetWidth;
+                    el.height = el.offsetHeight;
+                  }
+                }}
+                onMouseDown={handleCanvasMouseDown}
+                onMouseMove={handleCanvasMouseMove}
+                onMouseUp={handleCanvasMouseUpOrLeave}
+                onMouseLeave={handleCanvasMouseUpOrLeave}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  zIndex: 6,
+                  cursor: drawTool === 'eraser' 
+                    ? 'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\'><circle cx=\'12\' cy=\'12\' r=\'10\' fill=\'none\' stroke=\'%233B82F6\' stroke-width=\'2\'/><circle cx=\'12\' cy=\'12\' r=\'2\' fill=\'%233B82F6\'/></svg>\") 12 12, cell'
+                    : `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'><circle cx='12' cy='12' r='6' fill='${encodeURIComponent(drawColor)}' stroke='white' stroke-width='2'/></svg>") 12 12, crosshair`,
+                  touchAction: 'none'
+                }}
+              />
+
+              {/* Removed absolute floating camera PiP */}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#1C2541', borderRadius: '12px', padding: '12px 16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <div style={{ display: 'flex', gap: '10px' }}>
                 <button
                   type="button"
-                  onClick={() => updateState({ chatMuted: !chatMuted })}
-                  style={{
-                    background: chatMuted ? '#EF4444' : '#10B981',
-                    border: 'none', color: 'white', padding: '8px 16px',
-                    borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 700
-                  }}
+                  onClick={handleToggleMic}
+                  style={{ background: lkMicEnabled ? '#10B981' : '#EF4444', border: 'none', color: 'white', padding: '8px 16px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}
                 >
-                  {chatMuted ? '🔇 Unmute Chat' : '💬 Mute Chat'}
+                  {lkMicEnabled ? '🎙️ Mic Active' : '🎙️ Mic Muted'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleToggleCamera}
+                  style={{ background: lkCameraEnabled ? '#0EA5E9' : '#475569', border: 'none', color: 'white', padding: '8px 16px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  {lkCameraEnabled ? '📷 Video On' : '📷 Video Off'}
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <span style={{ fontSize: '12px', color: '#94A3B8', marginRight: '6px' }}>Whiteboard Navigation:</span>
+                <button
+                  type="button"
+                  disabled={!isLive || Number(state.activePage || 0) <= 0}
+                  onClick={handlePrevSlide}
+                  style={{ background: '#1E293B', border: 'none', color: 'white', padding: '8px 16px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 700, opacity: (!isLive || Number(state.activePage || 0) <= 0) ? 0.4 : 1 }}
+                >
+                  ◀ Prev
+                </button>
+                <button
+                  type="button"
+                  disabled={!isLive || Number(state.activePage || 0) >= 9}
+                  onClick={handleNextSlide}
+                  style={{ background: '#0EA5E9', border: 'none', color: 'white', padding: '8px 16px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 700, opacity: (!isLive || Number(state.activePage || 0) >= 9) ? 0.4 : 1 }}
+                >
+                  Next ▶
                 </button>
               </div>
             </div>
+          </div>
 
-            {/* Room Info */}
-            <div className="card">
-              <h3 style={{ color: '#64748B', fontSize: '13px', fontWeight: 700, marginBottom: '12px' }}>🔗 Room Details</h3>
-              <div style={{ fontSize: '11px', color: '#64748B', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <div>Status: <span style={{ color: isLive ? '#10B981' : '#FBBF24', fontWeight: 700 }}>{state.liveStatus || 'upcoming'}</span></div>
-                <div style={{ wordBreak: 'break-all' }}>Room: <span style={{ color: '#94A3B8' }}>{schedule.roomName || '—'}</span></div>
-                <div>Server: <span style={{ color: '#94A3B8' }}>wss://live-learning-tr4x3rds.livekit.cloud</span></div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {/* Top: Video panel (Teacher + Stage Students) */}
+            <div style={{ background: '#1C2541', borderRadius: '16px', padding: '12px', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <h5 style={{ margin: 0, fontSize: '11px', color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>📹 Live Feeds</h5>
+              
+              {/* Grid: Teacher + Students on stage */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                {/* Teacher feed (spans 2 columns if no students, else 1) */}
+                <div style={{ 
+                  gridColumn: stageStudents.length === 0 ? 'span 2' : 'span 1', 
+                  height: '110px', 
+                  borderRadius: '10px', 
+                  border: '2px solid #00B6A6', 
+                  background: '#1E293B', 
+                  overflow: 'hidden', 
+                  position: 'relative' 
+                }}>
+                  {lkCameraEnabled ? (
+                    <video id="teacher-local-video" autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94A3B8', gap: '4px' }}>
+                      <span style={{ fontSize: '18px' }}>📷</span>
+                      <span style={{ fontSize: '9px', fontWeight: 'bold' }}>CAMERA OFF</span>
+                    </div>
+                  )}
+                  <div style={{ position: 'absolute', bottom: '4px', left: '4px', background: 'rgba(0,0,0,0.6)', padding: '2px 6px', borderRadius: '4px', color: 'white', fontSize: '9px', fontWeight: 'bold' }}>
+                    Teacher ({schedule.teacherName || 'Mam'})
+                  </div>
+                </div>
+
+                {/* Stage students' feeds */}
+                {stageStudents.map((phone: string) => {
+                  const hasVideo = !!studentVideoTracks[phone];
+                  const isMuted = state.mutedStageStudents?.includes(phone);
+                  const participant = participants.find((p: any) => p.identity === phone);
+                  const label = participant ? participant.name : phone;
+
+                  return (
+                    <div key={phone} style={{ 
+                      height: '110px', 
+                      borderRadius: '10px', 
+                      border: '2px solid #8B5CF6', 
+                      background: '#1E293B', 
+                      overflow: 'hidden', 
+                      position: 'relative' 
+                    }}>
+                      {hasVideo ? (
+                        <StudentVideoView track={studentVideoTracks[phone]} />
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94A3B8', gap: '4px' }}>
+                          <span style={{ fontSize: '18px' }}>👤</span>
+                          <span style={{ fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase' }}>No Video</span>
+                        </div>
+                      )}
+                      
+                      <div style={{ position: 'absolute', bottom: '4px', left: '4px', background: 'rgba(0,0,0,0.6)', padding: '2px 6px', borderRadius: '4px', color: 'white', fontSize: '9px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span>{label}</span>
+                        {isMuted && <span style={{ color: '#EF4444' }}>🔇</span>}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
+            </div>
+
+            {/* Bottom: Tabs panel */}
+            <div style={{ background: '#1C2541', borderRadius: '16px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', height: '480px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', background: '#131D2E', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              {[
+                { key: 'chat', label: '💬 Chat' },
+                { key: 'quiz', label: '🎯 Quiz' },
+                { key: 'roster', label: '👥 Roster' }
+              ].map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setControlTab(tab.key as any)}
+                  style={{
+                    padding: '12px 6px',
+                    background: controlTab === tab.key ? '#1C2541' : 'transparent',
+                    border: 'none',
+                    color: controlTab === tab.key ? '#00B6A6' : '#94A3B8',
+                    fontWeight: 700,
+                    fontSize: '12.5px',
+                    cursor: 'pointer',
+                    borderBottom: controlTab === tab.key ? '2px solid #00B6A6' : 'none',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              {controlTab === 'chat' && (
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                  <div style={{ padding: '10px 14px', background: '#131D2E', borderBottom: '1px solid rgba(255,255,255,0.04)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '11px', color: '#94A3B8', fontWeight: 600 }}>Student Messaging:</span>
+                    <button
+                      type="button"
+                      onClick={() => updateState({ chatMuted: !chatMuted })}
+                      style={{ background: chatMuted ? '#EF4444' : '#10B981', border: 'none', color: 'white', padding: '4px 10px', borderRadius: '5px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer' }}
+                    >
+                      {chatMuted ? '🔇 Chat Muted' : '💬 Chat Open'}
+                    </button>
+                  </div>
+
+                  <div style={{ flex: 1, padding: '12px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {teacherChatMessages.length === 0 ? (
+                      <div style={{ color: '#475569', fontSize: '12px', textAlign: 'center', marginTop: '24px' }}>No chat messages yet</div>
+                    ) : (
+                      teacherChatMessages.map((msg: any, idx: number) => {
+                        const isMe = msg.studentPhone === 'teacher';
+                        return (
+                          <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignSelf: isMe ? 'flex-end' : 'flex-start', maxWidth: '85%' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px', justifyContent: isMe ? 'flex-end' : 'flex-start' }}>
+                              <span style={{ fontSize: '10px', fontWeight: 700, color: isMe ? '#00B6A6' : '#94A3B8' }}>{msg.studentName}</span>
+                              <span style={{ fontSize: '9px', color: '#475569' }}>{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                            <div style={{ background: isMe ? '#00B6A6' : '#2D3748', color: 'white', padding: '8px 12px', borderRadius: isMe ? '12px 12px 2px 12px' : '12px 12px 12px 2px', fontSize: '12px', wordBreak: 'break-word' }}>
+                              {msg.detail}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  <div style={{ padding: '8px 12px', background: '#131D2E', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', gap: '8px' }}>
+                    <input
+                      type="text"
+                      placeholder="Type a message to students..."
+                      value={teacherChatInput}
+                      onChange={(e) => setTeacherChatInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') sendTeacherChatMessage(); }}
+                      style={{ flex: 1, background: '#1E293B', border: '1px solid rgba(255,255,255,0.1)', color: 'white', padding: '8px 12px', borderRadius: '20px', fontSize: '12px', outline: 'none' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={sendTeacherChatMessage}
+                      style={{ background: '#00B6A6', border: 'none', color: 'white', padding: '8px 14px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
+                    >
+                      Send
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {controlTab === 'quiz' && (
+                <div style={{ flex: 1, padding: '14px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div className="card" style={{ background: '#131D2E', padding: '12px', borderRadius: '10px' }}>
+                    <h4 style={{ color: '#8B5CF6', fontSize: '12px', fontWeight: 700, margin: '0 0 10px 0' }}>📝 Live Quiz Launcher</h4>
+                    {(schedule.quizzes || []).length === 0 ? (
+                      <p style={{ color: '#475569', fontSize: '12px', margin: 0 }}>No live quiz questions added to this schedule</p>
+                    ) : (
+                      <>
+                        <label style={{ fontSize: '11px', color: '#94A3B8', marginBottom: '6px', display: 'block' }}>Select Question</label>
+                        <select
+                           value={selectedControlQuizIdx}
+                           onChange={(e) => setSelectedControlQuizIdx(Number(e.target.value))}
+                           style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)', background: '#1E293B', color: 'white', marginBottom: '12px', fontSize: '12px', outline: 'none' }}
+                        >
+                          {(schedule.quizzes || []).map((q: any, i: number) => (
+                            <option key={i} value={i}>Q{i + 1}: {q.text?.slice(0, 50)}...</option>
+                          ))}
+                        </select>
+ 
+                        {!quizActive ? (
+                          <button
+                            type="button"
+                            onClick={handleLaunchQuiz}
+                            disabled={!isLive}
+                            style={{ width: '100%', padding: '10px', background: '#8B5CF6', border: 'none', color: 'white', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', opacity: isLive ? 1 : 0.4 }}
+                          >
+                            🚀 Launch Quiz to Students
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={handleEndQuiz}
+                            style={{ width: '100%', padding: '10px', background: '#EF4444', border: 'none', color: 'white', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
+                          >
+                            ⏹️ End Quiz
+                          </button>
+                        )}
+                      </>
+                    )}
+ 
+                    {quizActive && (
+                      <div style={{ marginTop: '12px', background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.3)', borderRadius: '8px', padding: '10px' }}>
+                        <p style={{ color: '#A78BFA', fontSize: '11px', fontWeight: 700, margin: 0, textAlign: 'center' }}>✅ Quiz is live! Students are answering...</p>
+                      </div>
+                    )}
+                  </div>
+ 
+                  {(schedule.quizzes || []).length > 0 && (
+                    <div style={{ border: '1px solid rgba(255,255,255,0.05)', borderRadius: '10px', padding: '12px', background: '#131D2E' }}>
+                      <h5 style={{ margin: '0 0 6px 0', fontSize: '11px', color: '#94A3B8' }}>ACTIVE QUESTION PREVIEW:</h5>
+                      <p style={{ margin: '0 0 10px 0', fontSize: '12.5px', fontWeight: 600 }}>{schedule.quizzes[selectedControlQuizIdx]?.text}</p>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '11px' }}>
+                        {['A', 'B', 'C', 'D'].map(key => {
+                          const optionText = schedule.quizzes[selectedControlQuizIdx]?.options?.[key] || schedule.quizzes[selectedControlQuizIdx]?.[`opt${key}`];
+                          const isCorrect = schedule.quizzes[selectedControlQuizIdx]?.correctAnswer === key || schedule.quizzes[selectedControlQuizIdx]?.correct === key;
+                          if (!optionText) return null;
+                          return (
+                            <div key={key} style={{ padding: '6px 8px', background: '#1E293B', borderRadius: '6px', border: isCorrect ? '1px solid #10B981' : '1px solid transparent' }}>
+                              <strong style={{ color: isCorrect ? '#10B981' : '#A78BFA' }}>{key}:</strong> {optionText}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {controlTab === 'roster' && (
+                <div style={{ flex: 1, padding: '14px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', textAlign: 'center' }}>
+                    <div style={{ background: '#131D2E', padding: '10px', borderRadius: '8px' }}>
+                      <div style={{ fontSize: '16px', fontWeight: 800, color: '#00B6A6' }}>{studentParticipants.length}</div>
+                      <div style={{ fontSize: '9px', color: '#94A3B8', marginTop: '2px' }}>Students</div>
+                    </div>
+                    <div style={{ background: '#131D2E', padding: '10px', borderRadius: '8px' }}>
+                      <div style={{ fontSize: '16px', fontWeight: 800, color: '#8B5CF6' }}>{stageStudents.length}</div>
+                      <div style={{ fontSize: '9px', color: '#94A3B8', marginTop: '2px' }}>On Stage</div>
+                    </div>
+                    <div style={{ background: '#131D2E', padding: '10px', borderRadius: '8px' }}>
+                      <div style={{ fontSize: '16px', fontWeight: 800, color: '#FBBF24' }}>{raiseHands.length}</div>
+                      <div style={{ fontSize: '9px', color: '#94A3B8', marginTop: '2px' }}>Hands Up</div>
+                    </div>
+                  </div>
+
+                  <div style={{ border: '1px solid rgba(255,255,255,0.04)', borderRadius: '10px', padding: '10px', background: '#131D2E' }}>
+                    <h4 style={{ color: '#FBBF24', fontSize: '12px', fontWeight: 700, margin: '0 0 8px 0' }}>✋ Raised Hands ({raiseHands.length})</h4>
+                    {raiseHands.length === 0 ? (
+                      <p style={{ color: '#475569', fontSize: '11px', margin: 0 }}>No raised hands</p>
+                    ) : (
+                      raiseHands.map((identity: string) => {
+                        const participant = participants.find((p: any) => p.identity === identity);
+                        const displayName = participant ? `${participant.name || 'Student'} (${identity})` : identity;
+                        return (
+                          <div key={identity} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                            <span style={{ color: 'white', fontSize: '12px' }}>{displayName}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleInviteToStage(identity)}
+                              style={{ background: '#8B5CF6', border: 'none', color: 'white', padding: '4px 10px', borderRadius: '6px', fontSize: '10px', cursor: 'pointer', fontWeight: 600 }}
+                            >
+                              {stageStudents.includes(identity) ? 'Remove Stage' : 'Invite Stage'}
+                            </button>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  <div style={{ border: '1px solid rgba(255,255,255,0.04)', borderRadius: '10px', padding: '10px', background: '#131D2E' }}>
+                    <h4 style={{ color: '#00B6A6', fontSize: '12px', fontWeight: 700, margin: '0 0 8px 0' }}>👥 Connected Students ({studentParticipants.length})</h4>
+                    {studentParticipants.length === 0 ? (
+                      <p style={{ color: '#475569', fontSize: '11px', margin: 0 }}>{isLive ? 'Waiting for students to join... (students send heartbeat every 2.5s)' : 'Class not started yet'}</p>
+                    ) : (
+                      studentParticipants.map((p: any) => (
+                        <div key={p.identity} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ color: 'white', fontSize: '11.5px', fontWeight: 600 }}>{p.name || p.identity}</span>
+                            <span style={{ color: '#64748B', fontSize: '9px' }}>{p.identity}</span>
+                          </div>
+                          <div style={{ display: 'flex', gap: '4px' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleMuteParticipant(p.identity)}
+                              style={{ background: '#F59E0B', border: 'none', color: 'white', padding: '3px 8px', borderRadius: '4px', fontSize: '9.5px', cursor: 'pointer' }}
+                            >
+                              Mute
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleKickParticipant(p.identity)}
+                              style={{ background: '#EF4444', border: 'none', color: 'white', padding: '3px 8px', borderRadius: '4px', fontSize: '9.5px', cursor: 'pointer' }}
+                            >
+                              Kick
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
+      </div>
+      </div>
+    );
+  };
+
+  const renderTeacherDesk = () => {
+    const liveClasses = schedules.filter((s: any) => s.isLiveClass !== false);
+
+    const handleStartClassDirectly = async (schedule: any) => {
+      try {
+        setActiveControlSchedule(schedule);
+        if (!schedule.roomName) {
+          showToast('🔴 Initializing live classroom & room...');
+          const res = await fetch(`${API_BASE}/api/live-classroom/create-room`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ scheduleId: schedule._id }),
+          });
+          const json = await res.json();
+          if (!json.success) throw new Error(json.error || 'Failed to start room');
+          showToast(`✅ Class started! Room: ${json.data.roomName}`);
+          
+          setLiveRoomState((prev: any) => ({
+            ...(prev || {}),
+            isLive: true,
+            liveStatus: 'live',
+            roomName: json.data.roomName,
+          }));
+          await syncLiveRoomState(schedule._id);
+        } else {
+          showToast(`✅ Reconnecting to live control panel`);
+          await syncLiveRoomState(schedule._id);
+        }
+        loadSchedules();
+      } catch (err: any) {
+        showToast('Error starting class: ' + err.message, 'error');
+      }
+    };
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <header>
+          <div>
+            <h1 style={{ fontSize: '24px', fontWeight: 700, color: 'white' }}>🎥 Teacher Live Desk</h1>
+            <p style={{ margin: '4px 0 0', color: '#94A3B8', fontSize: '13px' }}>
+              Select today's scheduled lecture below to go live and manage students instantly.
+            </p>
+          </div>
+          <button type="button" onClick={loadSchedules} className="save-btn" style={{ padding: '8px 16px', fontSize: '12px' }}>
+            🔄 Refresh Classes
+          </button>
+        </header>
+
+        {liveClasses.length === 0 ? (
+          <div className="card" style={{ textAlign: 'center', padding: '40px', color: '#94A3B8' }}>
+            <span style={{ fontSize: '40px', display: 'block', marginBottom: '12px' }}>📅</span>
+            No live classes scheduled. Head to the <strong>Class Scheduling</strong> tab to create one!
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '20px' }}>
+            {liveClasses.map((item: any) => {
+              const isClassFinished = item.status === 'Finished';
+              
+              return (
+                <div key={item._id} className="card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', padding: '20px', position: 'relative', border: item.roomName ? '1px solid rgba(139, 92, 246, 0.4)' : '1px solid rgba(255,255,255,0.05)', background: item.roomName ? 'rgba(139, 92, 246, 0.02)' : 'var(--card)' }}>
+                  {item.roomName && (
+                    <span style={{ position: 'absolute', top: '15px', right: '15px', display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '20px', padding: '4px 10px', fontSize: '10px', color: '#EF4444', fontWeight: 700 }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#EF4444', display: 'inline-block', animation: 'pulse 1.2s infinite' }} />
+                      LIVE NOW
+                    </span>
+                  )}
+                  
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                      <span style={{ background: '#00B6A6', color: 'white', fontWeight: 700, padding: '2px 8px', borderRadius: '4px', fontSize: '10px', textTransform: 'uppercase' }}>
+                        {item.subject}
+                      </span>
+                      <span style={{ color: '#94A3B8', fontSize: '12px', fontWeight: 500 }}>
+                        {item.gradeClass}
+                      </span>
+                    </div>
+
+                    <h2 style={{ fontSize: '16px', color: 'white', margin: '0 0 10px 0', lineHeight: 1.4, fontWeight: 700 }}>
+                      {item.title}
+                    </h2>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '20px', borderTop: '1px solid rgba(255,255,255,0.03)', paddingTop: '10px' }}>
+                      <div style={{ fontSize: '12px', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>📅 Date:</span>
+                        <strong style={{ color: '#CBD5E1' }}>{item.dateText}</strong>
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>⏰ Time:</span>
+                        <strong style={{ color: '#FF5E00' }}>{item.time}</strong>
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#94A3B8', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>👤 Instructor:</span>
+                        <strong style={{ color: '#CBD5E1' }}>{item.teacherName || 'TBD'}</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    {isClassFinished ? (
+                      <div style={{ background: 'rgba(255,255,255,0.03)', color: '#64748B', padding: '12px', borderRadius: '8px', fontSize: '13px', fontWeight: 650, textAlign: 'center', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        ✓ Class Completed
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleStartClassDirectly(item)}
+                        style={{
+                          width: '100%',
+                          background: item.roomName ? '#8B5CF6' : '#10B981',
+                          color: 'white',
+                          border: 'none',
+                          padding: '12px',
+                          borderRadius: '8px',
+                          fontSize: '13px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px',
+                          transition: 'all 0.2s',
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                        }}
+                      >
+                        {item.roomName ? '🖥️ Open Live Control Center' : '▶ Start Class & Go Live'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     );
   };
@@ -1074,11 +2023,12 @@ export default function App() {
     }
 
     const filteredSchedules = schedules.filter((s: any) => {
-      const matchesSearch = s.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        s.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.teacherName.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = 
+        (s.title || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+        (s.subject || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (s.teacherName || '').toLowerCase().includes(searchQuery.toLowerCase());
       const matchesClass = ordersClassFilter === 'all' || s.gradeClass === ordersClassFilter;
-      const matchesType = statusFilter === 'all' || s.courseType === statusFilter || s.status.toLowerCase() === statusFilter.toLowerCase();
+      const matchesType = statusFilter === 'all' || s.courseType === statusFilter || (s.status || '').toLowerCase() === statusFilter.toLowerCase();
       return matchesSearch && matchesClass && matchesType;
     });
 
@@ -1110,7 +2060,9 @@ export default function App() {
           maxStageStudents: 4,
           materials: [],
           homework: [],
+          quizzes: [],
           questions: [],
+          slides: [],
           durationMinutes: 30
         });
         setEditingScheduleId(null);
@@ -1162,7 +2114,9 @@ export default function App() {
         maxStageStudents: item.maxStageStudents || 4,
         materials: item.materials || [],
         homework: item.homework || [],
+        quizzes: item.quizzes || [],
         questions: item.questions || [],
+        slides: item.slides || [],
         durationMinutes: item.durationMinutes || 30
       });
     };
@@ -1560,6 +2514,148 @@ export default function App() {
                   )}
                 </div>
 
+                {/* Distinct Live Quiz MCQ Section */}
+                <div className="form-group span-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '15px', marginBottom: '10px' }}>
+                  <label style={{ fontSize: '14px', fontWeight: 650, color: '#10B981', marginBottom: '8px', display: 'block' }}>
+                    🎙️ Attach Live Quiz Questions (For Real-time Launching During Class)
+                  </label>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.01)', marginBottom: '10px' }}>
+                    <input 
+                      type="text" 
+                      placeholder="Quiz Question text (e.g. Solve: 5 + 3 = ?)"
+                      value={tempQuiz.text}
+                      onChange={(e) => setTempQuiz({...tempQuiz, text: e.target.value})}
+                      style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
+                    />
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                      <input 
+                        type="text" 
+                        placeholder="Chapter Name (e.g. Addition)"
+                        value={tempQuiz.chapter || ''}
+                        onChange={(e) => setTempQuiz({...tempQuiz, chapter: e.target.value})}
+                        style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
+                      />
+                      <input 
+                        type="text" 
+                        placeholder="Topic Name (e.g. Basic Math)"
+                        value={tempQuiz.topic || ''}
+                        onChange={(e) => setTempQuiz({...tempQuiz, topic: e.target.value})}
+                        style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
+                      />
+                    </div>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                      <input 
+                        type="text" 
+                        placeholder="Option A"
+                        value={tempQuiz.optA}
+                        onChange={(e) => setTempQuiz({...tempQuiz, optA: e.target.value})}
+                        style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
+                      />
+                      <input 
+                        type="text" 
+                        placeholder="Option B"
+                        value={tempQuiz.optB}
+                        onChange={(e) => setTempQuiz({...tempQuiz, optB: e.target.value})}
+                        style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
+                      />
+                      <input 
+                        type="text" 
+                        placeholder="Option C"
+                        value={tempQuiz.optC}
+                        onChange={(e) => setTempQuiz({...tempQuiz, optC: e.target.value})}
+                        style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
+                      />
+                      <input 
+                        type="text" 
+                        placeholder="Option D"
+                        value={tempQuiz.optD}
+                        onChange={(e) => setTempQuiz({...tempQuiz, optD: e.target.value})}
+                        style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '12px', color: '#94A3B8' }}>Correct Answer:</span>
+                        <select 
+                          value={tempQuiz.correct}
+                          onChange={(e) => setTempQuiz({...tempQuiz, correct: e.target.value})}
+                          style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
+                        >
+                          <option value="A">Option A</option>
+                          <option value="B">Option B</option>
+                          <option value="C">Option C</option>
+                          <option value="D">Option D</option>
+                        </select>
+                      </div>
+
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          if (!tempQuiz.text.trim()) return alert('Type a question text!');
+                          if (!tempQuiz.optA.trim() || !tempQuiz.optB.trim()) return alert('Options A and B are required!');
+                          const newQuestion = {
+                            text: tempQuiz.text,
+                            options: {
+                              A: tempQuiz.optA,
+                              B: tempQuiz.optB,
+                              C: tempQuiz.optC,
+                              D: tempQuiz.optD
+                            },
+                            correctAnswer: tempQuiz.correct,
+                            chapter: tempQuiz.chapter,
+                            topic: tempQuiz.topic
+                          };
+                          const updated = [...(newSchedule.quizzes || []), newQuestion];
+                          setNewSchedule({...newSchedule, quizzes: updated});
+                          setTempQuiz({ text: '', optA: '', optB: '', optC: '', optD: '', correct: 'A', chapter: '', topic: '' });
+                        }}
+                        className="save-btn"
+                        style={{ padding: '8px 16px', background: '#10B981' }}
+                      >
+                        ➕ Add Live Quiz Question
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Render lists of attached live quiz questions */}
+                  {newSchedule.quizzes && newSchedule.quizzes.length > 0 ? (
+                    <div style={{ background: 'rgba(255,255,255,0.02)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {newSchedule.quizzes.map((q: any, idx: number) => (
+                        <div key={idx} style={{ padding: '8px 0', borderBottom: idx < newSchedule.quizzes.length - 1 ? '1px solid rgba(255,255,255,0.03)' : 'none' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '13px', fontWeight: 600, color: 'white' }}>{idx + 1}. {q.text}</span>
+                            <button 
+                              type="button" 
+                              onClick={() => {
+                                const updated = newSchedule.quizzes.filter((_: any, i: number) => i !== idx);
+                                setNewSchedule({...newSchedule, quizzes: updated});
+                              }}
+                              style={{ background: 'transparent', border: 'none', color: '#EF4444', cursor: 'pointer', fontSize: '12px' }}
+                            >
+                              ❌ Remove
+                            </button>
+                          </div>
+                          <div style={{ display: 'flex', gap: '12px', fontSize: '11px', color: '#94A3B8', marginTop: '4px' }}>
+                            <span>A: {q.options.A}</span>
+                            <span>B: {q.options.B}</span>
+                            {q.options.C ? <span>C: {q.options.C}</span> : null}
+                            {q.options.D ? <span>D: {q.options.D}</span> : null}
+                            <span style={{ color: '#10B981', fontWeight: 'bold' }}>(Correct: {q.correctAnswer})</span>
+                            {q.chapter ? <span style={{ color: '#00B6A6' }}>📖 {q.chapter}</span> : null}
+                            {q.topic ? <span style={{ color: '#38BDF8' }}>🏷️ {q.topic}</span> : null}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: '12px', color: '#64748B', margin: '4px 0' }}>No live quiz questions added.</p>
+                  )}
+                </div>
+
                 {/* Embedded Homework MCQ Question Editor Section */}
                 <div className="form-group span-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '15px', marginBottom: '10px' }}>
                   <label style={{ fontSize: '14px', fontWeight: 650, color: '#FF5E00', marginBottom: '8px', display: 'block' }}>
@@ -1574,6 +2670,23 @@ export default function App() {
                       onChange={(e) => setTempHomework({...tempHomework, text: e.target.value})}
                       style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
                     />
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                      <input 
+                        type="text" 
+                        placeholder="Chapter Name (e.g. Integers)"
+                        value={tempHomework.chapter || ''}
+                        onChange={(e) => setTempHomework({...tempHomework, chapter: e.target.value})}
+                        style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
+                      />
+                      <input 
+                        type="text" 
+                        placeholder="Topic Name (e.g. Negative Numbers)"
+                        value={tempHomework.topic || ''}
+                        onChange={(e) => setTempHomework({...tempHomework, topic: e.target.value})}
+                        style={{ padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
+                      />
+                    </div>
                     
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                       <input 
@@ -1634,11 +2747,13 @@ export default function App() {
                               C: tempHomework.optC,
                               D: tempHomework.optD
                             },
-                            correctAnswer: tempHomework.correct
+                            correctAnswer: tempHomework.correct,
+                            chapter: tempHomework.chapter,
+                            topic: tempHomework.topic
                           };
                           const updated = [...(newSchedule.homework || []), newQuestion];
                           setNewSchedule({...newSchedule, homework: updated});
-                          setTempHomework({ text: '', optA: '', optB: '', optC: '', optD: '', correct: 'A' });
+                          setTempHomework({ text: '', optA: '', optB: '', optC: '', optD: '', correct: 'A', chapter: '', topic: '' });
                         }}
                         className="save-btn"
                         style={{ padding: '8px 16px', background: '#FF5E00' }}
@@ -1673,12 +2788,162 @@ export default function App() {
                             {q.options.C ? <span>C: {q.options.C}</span> : null}
                             {q.options.D ? <span>D: {q.options.D}</span> : null}
                             <span style={{ color: '#10B981', fontWeight: 'bold' }}>(Correct: {q.correctAnswer})</span>
+                            {q.chapter ? <span style={{ color: '#00B6A6' }}>📖 {q.chapter}</span> : null}
+                            {q.topic ? <span style={{ color: '#38BDF8' }}>🏷️ {q.topic}</span> : null}
                           </div>
                         </div>
                       ))}
                     </div>
                   ) : (
                     <p style={{ fontSize: '12px', color: '#64748B', margin: '4px 0' }}>No questions added. Student will see default quiz.</p>
+                  )}
+                </div>
+
+                {/* Custom Slides presentation manager */}
+                <div className="form-group span-2" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '15px', marginBottom: '10px' }}>
+                  <label style={{ fontSize: '14px', fontWeight: 650, color: '#00B6A6', marginBottom: '8px', display: 'block' }}>
+                    🖼️ Attach Lesson Slides / Material (PDF, Image, or Video URLs)
+                  </label>
+
+                  <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+                    <input 
+                      type="text" 
+                      placeholder="Slide Resource URL (e.g. image, video, or PDF)"
+                      value={tempSlideUrl}
+                      onChange={(e) => setTempSlideUrl(e.target.value)}
+                      style={{ flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'white' }}
+                    />
+                    <label className="image-upload-btn-label" style={{ padding: '10px 14px', background: '#475569', color: 'white', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', display: 'inline-block', alignSelf: 'center', margin: 0 }}>
+                      {isUploadingSlide ? (uploadingStatus || 'Uploading...') : '📁 Upload Slide File'}
+                      <input 
+                        type="file" 
+                        accept="image/*,video/*,application/pdf"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setIsUploadingSlide(true);
+                          setUploadingStatus('Uploading...');
+                          try {
+                            if (file.type === 'application/pdf') {
+                              setUploadingStatus('Loading PDF...');
+                              const pdfjsLib = await loadPdfJS();
+                              
+                              const reader = new FileReader();
+                              reader.onload = async () => {
+                                try {
+                                  const typedarray = new Uint8Array(reader.result as ArrayBuffer);
+                                  setUploadingStatus('Splitting PDF...');
+                                  const pdf = await pdfjsLib.getDocument({ data: typedarray }).promise;
+                                  const numPages = pdf.numPages;
+                                  showToast(`📚 Found ${numPages} pages in PDF.`);
+                                  
+                                  const newSlidesList = [...(newSchedule.slides || [])];
+                                  for (let i = 1; i <= numPages; i++) {
+                                    setUploadingStatus(`Page ${i}/${numPages}...`);
+                                    const page = await pdf.getPage(i);
+                                    const viewport = page.getViewport({ scale: 1.5 });
+                                    const canvas = document.createElement('canvas');
+                                    const context = canvas.getContext('2d');
+                                    if (context) {
+                                      canvas.height = viewport.height;
+                                      canvas.width = viewport.width;
+                                      await page.render({ canvasContext: context, viewport: viewport }).promise;
+                                      const base64Image = canvas.toDataURL('image/png').split(',')[1];
+                                      const pageUrl = await uploadFile(base64Image, `${file.name.replace('.pdf', '')}_page_${i}.png`);
+                                      newSlidesList.push(pageUrl);
+                                    }
+                                  }
+                                  setNewSchedule({...newSchedule, slides: newSlidesList});
+                                  showToast(`🎉 PDF split: ${numPages} slide pages added!`);
+                                } catch (err: any) {
+                                  showToast('PDF split failed: ' + err.message, 'error');
+                                } finally {
+                                  setIsUploadingSlide(false);
+                                  setUploadingStatus('');
+                                }
+                              };
+                              reader.readAsArrayBuffer(file);
+                            } else {
+                              const reader = new FileReader();
+                              reader.onload = async () => {
+                                try {
+                                  const base64 = (reader.result as string).split(',')[1];
+                                  const url = await uploadFile(base64, file.name);
+                                  setTempSlideUrl(url);
+                                } catch (err: any) {
+                                  showToast('Upload failed: ' + err.message, 'error');
+                                } finally {
+                                  setIsUploadingSlide(false);
+                                  setUploadingStatus('');
+                                }
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          } catch (err: any) {
+                            showToast('Upload failed: ' + err.message, 'error');
+                            setIsUploadingSlide(false);
+                            setUploadingStatus('');
+                          }
+                        }}
+                        style={{ display: 'none' }}
+                        disabled={isUploadingSlide}
+                      />
+                    </label>
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        if (!tempSlideUrl.trim()) return showToast('Add a slide URL or upload a file first!', 'error');
+                        const updated = [...(newSchedule.slides || []), tempSlideUrl.trim()];
+                        setNewSchedule({...newSchedule, slides: updated});
+                        setTempSlideUrl('');
+                      }}
+                      className="save-btn"
+                      style={{ padding: '10px 16px', background: '#00B6A6' }}
+                    >
+                      ➕ Add Slide
+                    </button>
+                  </div>
+                  <div style={{ fontSize: '11.5px', color: '#94A3B8', margin: '-4px 0 12px 0', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    💡 <span>Tip: Uploading a PDF will automatically slice and split all pages into high-resolution slide images. If you have a PPT, save it as a PDF first!</span>
+                  </div>
+
+                  {/* Render slides preview list */}
+                  {newSchedule.slides && newSchedule.slides.length > 0 ? (
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', background: 'rgba(255,255,255,0.02)', padding: '10px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                      {newSchedule.slides.map((url: string, idx: number) => {
+                        const isImage = url.match(/\.(jpeg|jpg|gif|png|webp)/i) || !url.includes('.');
+                        const isVideo = url.match(/\.(mp4|webm|ogg)/i);
+                        const isPdf = url.match(/\.pdf/i);
+                        return (
+                          <div key={idx} style={{ position: 'relative', width: '100px', height: '80px', borderRadius: '6px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
+                            {isImage ? (
+                              <img src={url.startsWith('/') && !url.startsWith('http') ? `http://localhost:3001${url}` : url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="slide preview" />
+                            ) : isVideo ? (
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: '#1E293B', color: '#38BDF8', fontSize: '10px', fontWeight: 'bold' }}>📹 Video</div>
+                            ) : isPdf ? (
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: '#1E293B', color: '#EF4444', fontSize: '10px', fontWeight: 'bold' }}>📕 PDF</div>
+                            ) : (
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: '#1E293B', color: '#94A3B8', fontSize: '10px', fontWeight: 'bold' }}>📄 File</div>
+                            )}
+                            <button 
+                              type="button" 
+                              onClick={() => {
+                                const updated = newSchedule.slides.filter((_: any, i: number) => i !== idx);
+                                setNewSchedule({...newSchedule, slides: updated});
+                              }}
+                              style={{ position: 'absolute', top: '2px', right: '2px', background: 'rgba(0,0,0,0.6)', border: 'none', color: '#EF4444', borderRadius: '50%', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '9px', fontWeight: 'bold' }}
+                            >
+                              ✕
+                            </button>
+                            <div style={{ position: 'absolute', bottom: '2px', left: '4px', color: 'white', fontSize: '9px', background: 'rgba(0,0,0,0.6)', padding: '0 4px', borderRadius: '2px' }}>
+                              #{idx + 1}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: '12px', color: '#64748B', margin: '4px 0' }}>No custom slides attached. A plain chalkboard will be displayed.</p>
                   )}
                 </div>
               </>
@@ -1711,7 +2976,9 @@ export default function App() {
                       maxStageStudents: 4,
                       materials: [],
                       homework: [],
+                      quizzes: [],
                       questions: [],
+                      slides: [],
                       durationMinutes: 30
                     });
                   }} 
@@ -2894,8 +4161,7 @@ export default function App() {
 
   return (
     <div className="app-container">
-      {/* Sidebar Panel */}
-      <div className="sidebar">
+      <div className="sidebar" style={{ display: (isSidebarCollapsed && activeControlSchedule) ? 'none' : 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
           <span style={{ background: '#00B6A6', color: 'white', fontWeight: 700, padding: '3px 8px', borderRadius: '5px', fontSize: '13px' }}>ODA</span>
           <span style={{ fontSize: '14px', fontWeight: 600 }}>Class Manager</span>
@@ -2909,6 +4175,13 @@ export default function App() {
             onClick={() => setActiveTab('config')}
           >
             🏠 Grade Manager
+          </button>
+          <button 
+            type="button" 
+            className={`nav-item ${activeTab === 'teacher_desk' ? 'active' : ''}`}
+            onClick={() => setActiveTab('teacher_desk')}
+          >
+            🎥 Teacher Live Desk
           </button>
           <button 
             type="button" 
@@ -2983,7 +4256,11 @@ export default function App() {
 
       {/* Main Form content */}
       <div className="main-content">
-        {activeTab === 'orders' ? (
+        {activeControlSchedule ? (
+          renderLiveControlCenter()
+        ) : activeTab === 'teacher_desk' ? (
+          renderTeacherDesk()
+        ) : activeTab === 'orders' ? (
           renderOrdersTracker()
         ) : activeTab === 'students' ? (
           renderStudentsTracker()

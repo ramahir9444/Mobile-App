@@ -14,11 +14,14 @@ import {
   ActivityIndicator,
   Animated,
   Vibration,
+  Platform,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import { useApp } from '../context/AppContext';
-import { API_BASE } from '../services/api';
+import { API_BASE, getAvatarUrl } from '../services/api';
 
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
@@ -53,6 +56,8 @@ interface LiveQuiz {
   correctAnswer?: string;
   marks: number;
   timeLimitSec: number;
+  chapter?: string;
+  topic?: string;
 }
 
 interface StageParticipant {
@@ -81,11 +86,39 @@ const fetchLiveToken = async (
   return json.data;
 };
 
-const fetchLiveState = async (scheduleId: string) => {
-  const res = await fetch(`${API_BASE}/schedules/${scheduleId}/live-state`);
+const fetchLiveState = async (scheduleId: string, phone = '', name = '') => {
+  const res = await fetch(`${API_BASE}/schedules/${scheduleId}/live-state?phone=${encodeURIComponent(phone)}&name=${encodeURIComponent(name)}`);
   const json = await res.json();
   if (!json.success) throw new Error(json.error || 'Failed to fetch live state');
   return json.data;
+};
+
+const StudentVideoView: React.FC<{ track: any; style?: any }> = ({ track, style }) => {
+  const ref = useRef<any>(null);
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !track || !ref.current) return;
+    track.attach(ref.current);
+    return () => {
+      track.detach(ref.current);
+    };
+  }, [track]);
+
+  if (Platform.OS === 'web') {
+    return (
+      <video
+        ref={ref}
+        autoPlay
+        playsInline
+        style={style || { width: '100%', height: '100%', objectFit: 'cover' }}
+      />
+    );
+  }
+
+  return (
+    <View style={style || { width: '100%', height: '100%', backgroundColor: '#1E293B', alignItems: 'center', justifyContent: 'center' }}>
+      <Ionicons name="videocam" size={24} color="#8B5CF6" />
+    </View>
+  );
 };
 
 const postAttendance = async (scheduleId: string, payload: any) => {
@@ -145,6 +178,7 @@ export const LiveClassroomScreen: React.FC = () => {
   const [allowChat, setAllowChat] = useState(true);
   const [allowStage, setAllowStage] = useState(true);
   const [enableQuiz, setEnableQuiz] = useState(true);
+  const [hwReleased, setHwReleased] = useState(false);
 
   // UI panel state
   const [rightPanel, setRightPanel] = useState<'chat' | 'quiz' | 'participants'>('chat');
@@ -165,6 +199,7 @@ export const LiveClassroomScreen: React.FC = () => {
   // Whiteboard state
   const [currentSlide, setCurrentSlide] = useState(0);
   const [totalSlides, setTotalSlides] = useState(5); // placeholder
+  const [drawings, setDrawings] = useState<any[]>([]);
 
   // Reactions
   const [reactionQueue, setReactionQueue] = useState<{ id: string; emoji: string; x: number }[]>([]);
@@ -173,6 +208,150 @@ export const LiveClassroomScreen: React.FC = () => {
   // Mic/camera state
   const [isMicOn, setIsMicOn] = useState(false);
   const [isCameraOn, setIsCameraOn] = useState(false);
+
+  // LiveKit WebRTC Video/Audio states for Web
+  const [studentLkRoom, setStudentLkRoom] = useState<any>(null);
+  const [teacherVideoTrack, setTeacherVideoTrack] = useState<any>(null);
+  const [teacherAudioTrack, setTeacherAudioTrack] = useState<any>(null);
+  const [studentVideoTracks, setStudentVideoTracks] = useState<{ [identity: string]: any }>({});
+  const studentVideoRef = useRef<any>(null);
+
+  // Connect student to LiveKit room
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !token || !wsUrl) return;
+
+    let active = true;
+    let roomInstance: any = null;
+
+    async function connectStudent() {
+      try {
+        const { Room, RoomEvent } = require('livekit-client');
+        roomInstance = new Room();
+        setStudentLkRoom(roomInstance);
+
+        roomInstance.on(RoomEvent.TrackSubscribed, (track: any, publication: any, participant: any) => {
+          if (participant?.identity?.startsWith('teacher-')) {
+            if (track.kind === 'video') {
+              setTeacherVideoTrack(track);
+            } else if (track.kind === 'audio') {
+              setTeacherAudioTrack(track);
+              const audioEl = document.createElement('audio');
+              audioEl.autoplay = true;
+              track.attach(audioEl);
+            }
+          } else {
+            if (track.kind === 'video') {
+              setStudentVideoTracks(prev => ({ ...prev, [participant.identity]: track }));
+            } else if (track.kind === 'audio') {
+              const audioEl = document.createElement('audio');
+              audioEl.autoplay = true;
+              track.attach(audioEl);
+            }
+          }
+        });
+
+        roomInstance.on(RoomEvent.TrackUnsubscribed, (track: any, publication: any, participant: any) => {
+          if (participant?.identity?.startsWith('teacher-')) {
+            if (track.kind === 'video') {
+              setTeacherVideoTrack(null);
+            } else if (track.kind === 'audio') {
+              setTeacherAudioTrack(null);
+            }
+          } else {
+            if (track.kind === 'video') {
+              setStudentVideoTracks(prev => {
+                const copy = { ...prev };
+                delete copy[participant?.identity];
+                return copy;
+              });
+            }
+          }
+        });
+
+        console.log('Connecting student to LiveKit room:', wsUrl);
+        await roomInstance.connect(wsUrl, token);
+        console.log('Student connected to LiveKit room successfully!');
+
+        // Check if teacher/students are already publishing in the room
+        for (const participant of roomInstance.remoteParticipants.values()) {
+          const isTeacher = participant.identity.startsWith('teacher-');
+          if (isTeacher) {
+            const videoPub = Array.from(participant.videoTrackPublications.values())[0] as any;
+            if (videoPub && videoPub.track) {
+              setTeacherVideoTrack(videoPub.track);
+            }
+            const audioPub = Array.from(participant.audioTrackPublications.values())[0] as any;
+            if (audioPub && audioPub.track) {
+              setTeacherAudioTrack(audioPub.track);
+              const audioEl = document.createElement('audio');
+              audioEl.autoplay = true;
+              participant.audioTrackPublications.values().next().value?.track?.attach(audioEl);
+            }
+          } else {
+            const videoPub = Array.from(participant.videoTrackPublications.values())[0] as any;
+            if (videoPub && videoPub.track) {
+              setStudentVideoTracks(prev => ({ ...prev, [participant.identity]: videoPub.track }));
+            }
+            const audioPub = Array.from(participant.audioTrackPublications.values())[0] as any;
+            if (audioPub && audioPub.track) {
+              const audioEl = document.createElement('audio');
+              audioEl.autoplay = true;
+              audioPub.track.attach(audioEl);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Student LiveKit error:', err);
+      }
+    }
+
+    connectStudent();
+
+    return () => {
+      active = false;
+      if (roomInstance) {
+        roomInstance.disconnect();
+      }
+      setStudentLkRoom(null);
+      setTeacherVideoTrack(null);
+      setTeacherAudioTrack(null);
+      setStudentVideoTracks({});
+    };
+  }, [token, wsUrl]);
+
+  // Bind video element
+  useEffect(() => {
+    if (!teacherVideoTrack || !studentVideoRef.current) return;
+    teacherVideoTrack.attach(studentVideoRef.current);
+    return () => {
+      teacherVideoTrack.detach(studentVideoRef.current);
+    };
+  }, [teacherVideoTrack]);
+
+  // Stage student publish sync hook
+  useEffect(() => {
+    if (!studentLkRoom || !studentLkRoom.localParticipant) return;
+
+    const studentOnStage = stageParticipants.find((p) => p.identity === user.phone);
+    const isOnStage = !!studentOnStage;
+    const isMutedByTeacher = studentOnStage ? studentOnStage.isMuted : true;
+
+    // Determine target track publish states
+    const targetMic = isOnStage && isMicOn && !isMutedByTeacher;
+    const targetCamera = isOnStage && isCameraOn;
+
+    async function syncTracks() {
+      try {
+        console.log('[Stage Sync] Setting local mic:', targetMic, 'camera:', targetCamera);
+        await studentLkRoom.localParticipant.setMicrophoneEnabled(targetMic);
+        await studentLkRoom.localParticipant.setCameraEnabled(targetCamera);
+      } catch (err) {
+        console.warn('[Stage Sync Error] Failed to publish local tracks:', err);
+      }
+    }
+
+    syncTracks();
+  }, [stageParticipants, isMicOn, isCameraOn, studentLkRoom, user.phone]);
 
   // Attendance tracking
   const sessionStartRef = useRef<number>(Date.now());
@@ -185,6 +364,7 @@ export const LiveClassroomScreen: React.FC = () => {
 
   // Live state polling
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastFetchedEventTimeRef = useRef<string>(new Date(Date.now() - 30 * 60 * 1000).toISOString());
 
   // Animations
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -207,6 +387,31 @@ export const LiveClassroomScreen: React.FC = () => {
     }
 
     bootstrapRoom();
+  }, []);
+
+  useEffect(() => {
+    async function lockLandscape() {
+      try {
+        if (Platform.OS !== 'web') {
+          await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+        }
+      } catch (err) {
+        console.warn('Failed to lock orientation:', err);
+      }
+    }
+    lockLandscape();
+    return () => {
+      async function unlockOrientation() {
+        try {
+          if (Platform.OS !== 'web') {
+            await ScreenOrientation.unlockAsync();
+          }
+        } catch (err) {
+          console.warn('Failed to unlock orientation:', err);
+        }
+      }
+      unlockOrientation();
+    };
   }, []);
 
   const bootstrapRoom = async () => {
@@ -270,15 +475,15 @@ export const LiveClassroomScreen: React.FC = () => {
 
     pollIntervalRef.current = setInterval(async () => {
       try {
-        const data = await fetchLiveState(activeClassSchedule._id);
+        const data = await fetchLiveState(activeClassSchedule._id, user.phone, user.name);
         if (!data) return;
 
         const state = data.liveState || {};
 
         // Quiz state
         if (enableQuiz && state.quizActive && state.activeQuizId && !activeQuiz) {
-          // Find the quiz question in schedule homework array
-          const q = (activeClassSchedule.homework || []).find(
+          // Find the quiz question in schedule quizzes array
+          const q = (activeClassSchedule.quizzes || []).find(
             (h: any) => h._id === state.activeQuizId || h.text === state.activeQuizId
           );
           if (q) {
@@ -290,6 +495,8 @@ export const LiveClassroomScreen: React.FC = () => {
               correctAnswer: q.correctAnswer || q.correct,
               marks: 1,
               timeLimitSec: 30,
+              chapter: q.chapter || '',
+              topic: q.topic || ''
             });
             setRightPanel('quiz');
             setQuizSubmitted(false);
@@ -309,12 +516,86 @@ export const LiveClassroomScreen: React.FC = () => {
             isMuted: (state.mutedStageStudents || []).includes(phone),
           }));
           setStageParticipants(stage);
+
+          // Force local mute if teacher muted or booted the student from stage
+          const onStage = (state.stageStudents || []).includes(user.phone);
+          if (!onStage) {
+            setIsMicOn(false);
+            setIsCameraOn(false);
+          } else {
+            const isMutedByTeacher = (state.mutedStageStudents || []).includes(user.phone);
+            if (isMutedByTeacher && isMicOn) {
+              setIsMicOn(false);
+            }
+          }
         }
 
         // Page sync
         if (typeof state.activePage === 'number' && state.activePage !== currentSlide) {
           setCurrentSlide(state.activePage);
         }
+        const slides = activeClassSchedule?.slides || [];
+        const totalSlidesCount = slides.length || 5;
+        if (totalSlidesCount !== totalSlides) {
+          setTotalSlides(totalSlidesCount);
+        }
+
+        // Drawings sync
+        if (state.drawings) {
+          setDrawings(state.drawings);
+        } else {
+          setDrawings([]);
+        }
+
+        // HW Released — notify student once
+        if (state.hwReleased && !hwReleased) {
+          setHwReleased(true);
+          setRightPanel('participants');
+          Alert.alert('📝 Homework Assigned!', 'Your teacher has released homework for this class. Check the Participants tab.', [{ text: 'View Now' }]);
+        }
+
+        // Poll for new live events (chat messages, reactions)
+        try {
+          const eventsRes = await fetch(`${API_BASE}/schedules/${activeClassSchedule._id}/live-events?since=${lastFetchedEventTimeRef.current}`);
+          const eventsJson = await eventsRes.json();
+          if (eventsJson.success && eventsJson.data && eventsJson.data.length > 0) {
+            const newMessages: ChatMessage[] = [];
+            let latestTime = lastFetchedEventTimeRef.current;
+            
+            eventsJson.data.forEach((evt: any) => {
+              if (evt.timestamp > latestTime) {
+                latestTime = evt.timestamp;
+              }
+              
+              if (evt.eventType === 'ChatMessage') {
+                newMessages.push({
+                  id: evt._id || Math.random().toString(),
+                  sender: evt.studentName || 'Student',
+                  message: evt.detail,
+                  timestamp: evt.timestamp,
+                  senderRole: evt.studentPhone === 'teacher' ? 'teacher' : 'student'
+                });
+              } else if (evt.eventType === 'Reaction') {
+                const emoji = evt.detail;
+                const x = Math.random() * (SCREEN_W * 0.4) + (SCREEN_W * 0.1);
+                setReactionQueue((prev) => [...prev, { id: `${evt._id}-${Date.now()}`, emoji, x }]);
+              }
+            });
+            
+            lastFetchedEventTimeRef.current = latestTime;
+            if (newMessages.length > 0) {
+              setChatMessages((prev) => {
+                const merged = [...prev];
+                newMessages.forEach(newMsg => {
+                  if (!merged.some(m => m.timestamp === newMsg.timestamp && m.sender === newMsg.sender)) {
+                    merged.push(newMsg);
+                  }
+                });
+                return merged.sort((a,b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+              });
+            }
+          }
+        } catch {}
 
         // If class ended, show ended notice
         if (data.liveStatus === 'ended') {
@@ -444,6 +725,8 @@ export const LiveClassroomScreen: React.FC = () => {
       studentPhone: user.phone,
       studentName: user.name,
       subject: activeClassSchedule.subject || '',
+      chapter: activeQuiz?.chapter || '',
+      topic: activeQuiz?.topic || '',
       questionText: activeQuiz?.questionText || '',
       selectedOption: option || '',
       correctOption: activeQuiz?.correctAnswer || '',
@@ -461,6 +744,8 @@ export const LiveClassroomScreen: React.FC = () => {
     setHandRaised(next);
     if (next) {
       postLiveEvent(activeClassSchedule._id, user.phone, user.name, 'RaiseHand');
+    } else {
+      postLiveEvent(activeClassSchedule._id, user.phone, user.name, 'LowerHand');
     }
   };
 
@@ -477,6 +762,15 @@ export const LiveClassroomScreen: React.FC = () => {
 
   // ─── Back / Leave ─────────────────────────────────────────────
   const handleLeave = () => {
+    if (Platform.OS === 'web') {
+      if (window.confirm('Are you sure you want to leave the live session?')) {
+        submitAttendance().then(() => {
+          navigateTo('COURSE_DETAILS');
+        });
+      }
+      return;
+    }
+
     Alert.alert('Leave Class?', 'Are you sure you want to leave the live session?', [
       { text: 'Stay', style: 'cancel' },
       {
@@ -525,8 +819,56 @@ export const LiveClassroomScreen: React.FC = () => {
   // ─── LIVE CLASSROOM UI ─────────────────────────────────────────
   const schedule = activeClassSchedule;
 
+  // Helper: enter fullscreen + lock landscape on web
+  const handleWebFullscreen = () => {
+    if (Platform.OS === 'web') {
+      const el = document.documentElement;
+      if (el.requestFullscreen) {
+        el.requestFullscreen().then(() => {
+          if ((screen as any).orientation?.lock) {
+            (screen as any).orientation.lock('landscape').catch(() => {});
+          }
+        }).catch(() => {});
+      }
+    }
+  };
+
   return (
     <View style={styles.container}>
+      {/* ── PORTRAIT WARNING OVERLAY (web only) ── */}
+      {Platform.OS === 'web' && (
+        <div
+          style={{
+            display: 'none',
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            background: '#0B1120',
+            zIndex: 9999,
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white',
+          }}
+          className="portrait-only-overlay"
+        >
+          <div style={{ fontSize: 48, marginBottom: 16 }}>📱</div>
+          <div style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8 }}>Rotate Your Device</div>
+          <div style={{ fontSize: 13, color: '#94A3B8', textAlign: 'center', padding: '0 32px', marginBottom: 24 }}>
+            Live class works best in landscape mode
+          </div>
+          <button
+            onClick={handleWebFullscreen}
+            style={{ background: '#00B6A6', color: 'white', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 'bold', fontSize: 14, cursor: 'pointer' }}
+          >
+            🔄 Enter Fullscreen
+          </button>
+          <style>{`
+            @media (orientation: portrait) { .portrait-only-overlay { display: flex !important; } }
+            @media (orientation: landscape) { .portrait-only-overlay { display: none !important; } }
+          `}</style>
+        </div>
+      )}
+
       {/* ── TOP HEADER ── */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleLeave} style={styles.headerBtn}>
@@ -541,6 +883,14 @@ export const LiveClassroomScreen: React.FC = () => {
         </View>
         <View style={styles.headerRight}>
           <Text style={styles.headerSubject}>{schedule?.subject}</Text>
+          {Platform.OS === 'web' && (
+            <TouchableOpacity
+              onPress={handleWebFullscreen}
+              style={[styles.headerBtn, { marginLeft: 4, backgroundColor: '#334155' }]}
+            >
+              <Text style={{ color: 'white', fontSize: 11, fontWeight: '700' }}>⛶ Full</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity onPress={handleLeave} style={[styles.headerBtn, { marginLeft: 8, backgroundColor: '#EF4444' }]}>
             <Text style={{ color: 'white', fontSize: 11, fontWeight: '700' }}>Leave</Text>
           </TouchableOpacity>
@@ -551,54 +901,166 @@ export const LiveClassroomScreen: React.FC = () => {
       <View style={styles.body}>
         {/* Left: Teaching Canvas */}
         <View style={styles.canvasArea}>
-          {/* Teacher Camera (top-right pip) */}
-          <View style={styles.teacherCameraPip}>
-            <View style={styles.teacherCameraBox}>
-              <Ionicons name="person" size={30} color="#94A3B8" />
-              <Text style={styles.teacherLabel}>{schedule?.teacherName || 'Teacher'}</Text>
-              <Animated.View style={[styles.recIndicator, { opacity: recDotAnim }]}>
-                <Text style={styles.recText}>● REC</Text>
-              </Animated.View>
-            </View>
-          </View>
-
           {/* Whiteboard / Slide area */}
           <View style={styles.whiteboardArea}>
             <View style={styles.slideFrame}>
-              <View style={styles.slideContent}>
-                <Text style={styles.slideTitle}>📘 {schedule?.subject}</Text>
-                <Text style={styles.slideSubtitle}>{schedule?.title}</Text>
-                <Text style={styles.slidePageNumber}>Slide {currentSlide + 1} / {totalSlides}</Text>
+              {activeClassSchedule?.slides && activeClassSchedule.slides.length > 0 ? (
+                <>
+                  {(() => {
+                    const slides = activeClassSchedule.slides || [];
+                    const url = slides[currentSlide];
+                    if (!url) {
+                      return (
+                        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                          <Text style={{ color: 'white' }}>No slide content</Text>
+                        </View>
+                      );
+                    }
 
-                <View style={styles.slidePlaceholderGrid}>
-                  {[...Array(6)].map((_, i) => (
-                    <View key={i} style={styles.slidePlaceholderBlock} />
-                  ))}
+                    const isImage = url.match(/\.(jpeg|jpg|gif|png|webp)/i) || !url.includes('.');
+                    const isVideo = url.match(/\.(mp4|webm|ogg)/i);
+                    const isPdf = url.match(/\.pdf/i);
+                    const resolvedUrl = getAvatarUrl(url) || '';
+
+                    if (Platform.OS === 'web') {
+                      if (isPdf) {
+                        return (
+                          <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#1E293B', overflow: 'hidden' }}>
+                            {/* PDF Viewer Control Bar */}
+                            <div style={{ padding: '8px 16px', backgroundColor: '#0F172A', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #334155', zIndex: 12 }}>
+                              <span style={{ color: '#F1F5F9', fontSize: '12px', fontWeight: 'bold' }}>📄 Slide Material (PDF)</span>
+                              <a 
+                                href={resolvedUrl} 
+                                target="_blank" 
+                                rel="noreferrer" 
+                                style={{ 
+                                  color: '#FFFFFF', 
+                                  backgroundColor: '#00B6A6', 
+                                  padding: '4px 12px', 
+                                  borderRadius: '4px', 
+                                  fontSize: '11px', 
+                                  fontWeight: 'bold', 
+                                  textDecoration: 'none',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                📥 Open in New Tab
+                              </a>
+                            </div>
+                            
+                            {/* Scrollable PDF Iframe container */}
+                            <div 
+                              style={{ 
+                                flex: 1, 
+                                width: '100%', 
+                                height: '100%', 
+                                overflowY: 'auto', 
+                                overflowX: 'hidden',
+                                WebkitOverflowScrolling: 'touch',
+                                position: 'relative'
+                              }}
+                            >
+                              <iframe
+                                src={`${resolvedUrl}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
+                                style={{ 
+                                  width: '100%', 
+                                  height: '100%', 
+                                  minHeight: '600px',
+                                  border: 'none',
+                                  pointerEvents: 'auto'
+                                }}
+                                title="slide pdf"
+                              />
+                            </div>
+                          </div>
+                        );
+                      }
+                      if (isImage) {
+                        return (
+                          <div style={{ width: '100%', height: '100%', overflow: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: '#1E293B' }}>
+                            <img src={resolvedUrl} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} alt="slide content" />
+                          </div>
+                        );
+                      }
+                      if (isVideo) {
+                        return <video src={resolvedUrl} autoPlay loop muted style={{ width: '100%', height: '100%', objectFit: 'contain' }} />;
+                      }
+                      return (
+                        <div style={{ width: '100%', height: '100%', overflow: 'auto', backgroundColor: '#1E293B', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                          <img src={resolvedUrl} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} alt="slide content" />
+                        </div>
+                      );
+                    }
+
+                    // Native
+                    if (isImage) {
+                      return <Image source={{ uri: resolvedUrl }} style={{ width: '100%', height: '100%', resizeMode: 'contain' }} />;
+                    }
+                    return (
+                      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1E293B' }}>
+                        <Text style={{ color: '#94A3B8', fontSize: 13 }}>Open on a browser to view this file</Text>
+                      </View>
+                    );
+                  })()}
+                  <View style={{ position: 'absolute', bottom: 12, left: 12, zIndex: 10, backgroundColor: 'rgba(0,0,0,0.7)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}>
+                    <Text style={{ color: 'white', fontSize: 11, fontWeight: 'bold' }}>
+                      Slide {currentSlide + 1} / {totalSlides}
+                    </Text>
+                  </View>
+                </>
+              ) : (
+                <View style={styles.slideContent}>
+                  <Text style={styles.slideTitle}>📘 {schedule?.subject}</Text>
+                  <Text style={styles.slideSubtitle}>{schedule?.title}</Text>
+                  <Text style={styles.slidePageNumber}>Slide {currentSlide + 1} / {totalSlides}</Text>
+
+                  <View style={styles.slidePlaceholderGrid}>
+                    {[...Array(6)].map((_, i) => (
+                      <View key={i} style={styles.slidePlaceholderBlock} />
+                    ))}
+                  </View>
+
+                  <Text style={styles.slideTip}>
+                    📺 Teacher is sharing their screen. Content appears here in real-time.
+                  </Text>
                 </View>
+              )}
 
-                <Text style={styles.slideTip}>
-                  📺 Teacher is sharing their screen. Content appears here in real-time.
-                </Text>
-              </View>
+              {/* Web SVG drawings overlay */}
+              {Platform.OS === 'web' && drawings && drawings.length > 0 && (
+                <svg
+                  viewBox="0 0 800 450"
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    pointerEvents: 'none',
+                    zIndex: 5,
+                  }}
+                >
+                  {drawings.map((line: any, idx: number) => (
+                    <path
+                      key={idx}
+                      d={line.path}
+                      stroke={line.color || '#FF5E00'}
+                      strokeWidth={line.width || 3}
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  ))}
+                </svg>
+              )}
             </View>
 
-            {/* Slide navigation */}
+            {/* Slide navigation (read-only for students, follows teacher) */}
             <View style={styles.slideNav}>
-              <TouchableOpacity
-                disabled={currentSlide === 0}
-                onPress={() => setCurrentSlide((p) => Math.max(0, p - 1))}
-                style={[styles.slideNavBtn, currentSlide === 0 && { opacity: 0.3 }]}
-              >
-                <Ionicons name="chevron-back" size={18} color="white" />
-              </TouchableOpacity>
-              <Text style={styles.slideNavText}>{currentSlide + 1} / {totalSlides}</Text>
-              <TouchableOpacity
-                disabled={currentSlide >= totalSlides - 1}
-                onPress={() => setCurrentSlide((p) => Math.min(totalSlides - 1, p + 1))}
-                style={[styles.slideNavBtn, currentSlide >= totalSlides - 1 && { opacity: 0.3 }]}
-              >
-                <Ionicons name="chevron-forward" size={18} color="white" />
-              </TouchableOpacity>
+              <Text style={styles.slideNavText}>Slide {currentSlide + 1} / {totalSlides}</Text>
             </View>
           </View>
 
@@ -624,6 +1086,55 @@ export const LiveClassroomScreen: React.FC = () => {
 
         {/* Right: Chat / Quiz Panel */}
         <View style={styles.rightPanel}>
+          {/* Top: Video feed panel */}
+          <View style={styles.feedsPanel}>
+            {/* Teacher video stream */}
+            <View style={styles.teacherFeedBox}>
+              {Platform.OS === 'web' && teacherVideoTrack ? (
+                <video
+                  ref={studentVideoRef}
+                  autoPlay
+                  playsInline
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 6 }}
+                />
+              ) : (
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1E293B' }}>
+                  <Ionicons name="person" size={24} color="#94A3B8" />
+                  <Text style={{ color: '#94A3B8', fontSize: 10, fontWeight: 'bold', marginTop: 4 }}>
+                    {schedule?.teacherName || 'Teacher'}
+                  </Text>
+                </View>
+              )}
+              {/* REC Badge */}
+              <Animated.View style={[styles.recIndicator, { opacity: recDotAnim, top: 4, left: 4 }]}>
+                <Text style={styles.recText}>● REC</Text>
+              </Animated.View>
+            </View>
+
+            {/* Stage students horizontal list */}
+            {stageParticipants.length > 0 && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 6, maxHeight: 65 }}>
+                {stageParticipants.map((p) => {
+                  const hasVideo = !!studentVideoTracks[p.identity];
+                  return (
+                    <View key={p.identity} style={styles.studentFeedBox}>
+                      {hasVideo ? (
+                        <StudentVideoView track={studentVideoTracks[p.identity]} style={{ width: '100%', height: '100%', borderRadius: 4 }} />
+                      ) : (
+                        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1E293B' }}>
+                          <Ionicons name="person" size={14} color="#94A3B8" />
+                        </View>
+                      )}
+                      <Text style={{ position: 'absolute', bottom: 2, left: 2, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 4, paddingVertical: 1, borderRadius: 2, color: 'white', fontSize: 7, fontWeight: 'bold' }} numberOfLines={1}>
+                        {p.name}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            )}
+          </View>
+
           {/* Panel Tab Switcher */}
           <View style={styles.panelTabs}>
             {(['chat', 'quiz', 'participants'] as const).map((tab) => (
@@ -665,7 +1176,7 @@ export const LiveClassroomScreen: React.FC = () => {
                 ))}
               </ScrollView>
 
-              {allowChat && (
+              {allowChat ? (
                 <View style={styles.chatInputRow}>
                   <TextInput
                     style={styles.chatInput}
@@ -679,6 +1190,10 @@ export const LiveClassroomScreen: React.FC = () => {
                   <TouchableOpacity onPress={sendChatMessage} style={styles.sendBtn}>
                     <Ionicons name="send" size={18} color="white" />
                   </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={styles.chatInputRowMuted}>
+                  <Text style={styles.chatMutedText}>🚫 Chat has been muted by the teacher</Text>
                 </View>
               )}
             </View>
@@ -732,8 +1247,14 @@ export const LiveClassroomScreen: React.FC = () => {
         <TouchableOpacity
           style={[styles.bottomBtn, isMicOn && styles.bottomBtnActive]}
           onPress={() => {
-            setIsMicOn((p) => !p);
-            postLiveEvent(activeClassSchedule._id, user.phone, user.name, isMicOn ? 'MicOff' : 'MicOn');
+            const studentOnStage = stageParticipants.some((p) => p.identity === user.phone);
+            if (!studentOnStage) {
+              Alert.alert('Stage Access Required', 'You must be allowed on stage by the teacher to toggle your microphone.');
+              return;
+            }
+            const next = !isMicOn;
+            setIsMicOn(next);
+            postLiveEvent(activeClassSchedule._id, user.phone, user.name, next ? 'MicOn' : 'MicOff');
           }}
         >
           <Ionicons name={isMicOn ? 'mic' : 'mic-off'} size={20} color={isMicOn ? '#00B6A6' : '#94A3B8'} />
@@ -743,8 +1264,14 @@ export const LiveClassroomScreen: React.FC = () => {
         <TouchableOpacity
           style={[styles.bottomBtn, isCameraOn && styles.bottomBtnActive]}
           onPress={() => {
-            setIsCameraOn((p) => !p);
-            postLiveEvent(activeClassSchedule._id, user.phone, user.name, isCameraOn ? 'CameraOff' : 'CameraOn');
+            const studentOnStage = stageParticipants.some((p) => p.identity === user.phone);
+            if (!studentOnStage) {
+              Alert.alert('Stage Access Required', 'You must be allowed on stage by the teacher to toggle your camera.');
+              return;
+            }
+            const next = !isCameraOn;
+            setIsCameraOn(next);
+            postLiveEvent(activeClassSchedule._id, user.phone, user.name, next ? 'CameraOn' : 'CameraOff');
           }}
         >
           <Ionicons name={isCameraOn ? 'videocam' : 'videocam-off'} size={20} color={isCameraOn ? '#00B6A6' : '#94A3B8'} />
@@ -1047,7 +1574,7 @@ const styles = StyleSheet.create({
   recText: { color: '#EF4444', fontSize: 9, fontWeight: '700' },
 
   whiteboardArea: { flex: 1, margin: 10, marginTop: 10 },
-  slideFrame: { flex: 1, backgroundColor: '#F8FAFC', borderRadius: 12, overflow: 'hidden' },
+  slideFrame: { flex: 1, backgroundColor: '#1E293B', borderRadius: 12, overflow: 'hidden', position: 'relative' },
   slideContent: { flex: 1, padding: 20, alignItems: 'center' },
   slideTitle: { fontSize: 18, fontWeight: '800', color: '#0B1120', textAlign: 'center', marginBottom: 6 },
   slideSubtitle: { fontSize: 13, color: '#475569', textAlign: 'center', marginBottom: 20 },
@@ -1069,6 +1596,9 @@ const styles = StyleSheet.create({
 
   // Right Panel
   rightPanel: { flex: 35, backgroundColor: '#0F1A2A', borderLeftWidth: 1, borderLeftColor: '#1E293B' },
+  feedsPanel: { padding: 8, borderBottomWidth: 1, borderBottomColor: '#1E293B', backgroundColor: '#0B132B' },
+  teacherFeedBox: { width: '100%', height: 110, borderRadius: 8, borderWidth: 1, borderColor: '#00B6A6', overflow: 'hidden', position: 'relative' },
+  studentFeedBox: { width: 80, height: 55, borderRadius: 6, borderWidth: 1, borderColor: '#8B5CF6', overflow: 'hidden', marginRight: 6, position: 'relative', backgroundColor: '#1E293B' },
   panelTabs: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#1E293B' },
   panelTab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
   panelTabActive: { borderBottomColor: '#00B6A6' },
@@ -1105,6 +1635,8 @@ const styles = StyleSheet.create({
   bottomBtnLabel: { color: '#94A3B8', fontSize: 10, fontWeight: '600' },
 
   floatingReaction: { position: 'absolute', bottom: 100, zIndex: 100 },
+  chatInputRowMuted: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 14, backgroundColor: '#131D2E', borderTopWidth: 1, borderTopColor: '#1E293B' },
+  chatMutedText: { color: '#64748B', fontSize: 12, fontWeight: '600' },
 });
 
 const chatStyles = StyleSheet.create({
