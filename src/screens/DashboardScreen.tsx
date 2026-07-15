@@ -55,22 +55,22 @@ export const DashboardScreen: React.FC = () => {
   const [dynamicUpcoming, setDynamicUpcoming] = useState<any>(null);
   const [isSchedulesLoading, setIsSchedulesLoading] = useState(false);
 
+  const enrolledMasterGrade = (() => {
+    const paidMasterOrder = dbOrders.find((o: any) => {
+      const title = (o.courseTitle || '').toLowerCase();
+      const isBooster = title.includes('booster') || title.includes('demo') || title.includes('6-day') || title.includes('6 day') || Number(o.amount) < 500;
+      return o.status === 'paid' && !isBooster;
+    });
+    return (paidMasterOrder && paidMasterOrder.classInfo)
+      ? paidMasterOrder.classInfo.split('|')[0].trim()
+      : null;
+  })();
+
   const fetchSchedulesList = async () => {
     try {
       const res = await getSchedules();
       if (res.success && res.data) {
-        let targetGrade = selectedClass;
-
-        // Find if user has a paid master program order
-        const paidMasterOrder = dbOrders.find((o: any) => {
-          const title = (o.courseTitle || '').toLowerCase();
-          const isBooster = title.includes('booster') || title.includes('demo') || title.includes('6-day') || title.includes('6 day') || Number(o.amount) < 500;
-          return o.status === 'paid' && !isBooster;
-        });
-
-        if (paidMasterOrder && paidMasterOrder.classInfo) {
-          targetGrade = paidMasterOrder.classInfo;
-        }
+        let targetGrade = enrolledMasterGrade || selectedClass;
 
         // Filter classes matching the current class grade (e.g. "Class 6")
         const matchingSchedules = res.data.filter((s: any) => s.gradeClass === targetGrade);
@@ -87,6 +87,12 @@ export const DashboardScreen: React.FC = () => {
         if (upcoming) {
           setDynamicUpcoming(upcoming);
         } else {
+          // If user is enrolled in a master grade, do not show dynamic fallbacks of other classes.
+          if (enrolledMasterGrade) {
+            setDynamicUpcoming(null);
+            return;
+          }
+
           // Fallback to selectedClass if there was no upcoming schedule in master program
           if (targetGrade !== selectedClass) {
             const fallbackSchedules = res.data.filter((s: any) => s.gradeClass === selectedClass);
@@ -256,7 +262,9 @@ export const DashboardScreen: React.FC = () => {
   };
 
   const renderUpcomingClassCard = () => {
-    const classNum = parseInt(selectedClass.replace('Class ', '')) || 1;
+    // If the user is enrolled in a master program, default fallbacks should use that grade instead of selectedClass.
+    const activeDisplayClass = enrolledMasterGrade || selectedClass;
+    const classNum = parseInt(activeDisplayClass.replace('Class ', '')) || 1;
     const defaultUpcomingTitle = classNum <= 5 
       ? 'Fun with Numbers & Shapes - Lesson 1' 
       : classNum <= 8 
@@ -264,7 +272,7 @@ export const DashboardScreen: React.FC = () => {
         : 'IIT/JEE Foundation: Quadratic Functions';
 
     const hasDynamic = !!dynamicUpcoming;
-    const upcoming = dynamicUpcoming || homeConfig?.upcomingClass || {
+    const upcoming = dynamicUpcoming || (enrolledMasterGrade && enrolledMasterGrade !== selectedClass ? null : homeConfig?.upcomingClass) || {
       title: defaultUpcomingTitle,
       subject: classNum <= 5 ? 'Maths' : 'Mathematics',
       time: 'Today, 6:00 PM',
@@ -273,11 +281,14 @@ export const DashboardScreen: React.FC = () => {
     };
 
     const isClassLive = hasDynamic && dynamicUpcoming.isLive;
-    const isDifferentGrade = hasDynamic && dynamicUpcoming.gradeClass !== selectedClass;
+    const isDifferentGrade = (hasDynamic && dynamicUpcoming.gradeClass !== selectedClass) ||
+      (!hasDynamic && enrolledMasterGrade && enrolledMasterGrade !== selectedClass);
+    
+    const displayGradeClass = hasDynamic ? dynamicUpcoming.gradeClass : (enrolledMasterGrade || selectedClass);
     
     const badgeText = isClassLive
-      ? (isDifferentGrade ? `🔴 LIVE NOW (${dynamicUpcoming.gradeClass})` : '🔴 LIVE NOW')
-      : (isDifferentGrade ? `Upcoming Live (${dynamicUpcoming.gradeClass})` : 'Upcoming Live Class');
+      ? (isDifferentGrade ? `🔴 LIVE NOW (${displayGradeClass})` : '🔴 LIVE NOW')
+      : (isDifferentGrade ? `Upcoming Live (${displayGradeClass})` : 'Upcoming Live Class');
 
     return (
       <View style={styles.upcomingContainer} className="mx-5 my-3 p-4 bg-white rounded-2xl relative overflow-hidden shadow-sm">

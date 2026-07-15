@@ -289,8 +289,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         });
 
         if (paidMasterOrder && paidMasterOrder.classInfo) {
-          console.log('🎯 [autoSelectClass] Setting default class to enrolled master class:', paidMasterOrder.classInfo);
-          await setSelectedClass(paidMasterOrder.classInfo);
+          const cleanedClass = paidMasterOrder.classInfo.split('|')[0].trim();
+          console.log('🎯 [autoSelectClass] Setting default class to enrolled master class:', cleanedClass);
+          await setSelectedClass(cleanedClass);
           return;
         }
       }
