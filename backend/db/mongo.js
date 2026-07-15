@@ -62,9 +62,13 @@ class MockCollection {
       }
       return true;
     });
-    return {
+    const cursor = {
+      sort: function() { return cursor; },
+      limit: function() { return cursor; },
+      skip: function() { return cursor; },
       toArray: async () => results
     };
+    return cursor;
   }
 
   async findOneAndUpdate(query, update, options = {}) {
