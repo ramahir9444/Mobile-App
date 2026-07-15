@@ -195,6 +195,7 @@ export const LiveClassroomScreen: React.FC = () => {
   // Stage participants
   const [stageParticipants, setStageParticipants] = useState<StageParticipant[]>([]);
   const [handRaised, setHandRaised] = useState(false);
+  const [micMode, setMicMode] = useState<'individual' | 'group'>('individual');
 
   // Whiteboard state
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -516,6 +517,9 @@ export const LiveClassroomScreen: React.FC = () => {
             isMuted: (state.mutedStageStudents || []).includes(phone),
           }));
           setStageParticipants(stage);
+          if (state.micMode) {
+            setMicMode(state.micMode);
+          }
 
           // Force local mute if teacher muted or booted the student from stage
           const onStage = (state.stageStudents || []).includes(user.phone);
@@ -1056,6 +1060,75 @@ export const LiveClassroomScreen: React.FC = () => {
                   ))}
                 </svg>
               )}
+              {/* Stage Students overlay in bottom-left */}
+              {stageParticipants.length > 0 && (
+                <View style={{ 
+                  position: 'absolute', 
+                  bottom: 12, 
+                  left: 110, 
+                  zIndex: 100, 
+                  flexDirection: 'row', 
+                  gap: 8, 
+                  alignItems: 'center' 
+                }}>
+                  {(() => {
+                    const displayList = micMode === 'group' 
+                      ? stageParticipants.slice(0, 6) 
+                      : stageParticipants.slice(0, 1);
+
+                    return displayList.map((p) => {
+                      const hasVideo = !!studentVideoTracks[p.identity];
+                      return (
+                        <View key={p.identity} style={{ 
+                          width: 90, 
+                          height: 60, 
+                          borderRadius: 8, 
+                          borderWidth: 2,
+                          borderColor: p.isMuted ? '#EF4444' : '#8B5CF6', 
+                          backgroundColor: '#0F172A', 
+                          overflow: 'hidden', 
+                          position: 'relative',
+                          elevation: 5,
+                          shadowColor: '#000',
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.5,
+                          shadowRadius: 2,
+                        }}>
+                          {Platform.OS === 'web' && hasVideo ? (
+                            <StudentVideoView track={studentVideoTracks[p.identity]} style={{ width: '100%', height: '100%' }} />
+                          ) : (
+                            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1E293B' }}>
+                              <Ionicons name="person" size={16} color="#94A3B8" />
+                              <Text style={{ color: '#94A3B8', fontSize: 6.5, fontWeight: 'bold', marginTop: 2 }}>NO VIDEO</Text>
+                            </View>
+                          )}
+                          
+                          <View style={{ 
+                            position: 'absolute', 
+                            bottom: 2, 
+                            left: 2, 
+                            right: 2,
+                            backgroundColor: 'rgba(0,0,0,0.7)', 
+                            paddingHorizontal: 4,
+                            paddingVertical: 1, 
+                            borderRadius: 3, 
+                            flexDirection: 'row',
+                            alignItems: 'center', 
+                            justifyContent: 'space-between'
+                          }}>
+                            <Text style={{ color: 'white', fontSize: 7, fontWeight: 'bold', maxWidth: 50 }} numberOfLines={1}>
+                              {p.name}
+                            </Text>
+                            <Text style={{ color: 'white', fontSize: 7 }}>
+                              {p.isMuted ? '🔇' : '🔊'}
+                            </Text>
+                          </View>
+                        </View>
+                      );
+                    });
+                  })()}
+                </View>
+              )}
             </View>
 
             {/* Slide navigation (read-only for students, follows teacher) */}
@@ -1064,24 +1137,7 @@ export const LiveClassroomScreen: React.FC = () => {
             </View>
           </View>
 
-          {/* Student Stage (bottom strip) */}
-          {allowStage && stageParticipants.length > 0 && (
-            <View style={styles.stageStrip}>
-              <Text style={styles.stageLabel}>🎙️ On Stage</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {stageParticipants.map((p) => (
-                  <View key={p.identity} style={styles.stageCard}>
-                    <View style={styles.stageAvatar}>
-                      <Ionicons name="person" size={16} color="#00B6A6" />
-                    </View>
-                    <Text style={styles.stageName} numberOfLines={1}>{p.name}</Text>
-                    {p.isMuted && <Ionicons name="mic-off" size={10} color="#EF4444" />}
-                    {p.isSpeaking && <View style={styles.speakingDot} />}
-                  </View>
-                ))}
-              </ScrollView>
-            </View>
-          )}
+          {/* Redundant student stage bottom strip removed to focus on absolute overlay */}
         </View>
 
         {/* Right: Chat / Quiz Panel */}
@@ -1110,29 +1166,6 @@ export const LiveClassroomScreen: React.FC = () => {
                 <Text style={styles.recText}>● REC</Text>
               </Animated.View>
             </View>
-
-            {/* Stage students horizontal list */}
-            {stageParticipants.length > 0 && (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 6, maxHeight: 65 }}>
-                {stageParticipants.map((p) => {
-                  const hasVideo = !!studentVideoTracks[p.identity];
-                  return (
-                    <View key={p.identity} style={styles.studentFeedBox}>
-                      {hasVideo ? (
-                        <StudentVideoView track={studentVideoTracks[p.identity]} style={{ width: '100%', height: '100%', borderRadius: 4 }} />
-                      ) : (
-                        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1E293B' }}>
-                          <Ionicons name="person" size={14} color="#94A3B8" />
-                        </View>
-                      )}
-                      <Text style={{ position: 'absolute', bottom: 2, left: 2, backgroundColor: 'rgba(0,0,0,0.6)', paddingHorizontal: 4, paddingVertical: 1, borderRadius: 2, color: 'white', fontSize: 7, fontWeight: 'bold' }} numberOfLines={1}>
-                        {p.name}
-                      </Text>
-                    </View>
-                  );
-                })}
-              </ScrollView>
-            )}
           </View>
 
           {/* Panel Tab Switcher */}

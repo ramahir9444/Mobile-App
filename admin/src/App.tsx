@@ -948,6 +948,40 @@ export default function App() {
           isLive: liveStateRes.value.data?.isLive,
           liveStatus: liveStateRes.value.data?.liveStatus,
         }));
+        
+        // Auto select hand raised students if selectionMode is auto
+        const isAutoMode = serverLiveState?.selectionMode === 'auto';
+        const maxStageCount = (serverLiveState?.micMode === 'group') ? 6 : 1;
+        const currentStage = serverLiveState?.stageStudents || [];
+        const currentRaise = serverLiveState?.raiseHands || [];
+
+        if (isAutoMode && currentStage.length < maxStageCount && currentRaise.length > 0) {
+          const needed = maxStageCount - currentStage.length;
+          const toInvite = currentRaise.slice(0, needed);
+          const updatedStage = [...currentStage, ...toInvite];
+          const updatedRaise = currentRaise.slice(needed);
+          
+          fetch(`${API_BASE}/api/schedules/${scheduleId}/live-state`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              stageStudents: updatedStage,
+              raiseHands: updatedRaise
+            }),
+          }).then(() => {
+            fetch(`${API_BASE}/api/schedules/${scheduleId}/live-state`)
+              .then(r => r.json())
+              .then(json => {
+                if (json.success && json.data) {
+                  setLiveRoomState((prev: any) => ({
+                    ...(prev || {}),
+                    ...json.data.liveState
+                  }));
+                }
+              });
+          });
+        }
+
         // Once server has confirmed drawings, clear localDrawings to avoid duplication
         if (serverLiveState?.drawings?.length !== undefined) {
           setLocalDrawings([]);
@@ -1227,8 +1261,9 @@ export default function App() {
         showToast('No raised hands queue to rotate stage with!', 'error');
         return;
       }
-      const nextStage = raiseHands.slice(0, 5);
-      const nextRaiseHands = raiseHands.slice(5);
+      const maxStageCount = (state.micMode === 'group') ? 6 : 1;
+      const nextStage = raiseHands.slice(0, maxStageCount);
+      const nextRaiseHands = raiseHands.slice(maxStageCount);
 
       await updateState({
         stageStudents: nextStage,
@@ -1305,7 +1340,7 @@ export default function App() {
           </div>
         </header>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 270px', gap: '16px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#1C2541', borderRadius: '12px', padding: '8px 16px', border: '1px solid rgba(255,255,255,0.05)' }}>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -1332,12 +1367,41 @@ export default function App() {
                 </button>
 
                 {/* Stage Rotation and Mic Controls */}
-                <div style={{ display: 'flex', gap: '6px', alignItems: 'center', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '8px', marginLeft: '4px' }}>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '8px', marginLeft: '4px' }}>
+                  
+                  {/* Mic Mode Selector */}
+                  <select
+                    value={state.micMode || 'individual'}
+                    onChange={async (e) => {
+                      const newMode = e.target.value;
+                      await updateState({ micMode: newMode });
+                      showToast(`Mic Mode set to ${newMode === 'group' ? 'Group (6 students)' : 'Individual (1 student)'}`);
+                    }}
+                    style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.15)', background: '#8B5CF6', color: 'white', fontSize: '11.5px', fontWeight: 'bold', outline: 'none', cursor: 'pointer' }}
+                  >
+                    <option value="individual">🎙️ Indiv Mic</option>
+                    <option value="group">👥 Group Mic</option>
+                  </select>
+
+                  {/* Auto/Manual Mode Selector */}
+                  <select
+                    value={state.selectionMode || 'manual'}
+                    onChange={async (e) => {
+                      const newSelMode = e.target.value;
+                      await updateState({ selectionMode: newSelMode, stageStudents: [] }); // reset stage on selection mode toggle for clean transition
+                      showToast(`Student selection set to ${newSelMode === 'auto' ? 'Auto (Raised hands queue)' : 'Manual'}`);
+                    }}
+                    style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.15)', background: '#0D9488', color: 'white', fontSize: '11.5px', fontWeight: 'bold', outline: 'none', cursor: 'pointer' }}
+                  >
+                    <option value="manual">🖐️ Manual Mode</option>
+                    <option value="auto">🤖 Auto Select</option>
+                  </select>
+
                   <button
                     type="button"
                     onClick={handleRotateStage}
-                    disabled={!isLive}
-                    style={{ background: '#8B5CF6', border: 'none', color: 'white', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontWeight: 700, opacity: isLive ? 1 : 0.4 }}
+                    disabled={!isLive || raiseHands.length === 0}
+                    style={{ background: '#4F46E5', border: 'none', color: 'white', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontWeight: 700, opacity: (isLive && raiseHands.length > 0) ? 1 : 0.4 }}
                     title="Rotate stage students using raised hands queue"
                   >
                     🔄 Rotate Stage ({raiseHands.length})
@@ -1357,7 +1421,8 @@ export default function App() {
                     🎙️ {stageStudents.some((phone: string) => !state.mutedStageStudents?.includes(phone)) ? 'Mute Stage' : 'Unmute Stage'}
                   </button>
 
-                  {stageStudents.length > 0 && (
+                  {/* Manual Individual Mute selector */}
+                  {state.selectionMode !== 'auto' && stageStudents.length > 0 && (
                     <select
                       onChange={async (e) => {
                         const selectedPhone = e.target.value;
@@ -1372,7 +1437,7 @@ export default function App() {
                       }}
                       style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)', background: '#1E293B', color: 'white', fontSize: '11.5px', outline: 'none', cursor: 'pointer' }}
                     >
-                      <option value="">-- Indiv Mic --</option>
+                      <option value="">-- Mute/Unmute Student --</option>
                       {stageStudents.map((phone: string) => {
                         const isMuted = state.mutedStageStudents?.includes(phone);
                         const participant = participants.find((p: any) => p.identity === phone);
@@ -1538,6 +1603,73 @@ export default function App() {
                 }}
               />
 
+              {/* Stage Students overlay in bottom-left */}
+              {stageStudents.length > 0 && (
+                <div style={{ 
+                  position: 'absolute', 
+                  bottom: '12px', 
+                  left: (schedule.slides && schedule.slides.length > 0) ? '110px' : '12px', 
+                  zIndex: 10, 
+                  display: 'flex', 
+                  gap: '8px', 
+                  alignItems: 'center' 
+                }}>
+                  {(() => {
+                    const displayList = state.micMode === 'group' 
+                      ? stageStudents.slice(0, 6) 
+                      : stageStudents.slice(0, 1);
+
+                    return displayList.map((phone: string) => {
+                      const hasVideo = !!studentVideoTracks[phone];
+                      const isMuted = state.mutedStageStudents?.includes(phone);
+                      const participant = participants.find((p: any) => p.identity === phone);
+                      const label = participant ? participant.name : phone;
+
+                      return (
+                        <div key={phone} style={{ 
+                          width: '90px', 
+                          height: '60px', 
+                          borderRadius: '8px', 
+                          border: isMuted ? '2px solid #EF4444' : '2px solid #8B5CF6', 
+                          background: '#0F172A', 
+                          overflow: 'hidden', 
+                          position: 'relative',
+                          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.5)'
+                        }}>
+                          {hasVideo ? (
+                            <StudentVideoView track={studentVideoTracks[phone]} />
+                          ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94A3B8' }}>
+                              <span style={{ fontSize: '14px' }}>👤</span>
+                              <span style={{ fontSize: '7px', fontWeight: 'bold' }}>NO VIDEO</span>
+                            </div>
+                          )}
+                          
+                          <div style={{ 
+                            position: 'absolute', 
+                            bottom: '2px', 
+                            left: '2px', 
+                            right: '2px',
+                            background: 'rgba(0,0,0,0.7)', 
+                            padding: '1px 3px', 
+                            borderRadius: '3px', 
+                            color: 'white', 
+                            fontSize: '7.5px', 
+                            fontWeight: 'bold', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'space-between'
+                          }}>
+                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '55px' }}>{label}</span>
+                            <span>{isMuted ? '🔇' : '🔊'}</span>
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              )}
+
               {/* Removed absolute floating camera PiP */}
             </div>
 
@@ -1582,67 +1714,29 @@ export default function App() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {/* Top: Video panel (Teacher + Stage Students) */}
+            {/* Top: Video panel (Teacher only) */}
             <div style={{ background: '#1C2541', borderRadius: '16px', padding: '12px', border: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <h5 style={{ margin: 0, fontSize: '11px', color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>📹 Live Feeds</h5>
+              <h5 style={{ margin: 0, fontSize: '11px', color: '#94A3B8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>📹 Live Feeds (Teacher)</h5>
               
-              {/* Grid: Teacher + Students on stage */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                {/* Teacher feed (spans 2 columns if no students, else 1) */}
-                <div style={{ 
-                  gridColumn: stageStudents.length === 0 ? 'span 2' : 'span 1', 
-                  height: '110px', 
-                  borderRadius: '10px', 
-                  border: '2px solid #00B6A6', 
-                  background: '#1E293B', 
-                  overflow: 'hidden', 
-                  position: 'relative' 
-                }}>
-                  {lkCameraEnabled ? (
-                    <video id="teacher-local-video" autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94A3B8', gap: '4px' }}>
-                      <span style={{ fontSize: '18px' }}>📷</span>
-                      <span style={{ fontSize: '9px', fontWeight: 'bold' }}>CAMERA OFF</span>
-                    </div>
-                  )}
-                  <div style={{ position: 'absolute', bottom: '4px', left: '4px', background: 'rgba(0,0,0,0.6)', padding: '2px 6px', borderRadius: '4px', color: 'white', fontSize: '9px', fontWeight: 'bold' }}>
-                    Teacher ({schedule.teacherName || 'Mam'})
+              <div style={{ 
+                height: '110px', 
+                borderRadius: '10px', 
+                border: '2px solid #00B6A6', 
+                background: '#1E293B', 
+                overflow: 'hidden', 
+                position: 'relative' 
+              }}>
+                {lkCameraEnabled ? (
+                  <video id="teacher-local-video" autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94A3B8', gap: '4px' }}>
+                    <span style={{ fontSize: '18px' }}>📷</span>
+                    <span style={{ fontSize: '9px', fontWeight: 'bold' }}>CAMERA OFF</span>
                   </div>
+                )}
+                <div style={{ position: 'absolute', bottom: '4px', left: '4px', background: 'rgba(0,0,0,0.6)', padding: '2px 6px', borderRadius: '4px', color: 'white', fontSize: '9px', fontWeight: 'bold' }}>
+                  Teacher ({schedule.teacherName || 'Mam'})
                 </div>
-
-                {/* Stage students' feeds */}
-                {stageStudents.map((phone: string) => {
-                  const hasVideo = !!studentVideoTracks[phone];
-                  const isMuted = state.mutedStageStudents?.includes(phone);
-                  const participant = participants.find((p: any) => p.identity === phone);
-                  const label = participant ? participant.name : phone;
-
-                  return (
-                    <div key={phone} style={{ 
-                      height: '110px', 
-                      borderRadius: '10px', 
-                      border: '2px solid #8B5CF6', 
-                      background: '#1E293B', 
-                      overflow: 'hidden', 
-                      position: 'relative' 
-                    }}>
-                      {hasVideo ? (
-                        <StudentVideoView track={studentVideoTracks[phone]} />
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94A3B8', gap: '4px' }}>
-                          <span style={{ fontSize: '18px' }}>👤</span>
-                          <span style={{ fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase' }}>No Video</span>
-                        </div>
-                      )}
-                      
-                      <div style={{ position: 'absolute', bottom: '4px', left: '4px', background: 'rgba(0,0,0,0.6)', padding: '2px 6px', borderRadius: '4px', color: 'white', fontSize: '9px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span>{label}</span>
-                        {isMuted && <span style={{ color: '#EF4444' }}>🔇</span>}
-                      </div>
-                    </div>
-                  );
-                })}
               </div>
             </div>
 
