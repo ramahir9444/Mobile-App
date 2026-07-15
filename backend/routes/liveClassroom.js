@@ -318,6 +318,7 @@ router.get('/room-info', async (req, res) => {
 
     // Fetch participants from LiveKit
     let participants = [];
+    let roomExists = true;
     try {
       const roomService = new RoomServiceClient(getLivekitHttpUrl(), LIVEKIT_API_KEY, LIVEKIT_API_SECRET);
       const participantList = await roomService.listParticipants(schedule.roomName);
@@ -329,6 +330,27 @@ router.get('/room-info', async (req, res) => {
       }));
     } catch (livekitErr) {
       console.warn('[LiveKit] Could not list participants:', livekitErr.message);
+      if (livekitErr.message && (livekitErr.message.toLowerCase().includes('does not exist') || livekitErr.message.toLowerCase().includes('not found') || livekitErr.message.toLowerCase().includes('timeout'))) {
+        roomExists = false;
+      }
+    }
+
+    if (!roomExists && schedule.isLive) {
+      console.log(`[Auto-Clean] LiveKit room "${schedule.roomName}" for schedule "${scheduleId}" does not exist. Resetting isLive in DB.`);
+      schedule.isLive = false;
+      schedule.liveStatus = 'finished';
+      schedule.roomName = null;
+      await db.collection('schedules').updateOne(
+        { _id: new ObjectId(scheduleId) },
+        {
+          $set: {
+            isLive: false,
+            liveStatus: 'finished',
+            roomName: null,
+            updatedAt: new Date()
+          }
+        }
+      );
     }
 
     // Clean up stale heartbeats older than 12 seconds
