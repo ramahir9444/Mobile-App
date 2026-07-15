@@ -55,46 +55,100 @@ export const DashboardScreen: React.FC = () => {
   const [dynamicUpcoming, setDynamicUpcoming] = useState<any>(null);
   const [isSchedulesLoading, setIsSchedulesLoading] = useState(false);
 
-  const enrolledMasterGrade = (() => {
-    const paidMasterOrder = dbOrders.find((o: any) => {
+  const enrolledGrades = (() => {
+    return dbOrders.filter((o: any) => {
       const title = (o.courseTitle || '').toLowerCase();
       const isBooster = title.includes('booster') || title.includes('demo') || title.includes('6-day') || title.includes('6 day') || Number(o.amount) < 500;
       return o.status === 'paid' && !isBooster;
-    });
-    return (paidMasterOrder && paidMasterOrder.classInfo)
-      ? paidMasterOrder.classInfo.split('|')[0].trim()
-      : null;
+    }).map((o: any) => (o.classInfo || '').split('|')[0]?.trim()).filter(Boolean);
   })();
+
+  const getScheduleDate = (dateText: string, timeText: string) => {
+    try {
+      if (!dateText || !timeText) return null;
+      const currentYear = new Date().getFullYear();
+      const datePart = dateText.split(',')[0].trim();
+      const parts = datePart.split(/\s+/);
+      if (parts.length < 2) return null;
+      const dayStr = parts[0];
+      const monthStr = parts[1];
+      
+      const timeParts = timeText.split('-'); 
+      if (timeParts.length < 1) return null;
+      const startTimeStr = timeParts[0].trim();
+      
+      const timeAndAmpm = startTimeStr.split(/\s+/);
+      if (timeAndAmpm.length < 2) return null;
+      const timeVal = timeAndAmpm[0];
+      const ampm = timeAndAmpm[1];
+      
+      const [hoursStr, minutesStr] = timeVal.split(':');
+      let hours = parseInt(hoursStr, 10);
+      const minutes = parseInt(minutesStr, 10);
+      if (ampm.toLowerCase() === 'pm' && hours < 12) hours += 12;
+      if (ampm.toLowerCase() === 'am' && hours === 12) hours = 0;
+      
+      const months: Record<string, number> = {
+        jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+        jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
+      };
+      const month = months[monthStr.toLowerCase().slice(0, 3)];
+      const day = parseInt(dayStr, 10);
+      
+      if (isNaN(month) || isNaN(day) || isNaN(hours) || isNaN(minutes)) {
+        return null;
+      }
+      return new Date(currentYear, month, day, hours, minutes);
+    } catch (err) {
+      return null;
+    }
+  };
 
   const fetchSchedulesList = async () => {
     try {
       const res = await getSchedules();
       if (res.success && res.data) {
-        let targetGrade = enrolledMasterGrade || selectedClass;
+        const targetGrades = enrolledGrades.length > 0 ? enrolledGrades : [selectedClass];
 
-        // Filter classes matching the current class grade (e.g. "Class 6")
-        const matchingSchedules = res.data.filter((s: any) => s.gradeClass === targetGrade);
+        // Filter classes matching the target grades (e.g. "Class 6" or enrolled grades)
+        const matchingSchedules = res.data.filter((s: any) => targetGrades.includes(s.gradeClass));
         
-        // Find if any class is currently live
-        const liveClass = matchingSchedules.find((s: any) => s.isLive === true);
-        if (liveClass) {
-          setDynamicUpcoming(liveClass);
+        // Find if any class is currently live.
+        // Prefer live class matching currently browsed selectedClass if multiple are live.
+        const liveClasses = matchingSchedules.filter((s: any) => s.isLive === true);
+        if (liveClasses.length > 0) {
+          const preferredLive = liveClasses.find((s: any) => s.gradeClass === selectedClass) || liveClasses[0];
+          setDynamicUpcoming(preferredLive);
           return;
         }
         
-        // Else, find the first upcoming class whose status is Scheduled
-        const upcoming = matchingSchedules.find((s: any) => s.status === 'Scheduled');
-        if (upcoming) {
-          setDynamicUpcoming(upcoming);
+        // Else, find the nearest upcoming class whose status is Scheduled across targetGrades
+        const upcomingClasses = matchingSchedules.filter((s: any) => s.status === 'Scheduled');
+        if (upcomingClasses.length > 0) {
+          const now = new Date();
+          const upcomingWithDates = upcomingClasses.map((s: any) => ({
+            schedule: s,
+            parsedDate: getScheduleDate(s.dateText, s.time)
+          })).filter((item: any) => item.parsedDate !== null && item.parsedDate >= now);
+
+          if (upcomingWithDates.length > 0) {
+            // Sort ascending by time difference (nearest first)
+            upcomingWithDates.sort((a: any, b: any) => a.parsedDate.getTime() - b.parsedDate.getTime());
+            setDynamicUpcoming(upcomingWithDates[0].schedule);
+            return;
+          }
+
+          // Fallback to the first upcoming class in database sorting order if dates failed to parse/compare
+          setDynamicUpcoming(upcomingClasses[0]);
         } else {
-          // If user is enrolled in a master grade, do not show dynamic fallbacks of other classes.
-          if (enrolledMasterGrade) {
+          // If the user has enrolled master grades, do not fallback to selectedClass schedules.
+          if (enrolledGrades.length > 0) {
             setDynamicUpcoming(null);
             return;
           }
 
           // Fallback to selectedClass if there was no upcoming schedule in master program
-          if (targetGrade !== selectedClass) {
+          if (!targetGrades.includes(selectedClass)) {
             const fallbackSchedules = res.data.filter((s: any) => s.gradeClass === selectedClass);
             const fbLive = fallbackSchedules.find((s: any) => s.isLive === true);
             if (fbLive) {
@@ -262,8 +316,12 @@ export const DashboardScreen: React.FC = () => {
   };
 
   const renderUpcomingClassCard = () => {
-    // If the user is enrolled in a master program, default fallbacks should use that grade instead of selectedClass.
-    const activeDisplayClass = enrolledMasterGrade || selectedClass;
+    // If the user is enrolled in a master program, check if the currently browsed class is one of them.
+    // If yes, fallback details should use selectedClass; if not, fallback to their first enrolled class.
+    const activeDisplayClass = enrolledGrades.includes(selectedClass) 
+      ? selectedClass 
+      : (enrolledGrades[0] || selectedClass);
+
     const classNum = parseInt(activeDisplayClass.replace('Class ', '')) || 1;
     const defaultUpcomingTitle = classNum <= 5 
       ? 'Fun with Numbers & Shapes - Lesson 1' 
@@ -272,7 +330,7 @@ export const DashboardScreen: React.FC = () => {
         : 'IIT/JEE Foundation: Quadratic Functions';
 
     const hasDynamic = !!dynamicUpcoming;
-    const upcoming = dynamicUpcoming || (enrolledMasterGrade && enrolledMasterGrade !== selectedClass ? null : homeConfig?.upcomingClass) || {
+    const upcoming = dynamicUpcoming || (activeDisplayClass !== selectedClass ? null : homeConfig?.upcomingClass) || {
       title: defaultUpcomingTitle,
       subject: classNum <= 5 ? 'Maths' : 'Mathematics',
       time: 'Today, 6:00 PM',
@@ -282,9 +340,9 @@ export const DashboardScreen: React.FC = () => {
 
     const isClassLive = hasDynamic && dynamicUpcoming.isLive;
     const isDifferentGrade = (hasDynamic && dynamicUpcoming.gradeClass !== selectedClass) ||
-      (!hasDynamic && enrolledMasterGrade && enrolledMasterGrade !== selectedClass);
+      (!hasDynamic && enrolledGrades.length > 0 && activeDisplayClass !== selectedClass);
     
-    const displayGradeClass = hasDynamic ? dynamicUpcoming.gradeClass : (enrolledMasterGrade || selectedClass);
+    const displayGradeClass = hasDynamic ? dynamicUpcoming.gradeClass : activeDisplayClass;
     
     const badgeText = isClassLive
       ? (isDifferentGrade ? `🔴 LIVE NOW (${displayGradeClass})` : '🔴 LIVE NOW')
