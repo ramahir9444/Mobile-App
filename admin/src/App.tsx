@@ -234,7 +234,7 @@ export default function App() {
   const [lkMicEnabled, setLkMicEnabled] = useState<boolean>(true);
   const [drawColor, setDrawColor] = useState<string>('#EF4444');
   const [drawTool, setDrawTool] = useState<'pen' | 'eraser'>('pen');
-  const [drawSize, setDrawSize] = useState<number>(3);
+  const [drawSize] = useState<number>(3);
   const [localDrawings, setLocalDrawings] = useState<any[]>([]); // instant local drawings (no flicker)
   const [controlTab, setControlTab] = useState<'chat' | 'quiz' | 'roster'>('chat');
   const [teacherChatInput, setTeacherChatInput] = useState<string>('');
