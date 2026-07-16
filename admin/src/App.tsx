@@ -463,14 +463,21 @@ export default function App() {
         const attachLocalTrack = () => {
           const videoElement = document.getElementById('teacher-local-video') as HTMLVideoElement;
           if (!videoElement) return;
-          const videoPub = roomInstance.localParticipant.videoTrackPublications.values().next().value;
-          if (videoPub && videoPub.track) {
-            videoPub.track.attach(videoElement);
+          for (const pub of roomInstance.localParticipant.videoTrackPublications.values()) {
+            if (pub.kind === 'video' && pub.track) {
+              pub.track.attach(videoElement);
+              break;
+            }
           }
         };
 
         setTimeout(attachLocalTrack, 500);
-        roomInstance.on(RoomEvent.LocalTrackPublished, attachLocalTrack);
+        roomInstance.on(RoomEvent.LocalTrackPublished, (pub: any) => {
+          const videoElement = document.getElementById('teacher-local-video') as HTMLVideoElement;
+          if (videoElement && pub.kind === 'video' && pub.track) {
+            pub.track.attach(videoElement);
+          }
+        });
 
         // Listen for remote student video tracks (stage participants)
         roomInstance.on(RoomEvent.TrackSubscribed, (track: any, _publication: any, participant: any) => {
@@ -523,6 +530,19 @@ export default function App() {
     if (livekitRoom) {
       await livekitRoom.localParticipant.setCameraEnabled(nextState);
       showToast(nextState ? '📷 Camera Enabled' : '📷 Camera Disabled');
+      if (nextState) {
+        setTimeout(() => {
+          const videoElement = document.getElementById('teacher-local-video') as HTMLVideoElement;
+          if (videoElement) {
+            for (const pub of livekitRoom.localParticipant.videoTrackPublications.values()) {
+              if (pub.kind === 'video' && pub.track) {
+                pub.track.attach(videoElement);
+                break;
+              }
+            }
+          }
+        }, 800);
+      }
     }
   };
 
