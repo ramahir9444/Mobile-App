@@ -769,7 +769,7 @@ export const LiveClassroomScreen: React.FC = () => {
     if (Platform.OS === 'web') {
       if (window.confirm('Are you sure you want to leave the live session?')) {
         submitAttendance().then(() => {
-          navigateTo('COURSE_DETAILS');
+          goBack();
         });
       }
       return;
@@ -782,7 +782,7 @@ export const LiveClassroomScreen: React.FC = () => {
         style: 'destructive',
         onPress: async () => {
           await submitAttendance();
-          navigateTo('COURSE_DETAILS');
+          goBack();
         },
       },
     ]);
@@ -790,7 +790,7 @@ export const LiveClassroomScreen: React.FC = () => {
 
   // ─── REPLAY MODE ─────────────────────────────────────────────
   if (isReplayMode) {
-    return <ReplayClassScreen schedule={activeClassSchedule} onBack={() => navigateTo('COURSE_DETAILS')} user={user} />;
+    return <ReplayClassScreen schedule={activeClassSchedule} onBack={goBack} user={user} />;
   }
 
   // ─── CONNECTION LOADING ───────────────────────────────────────

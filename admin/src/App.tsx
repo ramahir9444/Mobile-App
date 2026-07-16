@@ -162,6 +162,24 @@ const ImageField: React.FC<{
   );
 };
 
+const getTodayDateText = () => {
+  const d = new Date();
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${d.getDate()} ${months[d.getMonth()]}, ${days[d.getDay()]}`;
+};
+
+const getDefaultTimeText = () => {
+  const d = new Date();
+  const h = d.getHours();
+  const formatHour = (hour: number) => {
+    const ampm = hour >= 12 ? 'pm' : 'am';
+    const displayH = hour % 12 === 0 ? 12 : hour % 12;
+    return `${displayH}:00 ${ampm}`;
+  };
+  return `${formatHour(h)} - ${formatHour(h + 1)}`;
+};
+
 export default function App() {
   const [selectedClass, setSelectedClass] = useState('Class 6');
   const [config, setConfig] = useState<any>(null);
@@ -194,8 +212,8 @@ export default function App() {
   const [newSchedule, setNewSchedule] = useState<any>({
     title: '',
     subject: 'Maths',
-    time: '8:10 pm - 9:10 pm',
-    dateText: '6 Jul, Mon',
+    time: getDefaultTimeText(),
+    dateText: getTodayDateText(),
     gradeClass: 'Class 6',
     courseType: 'booster',
     teacherName: 'Ninja Mam (Priyanka)',
@@ -2139,8 +2157,8 @@ export default function App() {
         setNewSchedule({
           title: '',
           subject: 'Maths',
-          time: '8:10 pm - 9:10 pm',
-          dateText: '6 Jul, Mon',
+          time: getDefaultTimeText(),
+          dateText: getTodayDateText(),
           gradeClass: 'Class 6',
           courseType: 'booster',
           teacherName: 'Ninja Mam (Priyanka)',
@@ -2169,7 +2187,12 @@ export default function App() {
     const handleToggleStatus = async (item: any) => {
       try {
         const nextStatus = item.status === 'Scheduled' ? 'Finished' : 'Scheduled';
-        await updateSchedule(item._id, { status: nextStatus });
+        const updateData: any = { status: nextStatus };
+        if (nextStatus === 'Scheduled') {
+          updateData.dateText = getTodayDateText();
+          updateData.time = getDefaultTimeText();
+        }
+        await updateSchedule(item._id, updateData);
         showToast(`Class status updated to ${nextStatus}!`);
         loadSchedules();
       } catch (err: any) {

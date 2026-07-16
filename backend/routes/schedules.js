@@ -11,7 +11,10 @@ function isClassTimePassed(dateText, timeText) {
     
     // dateText: e.g. "10 jul, tue" or "6 Jul, Mon"
     const datePart = dateText.split(',')[0].trim();
-    const [dayStr, monthStr] = datePart.split(' ');
+    const parts = datePart.split(/\s+/);
+    if (parts.length < 2) return false;
+    const dayStr = parts[0];
+    const monthStr = parts[1];
     
     // timeText: e.g. "8:10 pm - 9:10 pm"
     const timeParts = timeText.split('-'); 
@@ -55,7 +58,7 @@ router.get('/', async (req, res) => {
     
     // Dynamically check and update expired schedules to "Finished" in real time
     for (let item of list) {
-      if (item.status === 'Scheduled' && isClassTimePassed(item.dateText, item.time)) {
+      if (item.status === 'Scheduled' && !item.isLive && item.liveStatus !== 'live' && isClassTimePassed(item.dateText, item.time)) {
         item.status = 'Finished';
         try {
           await db.collection('schedules').updateOne(
