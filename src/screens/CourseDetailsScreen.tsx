@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
 import { useApp } from '../context/AppContext';
-import { getAvatarUrl, updateScheduleStatus } from '../services/api';
+import { getAvatarUrl, updateScheduleStatus, API_BASE } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -41,7 +41,7 @@ export const CourseDetailsScreen: React.FC = () => {
     const fetchSchedules = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`http://localhost:3001/api/schedules`);
+        const res = await fetch(`${API_BASE}/schedules`);
         const json = await res.json();
         if (json.success && json.data) {
           const filtered = json.data.filter((s: any) => 

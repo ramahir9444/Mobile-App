@@ -8,7 +8,7 @@
 //     localhost works on web and iOS simulator.
 //     For Android emulator use: http://10.0.2.2:3001
 //     For physical device: http://<YOUR_PC_IP>:3001
-let BASE_URL = 'http://localhost:3001';
+let BASE_URL = 'http://10.192.69.219:3001';
 if (typeof window !== 'undefined' && window.location && window.location.hostname) {
   const protocol = window.location.protocol;
   const hostname = window.location.hostname;

@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
 import { useApp } from '../context/AppContext';
-import { getAvatarUrl } from '../services/api';
+import { getAvatarUrl, API_BASE } from '../services/api';
 
 const { width } = Dimensions.get('window');
 
@@ -123,7 +123,7 @@ export const TestQuizScreen: React.FC = () => {
             return;
           }
           // Fallback: Fetch latest schedule document to get questions
-          const res = await fetch(`http://localhost:3001/api/schedules/${activeClassSchedule._id}`);
+          const res = await fetch(`${API_BASE}/schedules/${activeClassSchedule._id}`);
           const json = await res.json();
           if (json.success && json.data?.questions && json.data.questions.length > 0) {
             setQuestions(json.data.questions);
@@ -141,7 +141,7 @@ export const TestQuizScreen: React.FC = () => {
           }
         } else {
           // Welcome Test Fetch
-          const res = await fetch(`http://localhost:3001/api/welcome-tests/${encodeURIComponent(activeCourseClass || 'Class 6')}`);
+          const res = await fetch(`${API_BASE}/welcome-tests/${encodeURIComponent(activeCourseClass || 'Class 6')}`);
           const json = await res.json();
           if (json.success && json.questions && json.questions.length > 0) {
             setQuestions(json.questions);
@@ -211,7 +211,7 @@ export const TestQuizScreen: React.FC = () => {
       if (isRegularTest) {
         // Submit regular scheduled test score to /api/homework-submissions
         try {
-          const res = await fetch(`http://localhost:3001/api/homework-submissions`, {
+          const res = await fetch(`${API_BASE}/homework-submissions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -243,7 +243,7 @@ export const TestQuizScreen: React.FC = () => {
       } else {
         // Submit welcome test score to backend
         try {
-          const res = await fetch(`http://localhost:3001/api/students/${user.phone}/welcome-test`, {
+          const res = await fetch(`${API_BASE}/students/${user.phone}/welcome-test`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ score, answers: updatedAnswers, totalQuestions: questions.length })
@@ -583,7 +583,7 @@ export const MaterialsModulesScreen: React.FC = () => {
         let list: any[] = [];
         
         // 1. Fetch study materials
-        const resMat = await fetch(`http://localhost:3001/api/materials`);
+        const resMat = await fetch(`${API_BASE}/materials`);
         const jsonMat = await resMat.json();
         if (jsonMat.success && jsonMat.data) {
           list = jsonMat.data.filter((m: any) => 
@@ -593,7 +593,7 @@ export const MaterialsModulesScreen: React.FC = () => {
         }
 
         // 2. Fetch schedules and extract attached materials
-        const resSched = await fetch(`http://localhost:3001/api/schedules`);
+        const resSched = await fetch(`${API_BASE}/schedules`);
         const jsonSched = await resSched.json();
         if (jsonSched.success && jsonSched.data) {
           const filteredScheds = jsonSched.data.filter((s: any) => 
@@ -706,7 +706,7 @@ export const MaterialsFilesScreen: React.FC = () => {
         let list: any[] = [];
         
         // 1. Fetch study materials
-        const resMat = await fetch(`http://localhost:3001/api/materials`);
+        const resMat = await fetch(`${API_BASE}/materials`);
         const jsonMat = await resMat.json();
         if (jsonMat.success && jsonMat.data) {
           list = jsonMat.data.filter((m: any) => 
@@ -716,7 +716,7 @@ export const MaterialsFilesScreen: React.FC = () => {
         }
 
         // 2. Fetch schedules and extract attached materials
-        const resSched = await fetch(`http://localhost:3001/api/schedules`);
+        const resSched = await fetch(`${API_BASE}/schedules`);
         const jsonSched = await resSched.json();
         if (jsonSched.success && jsonSched.data) {
           const filteredScheds = jsonSched.data.filter((s: any) => 
