@@ -58,7 +58,7 @@ router.get('/', async (req, res) => {
     
     // Dynamically check and update expired schedules to "Finished" in real time
     for (let item of list) {
-      if (item.status === 'Scheduled' && !item.isLive && item.liveStatus !== 'live' && isClassTimePassed(item.dateText, item.time)) {
+      if (item.status === 'Scheduled' && !item.isLive && item.liveStatus !== 'live' && item.liveStatus !== 'scheduled' && isClassTimePassed(item.dateText, item.time)) {
         item.status = 'Finished';
         try {
           await db.collection('schedules').updateOne(
@@ -143,7 +143,7 @@ router.post('/', async (req, res) => {
 // PUT /api/schedules/:id — Update a schedule entry
 router.put('/:id', async (req, res) => {
   try {
-    const { title, subject, time, dateText, gradeClass, courseType, teacherName, teacherAvatar, status, materials, homework, quizzes, questions, durationMinutes, slides } = req.body;
+    const { title, subject, time, dateText, gradeClass, courseType, teacherName, teacherAvatar, status, materials, homework, quizzes, questions, durationMinutes, slides, isLive, liveStatus } = req.body;
     const db = getDB();
 
     const updateDoc = {};
@@ -162,6 +162,8 @@ router.put('/:id', async (req, res) => {
     if (questions !== undefined) updateDoc.questions = questions;
     if (slides !== undefined) updateDoc.slides = slides;
     if (durationMinutes !== undefined) updateDoc.durationMinutes = Number(durationMinutes);
+    if (isLive !== undefined) updateDoc.isLive = isLive;
+    if (liveStatus !== undefined) updateDoc.liveStatus = liveStatus;
 
     const result = await db.collection('schedules').findOneAndUpdate(
       { _id: new ObjectId(req.params.id) },

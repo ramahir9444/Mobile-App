@@ -479,20 +479,42 @@ export default function App() {
           }
         });
 
-        // Listen for remote student video tracks (stage participants)
+        // Listen for remote student video & audio tracks (stage participants)
         roomInstance.on(RoomEvent.TrackSubscribed, (track: any, _publication: any, participant: any) => {
-          if (!participant?.identity?.startsWith('teacher-') && track.kind === 'video') {
-            setStudentVideoTracks((prev: any) => ({ ...prev, [participant.identity]: track }));
+          if (!participant?.identity?.startsWith('teacher-')) {
+            if (track.kind === 'video') {
+              setStudentVideoTracks((prev: any) => ({ ...prev, [participant.identity]: track }));
+            } else if (track.kind === 'audio') {
+              const audioEl = document.createElement('audio');
+              audioEl.autoplay = true;
+              audioEl.style.display = 'none';
+              document.body.appendChild(audioEl);
+              track.attach(audioEl);
+              track._attachedAudioEl = audioEl;
+              console.log('Admin attached student audio track:', participant.identity);
+            }
           }
         });
 
         roomInstance.on(RoomEvent.TrackUnsubscribed, (track: any, _publication: any, participant: any) => {
-          if (!participant?.identity?.startsWith('teacher-') && track.kind === 'video') {
-            setStudentVideoTracks((prev: any) => {
-              const copy = { ...prev };
-              delete copy[participant.identity];
-              return copy;
-            });
+          if (!participant?.identity?.startsWith('teacher-')) {
+            if (track.kind === 'video') {
+              setStudentVideoTracks((prev: any) => {
+                const copy = { ...prev };
+                delete copy[participant.identity];
+                return copy;
+              });
+            } else if (track.kind === 'audio') {
+              if (track._attachedAudioEl) {
+                try {
+                  track.detach(track._attachedAudioEl);
+                  track._attachedAudioEl.remove();
+                } catch (e) {
+                  console.log('Error detaching student audio element:', e);
+                }
+                delete track._attachedAudioEl;
+              }
+            }
           }
         });
 
@@ -502,6 +524,16 @@ export default function App() {
             const videoPub = Array.from(p.videoTrackPublications.values())[0] as any;
             if (videoPub && videoPub.track) {
               setStudentVideoTracks((prev: any) => ({ ...prev, [p.identity]: videoPub.track }));
+            }
+            const audioPub = Array.from(p.audioTrackPublications.values())[0] as any;
+            if (audioPub && audioPub.track) {
+              const audioEl = document.createElement('audio');
+              audioEl.autoplay = true;
+              audioEl.style.display = 'none';
+              document.body.appendChild(audioEl);
+              audioPub.track.attach(audioEl);
+              audioPub.track._attachedAudioEl = audioEl;
+              console.log('Admin attached pre-existing student audio track:', p.identity);
             }
           }
         }
@@ -517,6 +549,19 @@ export default function App() {
     return () => {
       active = false;
       if (roomInstance) {
+        try {
+          for (const p of roomInstance.remoteParticipants.values()) {
+            for (const pub of p.audioTrackPublications.values()) {
+              if (pub.track && pub.track._attachedAudioEl) {
+                try {
+                  pub.track.detach(pub.track._attachedAudioEl);
+                  pub.track._attachedAudioEl.remove();
+                } catch {}
+                delete pub.track._attachedAudioEl;
+              }
+            }
+          }
+        } catch {}
         roomInstance.disconnect();
       }
       setLivekitRoom(null);
@@ -2211,6 +2256,8 @@ export default function App() {
         if (nextStatus === 'Scheduled') {
           updateData.dateText = getTodayDateText();
           updateData.time = getDefaultTimeText();
+          updateData.isLive = false;
+          updateData.liveStatus = 'scheduled';
         }
         await updateSchedule(item._id, updateData);
         showToast(`Class status updated to ${nextStatus}!`);

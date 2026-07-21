@@ -94,21 +94,17 @@ const fetchLiveState = async (scheduleId: string, phone = '', name = '') => {
 };
 
 const StudentVideoView: React.FC<{ track: any; style?: any }> = ({ track, style }) => {
-  const ref = useRef<any>(null);
-  useEffect(() => {
-    if (Platform.OS !== 'web' || !track || !ref.current) return;
-    track.attach(ref.current);
-    return () => {
-      track.detach(ref.current);
-    };
-  }, [track]);
-
   if (Platform.OS === 'web') {
     return (
       <video
-        ref={ref}
+        ref={(el) => {
+          if (el && track) {
+            track.attach(el);
+          }
+        }}
         autoPlay
         playsInline
+        muted
         style={style || { width: '100%', height: '100%', objectFit: 'cover' }}
       />
     );
@@ -215,7 +211,6 @@ export const LiveClassroomScreen: React.FC = () => {
   const [teacherVideoTrack, setTeacherVideoTrack] = useState<any>(null);
   const [teacherAudioTrack, setTeacherAudioTrack] = useState<any>(null);
   const [studentVideoTracks, setStudentVideoTracks] = useState<{ [identity: string]: any }>({});
-  const studentVideoRef = useRef<any>(null);
 
   // Connect student to LiveKit room
   useEffect(() => {
@@ -230,23 +225,51 @@ export const LiveClassroomScreen: React.FC = () => {
         roomInstance = new Room();
         setStudentLkRoom(roomInstance);
 
+        const attachAudioTrack = (track: any) => {
+          if (Platform.OS === 'web' && track) {
+            // Remove existing audio element if already attached
+            if (track._attachedAudioEl) {
+              try {
+                track.detach(track._attachedAudioEl);
+                track._attachedAudioEl.remove();
+              } catch {}
+            }
+            const audioEl = document.createElement('audio');
+            audioEl.autoplay = true;
+            audioEl.style.display = 'none';
+            document.body.appendChild(audioEl);
+            track.attach(audioEl);
+            track._attachedAudioEl = audioEl;
+            console.log('Attached WebRTC audio track to DOM', track.sid);
+          }
+        };
+
+        const detachAudioTrack = (track: any) => {
+          if (Platform.OS === 'web' && track && track._attachedAudioEl) {
+            try {
+              track.detach(track._attachedAudioEl);
+              track._attachedAudioEl.remove();
+            } catch (e) {
+              console.log('Error detaching audio element:', e);
+            }
+            delete track._attachedAudioEl;
+            console.log('Detached WebRTC audio track from DOM', track.sid);
+          }
+        };
+
         roomInstance.on(RoomEvent.TrackSubscribed, (track: any, publication: any, participant: any) => {
           if (participant?.identity?.startsWith('teacher-')) {
             if (track.kind === 'video') {
               setTeacherVideoTrack(track);
             } else if (track.kind === 'audio') {
               setTeacherAudioTrack(track);
-              const audioEl = document.createElement('audio');
-              audioEl.autoplay = true;
-              track.attach(audioEl);
+              attachAudioTrack(track);
             }
           } else {
             if (track.kind === 'video') {
               setStudentVideoTracks(prev => ({ ...prev, [participant.identity]: track }));
             } else if (track.kind === 'audio') {
-              const audioEl = document.createElement('audio');
-              audioEl.autoplay = true;
-              track.attach(audioEl);
+              attachAudioTrack(track);
             }
           }
         });
@@ -257,6 +280,7 @@ export const LiveClassroomScreen: React.FC = () => {
               setTeacherVideoTrack(null);
             } else if (track.kind === 'audio') {
               setTeacherAudioTrack(null);
+              detachAudioTrack(track);
             }
           } else {
             if (track.kind === 'video') {
@@ -265,6 +289,8 @@ export const LiveClassroomScreen: React.FC = () => {
                 delete copy[participant?.identity];
                 return copy;
               });
+            } else if (track.kind === 'audio') {
+              detachAudioTrack(track);
             }
           }
         });
@@ -284,9 +310,7 @@ export const LiveClassroomScreen: React.FC = () => {
             const audioPub = Array.from(participant.audioTrackPublications.values())[0] as any;
             if (audioPub && audioPub.track) {
               setTeacherAudioTrack(audioPub.track);
-              const audioEl = document.createElement('audio');
-              audioEl.autoplay = true;
-              participant.audioTrackPublications.values().next().value?.track?.attach(audioEl);
+              attachAudioTrack(audioPub.track);
             }
           } else {
             const videoPub = Array.from(participant.videoTrackPublications.values())[0] as any;
@@ -295,9 +319,7 @@ export const LiveClassroomScreen: React.FC = () => {
             }
             const audioPub = Array.from(participant.audioTrackPublications.values())[0] as any;
             if (audioPub && audioPub.track) {
-              const audioEl = document.createElement('audio');
-              audioEl.autoplay = true;
-              audioPub.track.attach(audioEl);
+              attachAudioTrack(audioPub.track);
             }
           }
         }
@@ -311,6 +333,22 @@ export const LiveClassroomScreen: React.FC = () => {
     return () => {
       active = false;
       if (roomInstance) {
+        // Detach all audio tracks before disconnecting
+        try {
+          for (const participant of roomInstance.remoteParticipants.values()) {
+            for (const pub of participant.audioTrackPublications.values()) {
+              if (pub.track) {
+                if (pub.track._attachedAudioEl) {
+                  try {
+                    pub.track.detach(pub.track._attachedAudioEl);
+                    pub.track._attachedAudioEl.remove();
+                  } catch {}
+                  delete pub.track._attachedAudioEl;
+                }
+              }
+            }
+          }
+        } catch {}
         roomInstance.disconnect();
       }
       setStudentLkRoom(null);
@@ -320,14 +358,36 @@ export const LiveClassroomScreen: React.FC = () => {
     };
   }, [token, wsUrl]);
 
-  // Bind video element
+
+  // Gesture listener to resume WebRTC audio playback on mobile browsers
   useEffect(() => {
-    if (!teacherVideoTrack || !studentVideoRef.current) return;
-    teacherVideoTrack.attach(studentVideoRef.current);
-    return () => {
-      teacherVideoTrack.detach(studentVideoRef.current);
+    if (!studentLkRoom) return;
+
+    const resumeAudio = async () => {
+      try {
+        if (!studentLkRoom.canPlayAudio) {
+          console.log('[LiveKit Audio] Playback blocked, requesting startAudio...');
+          await studentLkRoom.startAudio();
+          console.log('[LiveKit Audio] startAudio() succeeded!');
+        }
+      } catch (err) {
+        console.log('[LiveKit Audio] Error starting audio on gesture:', err);
+      }
     };
-  }, [teacherVideoTrack]);
+
+    if (Platform.OS === 'web') {
+      window.addEventListener('click', resumeAudio, { passive: true });
+      window.addEventListener('touchstart', resumeAudio, { passive: true });
+    }
+
+    return () => {
+      if (Platform.OS === 'web') {
+        window.removeEventListener('click', resumeAudio);
+        window.removeEventListener('touchstart', resumeAudio);
+      }
+    };
+  }, [studentLkRoom]);
+
 
   // Stage student publish sync hook
   useEffect(() => {
@@ -346,8 +406,14 @@ export const LiveClassroomScreen: React.FC = () => {
         console.log('[Stage Sync] Setting local mic:', targetMic, 'camera:', targetCamera);
         await studentLkRoom.localParticipant.setMicrophoneEnabled(targetMic);
         await studentLkRoom.localParticipant.setCameraEnabled(targetCamera);
-      } catch (err) {
+      } catch (err: any) {
         console.warn('[Stage Sync Error] Failed to publish local tracks:', err);
+        if (Platform.OS === 'web' && err && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError' || String(err).includes('Permission'))) {
+          Alert.alert(
+            'Permissions Required',
+            'To speak or stream video on stage, please allow microphone and camera access in your browser settings.'
+          );
+        }
       }
     }
 
@@ -366,6 +432,8 @@ export const LiveClassroomScreen: React.FC = () => {
   // Live state polling
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastFetchedEventTimeRef = useRef<string>(new Date(Date.now() - 30 * 60 * 1000).toISOString());
+  const activeQuizIdRef = useRef<string | null>(null);
+  const hwReleasedRef = useRef<boolean>(false);
 
   // Animations
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -482,31 +550,38 @@ export const LiveClassroomScreen: React.FC = () => {
         const state = data.liveState || {};
 
         // Quiz state
-        if (enableQuiz && state.quizActive && state.activeQuizId && !activeQuiz) {
-          // Find the quiz question in schedule quizzes array
-          const q = (activeClassSchedule.quizzes || []).find(
-            (h: any) => h._id === state.activeQuizId || h.text === state.activeQuizId
-          );
-          if (q) {
-            setActiveQuiz({
-              questionText: q.text,
-              options: ['A', 'B', 'C', 'D']
-                .filter((k) => q.options?.[k])
-                .map((k) => ({ key: k, text: q.options[k] })),
-              correctAnswer: q.correctAnswer || q.correct,
-              marks: 1,
-              timeLimitSec: 30,
-              chapter: q.chapter || '',
-              topic: q.topic || ''
-            });
-            setRightPanel('quiz');
-            setQuizSubmitted(false);
-            setSelectedOption(null);
-            setQuizTimeLeft(30);
-            Vibration.vibrate([0, 200, 100, 200]);
+        // Quiz state
+        if (enableQuiz && state.quizActive && state.activeQuizId) {
+          const isNewQuiz = !activeQuiz || activeQuizIdRef.current !== state.activeQuizId;
+          if (isNewQuiz) {
+            // Find the quiz question in schedule quizzes array
+            const q = (activeClassSchedule.quizzes || []).find(
+              (h: any) => h._id === state.activeQuizId || h.text === state.activeQuizId
+            );
+            if (q) {
+              activeQuizIdRef.current = state.activeQuizId;
+              setActiveQuiz({
+                questionText: q.text,
+                options: ['A', 'B', 'C', 'D']
+                  .filter((k) => q.options?.[k])
+                  .map((k) => ({ key: k, text: q.options[k] })),
+                correctAnswer: q.correctAnswer || q.correct,
+                marks: 1,
+                timeLimitSec: 30,
+                chapter: q.chapter || '',
+                topic: q.topic || ''
+              });
+              setRightPanel('quiz');
+              setQuizSubmitted(false);
+              setSelectedOption(null);
+              setQuizTimeLeft(30);
+              Vibration.vibrate([0, 200, 100, 200]);
+            }
           }
-        } else if (!state.quizActive) {
-          setActiveQuiz(null);
+        } else if (!state.quizActive && activeQuiz) {
+          // If the teacher has closed the quiz, finalize and stop timer
+          setQuizTimeLeft(0);
+          setQuizSubmitted(true);
         }
 
         // Stage participants
@@ -552,7 +627,8 @@ export const LiveClassroomScreen: React.FC = () => {
         }
 
         // HW Released — notify student once
-        if (state.hwReleased && !hwReleased) {
+        if (state.hwReleased && !hwReleasedRef.current) {
+          hwReleasedRef.current = true;
           setHwReleased(true);
           setRightPanel('participants');
           Alert.alert('📝 Homework Assigned!', 'Your teacher has released homework for this class. Check the Participants tab.', [{ text: 'View Now' }]);
@@ -873,33 +949,6 @@ export const LiveClassroomScreen: React.FC = () => {
         </div>
       )}
 
-      {/* ── TOP HEADER ── */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleLeave} style={styles.headerBtn}>
-          <Ionicons name="arrow-back" size={22} color="white" />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <View style={styles.liveBadge}>
-            <Animated.View style={[styles.liveDot, { opacity: recDotAnim }]} />
-            <Text style={styles.liveText}>LIVE</Text>
-          </View>
-          <Text style={styles.headerTitle} numberOfLines={1}>{schedule?.title || 'Live Class'}</Text>
-        </View>
-        <View style={styles.headerRight}>
-          <Text style={styles.headerSubject}>{schedule?.subject}</Text>
-          {Platform.OS === 'web' && (
-            <TouchableOpacity
-              onPress={handleWebFullscreen}
-              style={[styles.headerBtn, { marginLeft: 4, backgroundColor: '#334155' }]}
-            >
-              <Text style={{ color: 'white', fontSize: 11, fontWeight: '700' }}>⛶ Full</Text>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity onPress={handleLeave} style={[styles.headerBtn, { marginLeft: 8, backgroundColor: '#EF4444' }]}>
-            <Text style={{ color: 'white', fontSize: 11, fontWeight: '700' }}>Leave</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
 
       {/* ── MAIN BODY ── */}
       <View style={styles.body}>
@@ -1065,7 +1114,7 @@ export const LiveClassroomScreen: React.FC = () => {
                 <View style={{ 
                   position: 'absolute', 
                   bottom: 12, 
-                  left: 110, 
+                  left: 12, 
                   zIndex: 100, 
                   flexDirection: 'row', 
                   gap: 8, 
@@ -1080,46 +1129,46 @@ export const LiveClassroomScreen: React.FC = () => {
                       const hasVideo = !!studentVideoTracks[p.identity];
                       return (
                         <View key={p.identity} style={{ 
-                          width: 90, 
-                          height: 60, 
-                          borderRadius: 8, 
-                          borderWidth: 2,
-                          borderColor: p.isMuted ? '#EF4444' : '#8B5CF6', 
-                          backgroundColor: '#0F172A', 
-                          overflow: 'hidden', 
-                          position: 'relative',
-                          elevation: 5,
-                          shadowColor: '#000',
-                          shadowOffset: { width: 0, height: 2 },
-                          shadowOpacity: 0.5,
-                          shadowRadius: 2,
+                           width: 140, 
+                           height: 95, 
+                           borderRadius: 8, 
+                           borderWidth: 2,
+                           borderColor: p.isMuted ? '#EF4444' : '#8B5CF6', 
+                           backgroundColor: '#0F172A', 
+                           overflow: 'hidden', 
+                           position: 'relative',
+                           elevation: 5,
+                           shadowColor: '#000',
+                           shadowOffset: { width: 0, height: 2 },
+                           shadowOpacity: 0.5,
+                           shadowRadius: 2,
                         }}>
                           {Platform.OS === 'web' && hasVideo ? (
                             <StudentVideoView track={studentVideoTracks[p.identity]} style={{ width: '100%', height: '100%' }} />
                           ) : (
                             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1E293B' }}>
-                              <Ionicons name="person" size={16} color="#94A3B8" />
-                              <Text style={{ color: '#94A3B8', fontSize: 6.5, fontWeight: 'bold', marginTop: 2 }}>NO VIDEO</Text>
+                              <Ionicons name="person" size={24} color="#94A3B8" />
+                              <Text style={{ color: '#94A3B8', fontSize: 9, fontWeight: 'bold', marginTop: 2 }}>NO VIDEO</Text>
                             </View>
                           )}
                           
                           <View style={{ 
                             position: 'absolute', 
-                            bottom: 2, 
-                            left: 2, 
-                            right: 2,
+                            bottom: 4, 
+                            left: 4, 
+                            right: 4,
                             backgroundColor: 'rgba(0,0,0,0.7)', 
-                            paddingHorizontal: 4,
-                            paddingVertical: 1, 
-                            borderRadius: 3, 
+                            paddingHorizontal: 6,
+                            paddingVertical: 3, 
+                            borderRadius: 4, 
                             flexDirection: 'row',
                             alignItems: 'center', 
                             justifyContent: 'space-between'
                           }}>
-                            <Text style={{ color: 'white', fontSize: 7, fontWeight: 'bold', maxWidth: 50 }} numberOfLines={1}>
+                            <Text style={{ color: 'white', fontSize: 9, fontWeight: 'bold', maxWidth: 90 }} numberOfLines={1}>
                               {p.name}
                             </Text>
-                            <Text style={{ color: 'white', fontSize: 7 }}>
+                            <Text style={{ color: 'white', fontSize: 9 }}>
                               {p.isMuted ? '🔇' : '🔊'}
                             </Text>
                           </View>
@@ -1129,12 +1178,224 @@ export const LiveClassroomScreen: React.FC = () => {
                   })()}
                 </View>
               )}
+
+              {/* ── FLOATING OVERLAY HUD ELEMENTS ── */}
+              {/* 1. Top-Left Back / Exit and badges details */}
+              <View style={{
+                position: 'absolute',
+                top: 12,
+                left: 12,
+                zIndex: 200,
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: 'rgba(15, 23, 42, 0.75)',
+                borderRadius: 24,
+                paddingLeft: 4,
+                paddingRight: 16,
+                paddingVertical: 4,
+                gap: 8,
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.1)',
+              }}>
+                <TouchableOpacity 
+                  onPress={handleLeave} 
+                  style={{ 
+                    width: 32, 
+                    height: 32, 
+                    borderRadius: 16, 
+                    backgroundColor: 'rgba(255,255,255,0.15)', 
+                    alignItems: 'center', 
+                    justifyContent: 'center' 
+                  }}
+                >
+                  <Ionicons name="arrow-back" size={18} color="white" />
+                </TouchableOpacity>
+                <View style={{ flexDirection: 'column' }}>
+                  <Text style={{ color: 'white', fontSize: 11, fontWeight: 'bold' }} numberOfLines={1}>
+                    {schedule?.title || 'Live Class'}
+                  </Text>
+                  <Text style={{ color: '#00B6A6', fontSize: 9, fontWeight: '600' }}>
+                    {schedule?.subject || 'Class'}
+                  </Text>
+                </View>
+                <View style={{ 
+                  flexDirection: 'row', 
+                  alignItems: 'center', 
+                  backgroundColor: '#EF4444', 
+                  borderRadius: 12, 
+                  paddingHorizontal: 6, 
+                  paddingVertical: 2, 
+                  gap: 3,
+                  marginLeft: 6
+                }}>
+                  <Animated.View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: 'white', opacity: recDotAnim }} />
+                  <Text style={{ color: 'white', fontSize: 8, fontWeight: '800' }}>LIVE</Text>
+                </View>
+              </View>
+
+              {/* 2. Top-Right Slide count badge */}
+              <View style={{ 
+                position: 'absolute', 
+                top: 12, 
+                right: 12, 
+                zIndex: 200, 
+                backgroundColor: 'rgba(15, 23, 42, 0.75)', 
+                paddingHorizontal: 10, 
+                paddingVertical: 6, 
+                borderRadius: 12, 
+                borderWidth: 1, 
+                borderColor: 'rgba(255,255,255,0.1)' 
+              }}>
+                <Text style={{ color: 'white', fontSize: 9, fontWeight: '800' }}>
+                  SLIDE {currentSlide + 1} / {totalSlides}
+                </Text>
+              </View>
+
+              {/* 3. Bottom-Right Floating Controls HUD */}
+              <View style={{
+                position: 'absolute',
+                bottom: 12,
+                right: 12,
+                zIndex: 200,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+              }}>
+                {/* Apply Mic / Mute Button */}
+                {(() => {
+                  const isOnStage = stageParticipants.some((p) => p.identity === user.phone);
+                  if (isOnStage) {
+                    return (
+                      <TouchableOpacity
+                        style={{
+                          width: 42,
+                          height: 42,
+                          borderRadius: 21,
+                          backgroundColor: isMicOn ? 'rgba(16, 185, 129, 0.9)' : 'rgba(239, 68, 68, 0.9)',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderWidth: 1,
+                          borderColor: isMicOn ? '#10B981' : '#EF4444',
+                          shadowColor: '#000',
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.25,
+                          shadowRadius: 3.84,
+                          elevation: 5,
+                        }}
+                        onPress={() => {
+                          const next = !isMicOn;
+                          setIsMicOn(next);
+                          postLiveEvent(activeClassSchedule._id, user.phone, user.name, next ? 'MicOn' : 'MicOff');
+                        }}
+                      >
+                        <Ionicons name={isMicOn ? 'mic' : 'mic-off'} size={20} color="white" />
+                      </TouchableOpacity>
+                    );
+                  } else if (allowStage) {
+                    return (
+                      <TouchableOpacity
+                        style={{
+                          width: 42,
+                          height: 42,
+                          borderRadius: 21,
+                          backgroundColor: handRaised ? 'rgba(245, 158, 11, 0.9)' : 'rgba(15, 23, 42, 0.75)',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderWidth: 1,
+                          borderColor: handRaised ? '#F59E0B' : 'rgba(255,255,255,0.1)',
+                          shadowColor: '#000',
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.25,
+                          shadowRadius: 3.84,
+                          elevation: 5,
+                        }}
+                        onPress={toggleRaiseHand}
+                      >
+                        <Ionicons name={handRaised ? 'hand-right' : 'hand-right-outline'} size={20} color={handRaised ? 'white' : '#94A3B8'} />
+                      </TouchableOpacity>
+                    );
+                  }
+                  return null;
+                })()}
+
+                {/* Camera Toggle Button (Only if on stage) */}
+                {(() => {
+                  const isOnStage = stageParticipants.some((p) => p.identity === user.phone);
+                  if (isOnStage) {
+                    return (
+                      <TouchableOpacity
+                        style={{
+                          width: 42,
+                          height: 42,
+                          borderRadius: 21,
+                          backgroundColor: isCameraOn ? 'rgba(16, 185, 129, 0.9)' : 'rgba(239, 68, 68, 0.9)',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderWidth: 1,
+                          borderColor: isCameraOn ? '#10B981' : '#EF4444',
+                          shadowColor: '#000',
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.25,
+                          shadowRadius: 3.84,
+                          elevation: 5,
+                        }}
+                        onPress={() => {
+                          const next = !isCameraOn;
+                          setIsCameraOn(next);
+                          postLiveEvent(activeClassSchedule._id, user.phone, user.name, next ? 'CameraOn' : 'CameraOff');
+                        }}
+                      >
+                        <Ionicons name={isCameraOn ? 'videocam' : 'videocam-off'} size={20} color="white" />
+                      </TouchableOpacity>
+                    );
+                  }
+                  return null;
+                })()}
+
+                {/* React Button */}
+                <TouchableOpacity
+                  style={{
+                    width: 42,
+                    height: 42,
+                    borderRadius: 21,
+                    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderWidth: 1,
+                    borderColor: 'rgba(255,255,255,0.1)',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.25,
+                    shadowRadius: 3.84,
+                    elevation: 5,
+                  }}
+                  onPress={() => sendReaction('❤️')}
+                >
+                  <Ionicons name="heart" size={20} color="#EC4899" />
+                </TouchableOpacity>
+
+                {/* End/Leave Class Button */}
+                <TouchableOpacity
+                  style={{
+                    width: 42,
+                    height: 42,
+                    borderRadius: 21,
+                    backgroundColor: '#EF4444',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.25,
+                    shadowRadius: 3.84,
+                    elevation: 5,
+                  }}
+                  onPress={handleLeave}
+                >
+                  <Ionicons name="call" size={20} color="white" style={{ transform: [{ rotate: '135deg' }] }} />
+                </TouchableOpacity>
+              </View>
             </View>
 
-            {/* Slide navigation (read-only for students, follows teacher) */}
-            <View style={styles.slideNav}>
-              <Text style={styles.slideNavText}>Slide {currentSlide + 1} / {totalSlides}</Text>
-            </View>
           </View>
 
           {/* Redundant student stage bottom strip removed to focus on absolute overlay */}
@@ -1148,9 +1409,14 @@ export const LiveClassroomScreen: React.FC = () => {
             <View style={styles.teacherFeedBox}>
               {Platform.OS === 'web' && teacherVideoTrack ? (
                 <video
-                  ref={studentVideoRef}
+                  ref={(el) => {
+                    if (el && teacherVideoTrack) {
+                      teacherVideoTrack.attach(el);
+                    }
+                  }}
                   autoPlay
                   playsInline
+                  muted
                   style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 6 }}
                 />
               ) : (
@@ -1168,174 +1434,116 @@ export const LiveClassroomScreen: React.FC = () => {
             </View>
           </View>
 
-          {/* Panel Tab Switcher */}
-          <View style={styles.panelTabs}>
-            {(['chat', 'quiz', 'participants'] as const).map((tab) => (
-              <TouchableOpacity
-                key={tab}
-                onPress={() => setRightPanel(tab)}
-                style={[styles.panelTab, rightPanel === tab && styles.panelTabActive]}
-              >
-                <Text style={[styles.panelTabText, rightPanel === tab && styles.panelTabTextActive]}>
-                  {tab === 'chat' ? '💬' : tab === 'quiz' ? '📝' : '👥'}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* CHAT PANEL */}
-          {rightPanel === 'chat' && (
-            <View style={styles.chatPanel}>
-              <FlatList
-                data={chatMessages}
-                keyExtractor={(item) => item.id}
-                style={styles.chatList}
-                contentContainerStyle={{ paddingVertical: 8 }}
-                renderItem={({ item }) => <ChatBubble msg={item} myName={user.name} />}
-                ref={(ref) => {
-                  if (ref && chatMessages.length > 0) {
-                    ref.scrollToEnd({ animated: true });
-                  }
-                }}
-                onContentSizeChange={() => {}}
-              />
-
-              {/* Emoji Reactions Bar */}
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.emojiBar}>
-                {reactionEmojis.map((emoji) => (
-                  <TouchableOpacity key={emoji} onPress={() => sendReaction(emoji)} style={styles.emojiBtn}>
-                    <Text style={{ fontSize: 20 }}>{emoji}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-
-              {allowChat ? (
-                <View style={styles.chatInputRow}>
-                  <TextInput
-                    style={styles.chatInput}
-                    value={chatInput}
-                    onChangeText={setChatInput}
-                    placeholder="Type a message..."
-                    placeholderTextColor="#64748B"
-                    onSubmitEditing={sendChatMessage}
-                    returnKeyType="send"
-                  />
-                  <TouchableOpacity onPress={sendChatMessage} style={styles.sendBtn}>
-                    <Ionicons name="send" size={18} color="white" />
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <View style={styles.chatInputRowMuted}>
-                  <Text style={styles.chatMutedText}>🚫 Chat has been muted by the teacher</Text>
-                </View>
-              )}
+          {/* Bottom Tabs + Content Panel (76% height) */}
+          <View style={{ flex: 1, height: '76%' }}>
+            {/* Panel Tab Switcher */}
+            <View style={styles.panelTabs}>
+              {(['chat', 'quiz', 'participants'] as const).map((tab) => (
+                <TouchableOpacity
+                  key={tab}
+                  onPress={() => setRightPanel(tab)}
+                  style={[styles.panelTab, rightPanel === tab && styles.panelTabActive]}
+                >
+                  <Text style={[styles.panelTabText, rightPanel === tab && styles.panelTabTextActive]}>
+                    {tab === 'chat' ? '💬' : tab === 'quiz' ? '📝' : '👥'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
-          )}
 
-          {/* QUIZ PANEL */}
-          {rightPanel === 'quiz' && (
-            <View style={styles.quizPanel}>
-              {activeQuiz ? (
-                <QuizView
-                  quiz={activeQuiz}
-                  selectedOption={selectedOption}
-                  submitted={quizSubmitted}
-                  timeLeft={quizTimeLeft}
-                  onSelectOption={(opt) => {
-                    if (!quizSubmitted) setSelectedOption(opt);
+            {/* CHAT PANEL */}
+            {rightPanel === 'chat' && (
+              <View style={styles.chatPanel}>
+                <FlatList
+                  data={chatMessages}
+                  keyExtractor={(item) => item.id}
+                  style={styles.chatList}
+                  contentContainerStyle={{ paddingVertical: 8 }}
+                  renderItem={({ item }) => <ChatBubble msg={item} myName={user.name} />}
+                  ref={(ref) => {
+                    if (ref && chatMessages.length > 0) {
+                      ref.scrollToEnd({ animated: true });
+                    }
                   }}
-                  onSubmit={() => handleQuizSubmit(selectedOption)}
+                  onContentSizeChange={() => {}}
                 />
-              ) : (
-                <View style={styles.quizEmpty}>
-                  <Ionicons name="help-circle-outline" size={48} color="#334155" />
-                  <Text style={styles.quizEmptyText}>No active quiz right now</Text>
-                  <Text style={styles.quizEmptySubtext}>The teacher will launch a quiz here soon</Text>
-                </View>
-              )}
-            </View>
-          )}
 
-          {/* PARTICIPANTS PANEL */}
-          {rightPanel === 'participants' && (
-            <View style={styles.participantsPanel}>
-              <Text style={styles.participantsPanelTitle}>Live Participants</Text>
-              <View style={styles.participantRow}>
-                <Ionicons name="person-circle" size={24} color="#00B6A6" />
-                <Text style={styles.participantName}>{schedule?.teacherName || 'Teacher'}</Text>
-                <View style={styles.teacherBadge}><Text style={styles.teacherBadgeText}>Teacher</Text></View>
+                {/* Emoji Reactions Bar */}
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.emojiBar}>
+                  {reactionEmojis.map((emoji) => (
+                    <TouchableOpacity key={emoji} onPress={() => sendReaction(emoji)} style={styles.emojiBtn}>
+                      <Text style={{ fontSize: 20 }}>{emoji}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+
+                {allowChat ? (
+                  <View style={styles.chatInputRow}>
+                    <TextInput
+                      style={styles.chatInput}
+                      value={chatInput}
+                      onChangeText={setChatInput}
+                      placeholder="Type a message..."
+                      placeholderTextColor="#64748B"
+                      onSubmitEditing={sendChatMessage}
+                      returnKeyType="send"
+                    />
+                    <TouchableOpacity onPress={sendChatMessage} style={styles.sendBtn}>
+                      <Ionicons name="send" size={18} color="white" />
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={styles.chatInputRowMuted}>
+                    <Text style={styles.chatMutedText}>🚫 Chat has been muted by the teacher</Text>
+                  </View>
+                )}
               </View>
-              <View style={styles.participantRow}>
-                <Ionicons name="person-circle" size={24} color="#94A3B8" />
-                <Text style={styles.participantName}>{user.name || 'You'}</Text>
-                <View style={styles.youBadge}><Text style={styles.youBadgeText}>You</Text></View>
+            )}
+
+            {/* QUIZ PANEL */}
+            {rightPanel === 'quiz' && (
+              <View style={styles.quizPanel}>
+                {activeQuiz ? (
+                  <QuizView
+                    quiz={activeQuiz}
+                    selectedOption={selectedOption}
+                    submitted={quizSubmitted}
+                    timeLeft={quizTimeLeft}
+                    onSelectOption={(opt) => {
+                      if (!quizSubmitted) setSelectedOption(opt);
+                    }}
+                    onSubmit={() => handleQuizSubmit(selectedOption)}
+                  />
+                ) : (
+                  <View style={styles.quizEmpty}>
+                    <Ionicons name="help-circle-outline" size={48} color="#334155" />
+                    <Text style={styles.quizEmptyText}>No active quiz right now</Text>
+                    <Text style={styles.quizEmptySubtext}>The teacher will launch a quiz here soon</Text>
+                  </View>
+                )}
               </View>
-            </View>
-          )}
+            )}
+
+            {/* PARTICIPANTS PANEL */}
+            {rightPanel === 'participants' && (
+              <View style={styles.participantsPanel}>
+                <Text style={styles.participantsPanelTitle}>Live Participants</Text>
+                <View style={styles.participantRow}>
+                  <Ionicons name="person-circle" size={24} color="#00B6A6" />
+                  <Text style={styles.participantName}>{schedule?.teacherName || 'Teacher'}</Text>
+                  <View style={styles.teacherBadge}><Text style={styles.teacherBadgeText}>Teacher</Text></View>
+                </View>
+                <View style={styles.participantRow}>
+                  <Ionicons name="person-circle" size={24} color="#94A3B8" />
+                  <Text style={styles.participantName}>{user.name || 'You'}</Text>
+                  <View style={styles.youBadge}><Text style={styles.youBadgeText}>You</Text></View>
+                </View>
+              </View>
+            )}
+          </View>
         </View>
       </View>
 
-      {/* ── BOTTOM ACTION BAR ── */}
-      <View style={styles.bottomBar}>
-        <TouchableOpacity
-          style={[styles.bottomBtn, isMicOn && styles.bottomBtnActive]}
-          onPress={() => {
-            const studentOnStage = stageParticipants.some((p) => p.identity === user.phone);
-            if (!studentOnStage) {
-              Alert.alert('Stage Access Required', 'You must be allowed on stage by the teacher to toggle your microphone.');
-              return;
-            }
-            const next = !isMicOn;
-            setIsMicOn(next);
-            postLiveEvent(activeClassSchedule._id, user.phone, user.name, next ? 'MicOn' : 'MicOff');
-          }}
-        >
-          <Ionicons name={isMicOn ? 'mic' : 'mic-off'} size={20} color={isMicOn ? '#00B6A6' : '#94A3B8'} />
-          <Text style={[styles.bottomBtnLabel, isMicOn && { color: '#00B6A6' }]}>Mic</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.bottomBtn, isCameraOn && styles.bottomBtnActive]}
-          onPress={() => {
-            const studentOnStage = stageParticipants.some((p) => p.identity === user.phone);
-            if (!studentOnStage) {
-              Alert.alert('Stage Access Required', 'You must be allowed on stage by the teacher to toggle your camera.');
-              return;
-            }
-            const next = !isCameraOn;
-            setIsCameraOn(next);
-            postLiveEvent(activeClassSchedule._id, user.phone, user.name, next ? 'CameraOn' : 'CameraOff');
-          }}
-        >
-          <Ionicons name={isCameraOn ? 'videocam' : 'videocam-off'} size={20} color={isCameraOn ? '#00B6A6' : '#94A3B8'} />
-          <Text style={[styles.bottomBtnLabel, isCameraOn && { color: '#00B6A6' }]}>Camera</Text>
-        </TouchableOpacity>
-
-        {allowStage && (
-          <TouchableOpacity
-            style={[styles.bottomBtn, handRaised && styles.bottomBtnRaise]}
-            onPress={toggleRaiseHand}
-          >
-            <Text style={{ fontSize: 22 }}>{handRaised ? '✋' : '🖐️'}</Text>
-            <Text style={[styles.bottomBtnLabel, handRaised && { color: '#FBBF24' }]}>
-              {handRaised ? 'Lower' : 'Raise'}
-            </Text>
-          </TouchableOpacity>
-        )}
-
-        <TouchableOpacity
-          style={styles.bottomBtn}
-          onPress={() => sendReaction('❤️')}
-        >
-          <Ionicons name="heart" size={20} color="#EC4899" />
-          <Text style={styles.bottomBtnLabel}>React</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={[styles.bottomBtn, { backgroundColor: '#EF4444' }]} onPress={handleLeave}>
-          <Ionicons name="call" size={20} color="white" style={{ transform: [{ rotate: '135deg' }] }} />
-          <Text style={[styles.bottomBtnLabel, { color: 'white' }]}>End</Text>
-        </TouchableOpacity>
-      </View>
 
       {/* ── FLOATING REACTIONS ── */}
       {reactionQueue.map((r) => (
@@ -1437,9 +1645,36 @@ const QuizView: React.FC<{
           <Text style={quizStyles.submitBtnText}>Submit Answer</Text>
         </TouchableOpacity>
       ) : (
-        <View style={quizStyles.submittedBanner}>
-          <Ionicons name="checkmark-done-circle" size={20} color="#10B981" />
-          <Text style={quizStyles.submittedText}>Answer submitted!</Text>
+        <View style={[
+          quizStyles.submittedBanner,
+          selectedOption === null 
+            ? { backgroundColor: 'rgba(100,116,139,0.15)' } 
+            : selectedOption === quiz.correctAnswer
+              ? { backgroundColor: 'rgba(16,185,129,0.15)' }
+              : { backgroundColor: 'rgba(239,68,68,0.15)' }
+        ]}>
+          {selectedOption === null ? (
+            <>
+              <Ionicons name="alert-circle" size={20} color="#94A3B8" />
+              <Text style={[quizStyles.submittedText, { color: '#CBD5E1' }]}>
+                Time's Up! Skipped. Correct: {quiz.correctAnswer}
+              </Text>
+            </>
+          ) : selectedOption === quiz.correctAnswer ? (
+            <>
+              <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+              <Text style={[quizStyles.submittedText, { color: '#10B981' }]}>
+                Correct! You chose {selectedOption} (+{quiz.marks || 1} mark)
+              </Text>
+            </>
+          ) : (
+            <>
+              <Ionicons name="close-circle" size={20} color="#EF4444" />
+              <Text style={[quizStyles.submittedText, { color: '#EF4444' }]}>
+                Incorrect! You chose {selectedOption}. Correct: {quiz.correctAnswer}
+              </Text>
+            </>
+          )}
         </View>
       )}
     </ScrollView>
@@ -1599,7 +1834,7 @@ const styles = StyleSheet.create({
   body: { flex: 1, flexDirection: 'row' },
 
   // Canvas area (left ~65%)
-  canvasArea: { flex: 65, backgroundColor: '#0D1829', position: 'relative' },
+  canvasArea: { flex: 78, backgroundColor: '#0D1829', position: 'relative' },
   teacherCameraPip: { position: 'absolute', top: 10, right: 10, zIndex: 10 },
   teacherCameraBox: { width: 90, height: 70, backgroundColor: '#1E293B', borderRadius: 10, borderWidth: 2, borderColor: '#00B6A6', alignItems: 'center', justifyContent: 'center', gap: 4 },
   teacherLabel: { color: '#94A3B8', fontSize: 9, fontWeight: '600' },
@@ -1628,9 +1863,9 @@ const styles = StyleSheet.create({
   speakingDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#10B981' },
 
   // Right Panel
-  rightPanel: { flex: 35, backgroundColor: '#0F1A2A', borderLeftWidth: 1, borderLeftColor: '#1E293B' },
-  feedsPanel: { padding: 8, borderBottomWidth: 1, borderBottomColor: '#1E293B', backgroundColor: '#0B132B' },
-  teacherFeedBox: { width: '100%', height: 110, borderRadius: 8, borderWidth: 1, borderColor: '#00B6A6', overflow: 'hidden', position: 'relative' },
+  rightPanel: { flex: 22, backgroundColor: '#0F1A2A', borderLeftWidth: 1, borderLeftColor: '#1E293B' },
+  feedsPanel: { height: '24%', padding: 8, borderBottomWidth: 1, borderBottomColor: '#1E293B', backgroundColor: '#0B132B' },
+  teacherFeedBox: { flex: 1, width: '100%', borderRadius: 8, borderWidth: 1, borderColor: '#00B6A6', overflow: 'hidden', position: 'relative' },
   studentFeedBox: { width: 80, height: 55, borderRadius: 6, borderWidth: 1, borderColor: '#8B5CF6', overflow: 'hidden', marginRight: 6, position: 'relative', backgroundColor: '#1E293B' },
   panelTabs: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#1E293B' },
   panelTab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },

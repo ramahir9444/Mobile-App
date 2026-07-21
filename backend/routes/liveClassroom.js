@@ -61,7 +61,7 @@ router.post('/token', async (req, res) => {
     at.addGrant({
       roomJoin: true,
       room: schedule.roomName,
-      canPublish: !!isTeacher, // only teacher can publish by default
+      canPublish: true, // allow all participants to publish (controlled dynamically client-side)
       canSubscribe: true,
       canPublishData: true,
       roomAdmin: !!isTeacher,
